@@ -4,15 +4,20 @@ import type {
   AuthResult,
   CreatePostInput,
   DateString,
+  EventOutcome,
   ID,
   Iqamah,
   JummahSession,
   Membership,
+  MemberRole,
   Mosque,
+  MosqueDashboard,
+  MosqueMember,
   NotificationPrefs,
   Post,
   PostType,
   PrayerTable,
+  RosterEntry,
   Signup,
   SignupInput,
   User,
@@ -81,6 +86,20 @@ export interface IqamahConfigInput {
   jummah: Omit<JummahSession, 'mosqueId'>[];
 }
 
+export interface RosterFilter {
+  /** Only posts that haven't ended yet. */
+  upcoming?: boolean;
+  types?: PostType[];
+  /** Only entries for this post. */
+  postId?: ID;
+}
+
+/** One member plus everything they've signed up for here. */
+export interface MemberDetail {
+  member: MosqueMember;
+  history: RosterEntry[];
+}
+
 /**
  * The single surface every screen talks to.
  *
@@ -115,6 +134,23 @@ export interface MEnsembleApi {
   cancelPost(id: ID): Promise<Post>;
   getIqamahConfig(mosqueId: ID): Promise<MosqueIqamahConfig>;
   setIqamahConfig(mosqueId: ID, input: IqamahConfigInput): Promise<MosqueIqamahConfig>;
+
+  /** Every number on the coordinator's home, in one round trip. */
+  getMosqueDashboard(mosqueId: ID): Promise<MosqueDashboard>;
+  /**
+   * Everyone who signed up for anything at this mosque, flattened.
+   * `filter.upcoming` keeps only posts that haven't ended — the list you work
+   * from on the day. Sorted soonest-first.
+   */
+  getMosqueRoster(mosqueId: ID, filter?: RosterFilter): Promise<RosterEntry[]>;
+  /** The mosque's people: followers and role-holders, with their track record. */
+  getMosqueMembers(mosqueId: ID): Promise<MosqueMember[]>;
+  /** One person's full history at this mosque. */
+  getMemberDetail(mosqueId: ID, userId: ID): Promise<MemberDetail>;
+  /** Promote to coordinator or demote to member. Never removes the follow. */
+  setMemberRole(mosqueId: ID, userId: ID, role: MemberRole): Promise<MosqueMember>;
+  /** Posts that have already ended, newest first — how turnout actually went. */
+  getEventOutcomes(mosqueId: ID): Promise<EventOutcome[]>;
 
   signup(postId: ID): Promise<Signup>;
   withdraw(postId: ID): Promise<void>;

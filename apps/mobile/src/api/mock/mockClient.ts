@@ -10,17 +10,24 @@ import {
   API_ERROR,
   type AuthResult,
   type CreatePostInput,
+  type EventOutcome,
   type FeedFilter,
   type Follow,
   type ID,
   type Iqamah,
   type JummahSession,
   type MEnsembleApi,
+  type MemberDetail,
+  type MemberRole,
   type Membership,
   type Mosque,
+  type MosqueDashboard,
+  type MosqueMember,
   type NotificationPrefs,
   type Post,
   type PublicUser,
+  type RosterEntry,
+  type RosterFilter,
   type ServiceHours,
   type Signup,
   type SignupInput,
@@ -143,6 +150,92 @@ function isLive(post: Post, now: number): boolean {
 }
 
 const byStart = (a: Post, b: Post) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime();
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Minutes a post runs for — what one attended shift is worth. */
+function postMinutes(post: Post): number {
+  const mins = (new Date(post.endAt).getTime() - new Date(post.startAt).getTime()) / 60000;
+  return Math.max(0, Math.round(mins));
+}
+
+/** Flattens a signup against its post, the shape every admin list renders. */
+function toRosterEntry(signup: Signup, post: Post, name: string): RosterEntry {
+  return {
+    signup: clone(signup),
+    postId: post._id,
+    postTitle: post.title,
+    postType: post.type,
+    startAt: post.startAt,
+    endAt: post.endAt,
+    userId: signup.userId,
+    userName: name,
+  };
+}
+
+/**
+ * The mosque's people: everyone who follows it plus everyone holding a role,
+ * scored by what they have actually turned up to. A role without a follow
+ * still counts — a coordinator need not follow the mosque they run.
+ */
+function buildMembers(mosqueId: ID): MosqueMember[] {
+  const postIds = new Set(state.posts.filter((p) => p.mosqueId === mosqueId).map((p) => p._id));
+  const postById = new Map(state.posts.map((p) => [p._id, p]));
+
+  const joinedAt = new Map<ID, string>();
+  for (const follow of state.follows) {
+    if (follow.mosqueId === mosqueId) joinedAt.set(follow.userId, follow.createdAt);
+  }
+  const roleOf = new Map<ID, MemberRole>();
+  for (const m of state.memberships) {
+    if (m.mosqueId !== mosqueId) continue;
+    roleOf.set(m.userId, m.role);
+    const seen = joinedAt.get(m.userId);
+    if (!seen || new Date(m.createdAt) < new Date(seen)) joinedAt.set(m.userId, m.createdAt);
+  }
+
+  // Anyone who ever signed up here belongs in the directory too, follow or not.
+  for (const signup of state.signups) {
+    if (!postIds.has(signup.postId) || joinedAt.has(signup.userId)) continue;
+    joinedAt.set(signup.userId, signup.createdAt ?? new Date().toISOString());
+  }
+
+  const members: MosqueMember[] = [];
+  for (const [userId, joined] of joinedAt) {
+    const user = state.users.find((u) => u._id === userId);
+    if (!user) continue;
+
+    const mine = state.signups.filter(
+      (s) => s.userId === userId && postIds.has(s.postId) && s.status === 'confirmed',
+    );
+    const attended = mine.filter((s) => s.checkedInAt);
+    const minutesServed = attended.reduce((sum, s) => {
+      const post = postById.get(s.postId);
+      return post && post.type === 'volunteer' ? sum + postMinutes(post) : sum;
+    }, 0);
+    const lastSeenAt = attended
+      .map((s) => s.checkedInAt as string)
+      .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0];
+
+    members.push({
+      userId,
+      name: user.name,
+      role: roleOf.get(userId) ?? 'member',
+      joinedAt: joined,
+      signupCount: mine.length,
+      attendedCount: attended.length,
+      minutesServed,
+      ...(lastSeenAt ? { lastSeenAt } : {}),
+      interests: [...user.interests],
+    });
+  }
+
+  // Coordinators first, then whoever shows up most.
+  return members.sort((a, b) => {
+    if (a.role !== b.role) return a.role === 'admin' ? -1 : 1;
+    return b.attendedCount - a.attendedCount || a.name.localeCompare(b.name);
+  });
+}
 
 // ----------------------------------------------------------------- client ---
 
@@ -317,6 +410,165 @@ export const mockApi: MEnsembleApi = {
       iqamah: clone(state.iqamah.filter((i) => i.mosqueId === mosqueId)),
       jummah: clone(state.jummah.filter((j) => j.mosqueId === mosqueId)),
     });
+  },
+
+  async getMosqueDashboard(mosqueId) {
+    requireAdmin(mosqueId);
+    const now = Date.now();
+    const posts = state.posts.filter((p) => p.mosqueId === mosqueId);
+    const live = posts.filter((p) => isLive(p, now));
+    const ended = posts.filter((p) => !p.cancelledAt && new Date(p.endAt).getTime() < now);
+    const liveIds = new Set(live.map((p) => p._id));
+    const endedIds = new Set(ended.map((p) => p._id));
+
+    const volunteer = live.filter((p) => p.type === 'volunteer' && p.slotsNeeded !== undefined);
+    const slotsNeeded = volunteer.reduce((sum, p) => sum + (p.slotsNeeded ?? 0), 0);
+    const slotsUnfilled = volunteer.reduce(
+      (sum, p) => sum + Math.max(0, (p.slotsNeeded ?? 0) - p.slotsFilled),
+      0,
+    );
+
+    const confirmedLive = state.signups.filter(
+      (s) => liveIds.has(s.postId) && s.status === 'confirmed',
+    );
+    const newSignups24h = confirmedLive.filter(
+      (s) => s.createdAt && now - new Date(s.createdAt).getTime() < DAY_MS,
+    ).length;
+
+    const confirmedEnded = state.signups.filter(
+      (s) => endedIds.has(s.postId) && s.status === 'confirmed',
+    );
+    const attendedEnded = confirmedEnded.filter((s) => s.checkedInAt);
+    const attendanceRate = confirmedEnded.length
+      ? Math.round((attendedEnded.length / confirmedEnded.length) * 100)
+      : 0;
+
+    const postById = new Map(posts.map((p) => [p._id, p]));
+    const minutesServed = attendedEnded.reduce((sum, s) => {
+      const post = postById.get(s.postId);
+      return post && post.type === 'volunteer' ? sum + postMinutes(post) : sum;
+    }, 0);
+
+    const cutoff = now + 7 * DAY_MS;
+
+    return delay<MosqueDashboard>({
+      mosqueId,
+      upcomingCount: live.filter((p) => new Date(p.startAt).getTime() <= cutoff).length,
+      slotsUnfilled,
+      slotsNeeded,
+      newSignups24h,
+      activePeople: new Set(confirmedLive.map((s) => s.userId)).size,
+      followerCount: state.follows.filter((f) => f.mosqueId === mosqueId).length,
+      attendanceRate,
+      minutesServed,
+    });
+  },
+
+  async getMosqueRoster(mosqueId, filter?: RosterFilter) {
+    requireAdmin(mosqueId);
+    const now = Date.now();
+    const posts = state.posts.filter((p) => {
+      if (p.mosqueId !== mosqueId || p.cancelledAt) return false;
+      if (filter?.postId && p._id !== filter.postId) return false;
+      if (filter?.types?.length && !filter.types.includes(p.type)) return false;
+      if (filter?.upcoming && new Date(p.endAt).getTime() < now) return false;
+      return true;
+    });
+    const postById = new Map(posts.map((p) => [p._id, p]));
+
+    const entries = state.signups
+      .filter((s) => postById.has(s.postId) && s.status === 'confirmed')
+      .map((s) => {
+        const post = postById.get(s.postId) as Post;
+        const user = state.users.find((u) => u._id === s.userId);
+        return toRosterEntry(s, post, user?.name ?? '—');
+      })
+      .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
+
+    return delay(entries);
+  },
+
+  async getMosqueMembers(mosqueId) {
+    requireAdmin(mosqueId);
+    return delay(buildMembers(mosqueId));
+  },
+
+  async getMemberDetail(mosqueId, userId) {
+    requireAdmin(mosqueId);
+    const member = buildMembers(mosqueId).find((m) => m.userId === userId);
+    if (!member) {
+      throw new ApiRequestError(API_ERROR.NOT_FOUND, 'Nobody here by that id.', 404);
+    }
+    const postById = new Map(
+      state.posts.filter((p) => p.mosqueId === mosqueId).map((p) => [p._id, p]),
+    );
+    const history = state.signups
+      .filter((s) => s.userId === userId && postById.has(s.postId) && s.status === 'confirmed')
+      .map((s) => toRosterEntry(s, postById.get(s.postId) as Post, member.name))
+      .sort((a, b) => new Date(b.startAt).getTime() - new Date(a.startAt).getTime());
+
+    return delay<MemberDetail>({ member, history });
+  },
+
+  async setMemberRole(mosqueId, userId, role) {
+    const actor = requireAdmin(mosqueId);
+    // Losing your own role would lock you out of the screen you are standing on.
+    if (actor._id === userId && role !== 'admin') {
+      throw new ApiRequestError(
+        API_ERROR.FORBIDDEN,
+        'You cannot remove your own coordinator role.',
+        403,
+      );
+    }
+    const existing = state.memberships.find((m) => m.mosqueId === mosqueId && m.userId === userId);
+    if (existing) {
+      existing.role = role;
+    } else {
+      state.memberships.push({
+        _id: makeId('member'),
+        userId,
+        mosqueId,
+        role,
+        createdAt: new Date().toISOString(),
+      });
+    }
+    const member = buildMembers(mosqueId).find((m) => m.userId === userId);
+    if (!member) {
+      throw new ApiRequestError(API_ERROR.NOT_FOUND, 'Nobody here by that id.', 404);
+    }
+    return delay(member);
+  },
+
+  async getEventOutcomes(mosqueId) {
+    requireAdmin(mosqueId);
+    const now = Date.now();
+    const ended = state.posts.filter(
+      (p) =>
+        p.mosqueId === mosqueId &&
+        !p.cancelledAt &&
+        p.type !== 'announcement' &&
+        new Date(p.endAt).getTime() < now,
+    );
+
+    const outcomes = ended
+      .map<EventOutcome>((post) => {
+        const confirmed = state.signups.filter(
+          (s) => s.postId === post._id && s.status === 'confirmed',
+        );
+        return {
+          postId: post._id,
+          title: post.title,
+          type: post.type,
+          startAt: post.startAt,
+          endAt: post.endAt,
+          confirmed: confirmed.length,
+          attended: confirmed.filter((s) => s.checkedInAt).length,
+          target: post.slotsNeeded ?? post.capacity ?? null,
+        };
+      })
+      .sort((a, b) => new Date(b.startAt).getTime() - new Date(a.startAt).getTime());
+
+    return delay(outcomes);
   },
 
   // -------------------------------------------------------------- signups ---

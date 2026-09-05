@@ -209,3 +209,72 @@ export interface SignupInput {
   password: string;
   name: string;
 }
+
+// ─── Admin (mosque-side) ────────────────────────────────────────────────────
+// The coordinator's app reads these. They are derived views over the same
+// posts/signups/memberships above — never a second source of truth.
+
+/** A person as the mosque sees them: name plus how they've actually shown up. */
+export interface MosqueMember {
+  userId: ID;
+  name: string;
+  role: MemberRole;
+  /** When they first followed or were given a role here. */
+  joinedAt: Timestamp;
+  /** Confirmed signups at this mosque, all time. */
+  signupCount: number;
+  /** Of those, the ones they were checked in for. */
+  attendedCount: number;
+  /** Minutes served on volunteer posts they attended. */
+  minutesServed: number;
+  /** Last time they were checked in anywhere at this mosque. */
+  lastSeenAt?: Timestamp;
+  /** What they told us they care about — drives who to ask next. */
+  interests: string[];
+}
+
+/** One person's signup, flattened with the post it belongs to. */
+export interface RosterEntry {
+  signup: Signup;
+  postId: ID;
+  postTitle: string;
+  postType: PostType;
+  startAt: Timestamp;
+  endAt: Timestamp;
+  userId: ID;
+  userName: string;
+}
+
+/** The numbers on the dashboard. One call, so the home screen isn't an N+1. */
+export interface MosqueDashboard {
+  mosqueId: ID;
+  /** Live posts starting within the next 7 days. */
+  upcomingCount: number;
+  /** Volunteer slots still unfilled across every live post. */
+  slotsUnfilled: number;
+  /** Total volunteer slots requested across those posts. */
+  slotsNeeded: number;
+  /** Confirmed signups created in the last 24h. */
+  newSignups24h: number;
+  /** Distinct people with a confirmed signup at a live post. */
+  activePeople: number;
+  /** Everyone who follows this mosque. */
+  followerCount: number;
+  /** Checked-in ÷ confirmed across posts that have already ended, 0–100. */
+  attendanceRate: number;
+  /** Volunteer minutes served across all past posts. */
+  minutesServed: number;
+}
+
+/** A post that has already ended, with how the turnout actually went. */
+export interface EventOutcome {
+  postId: ID;
+  title: string;
+  type: PostType;
+  startAt: Timestamp;
+  endAt: Timestamp;
+  confirmed: number;
+  attended: number;
+  /** Slots or capacity — whatever the post asked for. Null when open-ended. */
+  target: number | null;
+}

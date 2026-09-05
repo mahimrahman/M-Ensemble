@@ -12,17 +12,24 @@ import type {
   AuthResult,
   CreatePostInput,
   DateString,
+  EventOutcome,
   FeedFilter,
   ID,
   IqamahConfigInput,
   MEnsembleApi,
+  MemberDetail,
+  MemberRole,
   Membership,
+  MosqueDashboard,
   MosqueIqamahConfig,
+  MosqueMember,
   Mosque,
   NotificationPrefs,
   Post,
   PrayerTable,
   PublicUser,
+  RosterEntry,
+  RosterFilter,
   ServiceHours,
   Signup,
   SignupInput,
@@ -69,6 +76,15 @@ const put = <T>(path: string, data: unknown) =>
   request<T>(path, { method: 'PUT', body: JSON.stringify(data) });
 const del = <T>(path: string) => request<T>(path, { method: 'DELETE' });
 
+function rosterQuery(filter?: RosterFilter): string {
+  const params = new URLSearchParams();
+  if (filter?.upcoming) params.set('upcoming', 'true');
+  if (filter?.types?.length) params.set('types', filter.types.join(','));
+  if (filter?.postId) params.set('post', filter.postId);
+  const qs = params.toString();
+  return qs ? `?${qs}` : '';
+}
+
 function feedQuery(filter?: FeedFilter): string {
   const params = new URLSearchParams();
   if (filter?.types?.length) params.set('types', filter.types.join(','));
@@ -112,6 +128,16 @@ export const httpApi: MEnsembleApi = {
   getIqamahConfig: (mosqueId: ID) => get<MosqueIqamahConfig>(`/mosques/${mosqueId}/iqamah`),
   setIqamahConfig: (mosqueId: ID, input: IqamahConfigInput) =>
     put<MosqueIqamahConfig>(`/mosques/${mosqueId}/iqamah`, input),
+
+  getMosqueDashboard: (mosqueId: ID) => get<MosqueDashboard>(`/mosques/${mosqueId}/dashboard`),
+  getMosqueRoster: (mosqueId: ID, filter?: RosterFilter) =>
+    get<RosterEntry[]>(`/mosques/${mosqueId}/roster${rosterQuery(filter)}`),
+  getMosqueMembers: (mosqueId: ID) => get<MosqueMember[]>(`/mosques/${mosqueId}/members`),
+  getMemberDetail: (mosqueId: ID, userId: ID) =>
+    get<MemberDetail>(`/mosques/${mosqueId}/members/${userId}`),
+  setMemberRole: (mosqueId: ID, userId: ID, role: MemberRole) =>
+    put<MosqueMember>(`/mosques/${mosqueId}/members/${userId}/role`, { role }),
+  getEventOutcomes: (mosqueId: ID) => get<EventOutcome[]>(`/mosques/${mosqueId}/outcomes`),
 
   signup: (postId: ID) => post<Signup>(`/posts/${postId}/signup`),
   withdraw: (postId: ID) => del<void>(`/posts/${postId}/signup`),
