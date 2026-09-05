@@ -19,7 +19,7 @@
     "android": {
       "package": "com.mahimrahman.mensemble",
       "adaptiveIcon": {
-        "backgroundColor": "#482A1A"
+        "backgroundColor": "#061E1B"
       }
     },
     "plugins": [
@@ -27,16 +27,22 @@
       [
         "expo-notifications",
         {
-          "color": "#1C5F64",
+          "color": "#0A5247",
           "defaultChannel": "default"
         }
-      ]
+      ],
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true
     },
     "extra": {
       "eas": {}
+    },
+    "backgroundColor": "#F2F7F6",
+    "splash": {
+      "backgroundColor": "#061E1B",
+      "resizeMode": "contain"
     }
   }
 }

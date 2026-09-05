@@ -1,16 +1,31 @@
-/** PHASE 1 shell — enough to create a session. PHASE 2 adds onboarding after it. */
+/** Create an account. Same gradient cover as sign-in, one card, three fields. */
 
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTopInset } from '@/hooks/useTopInset';
 import { ApiRequestError } from '@/api/client';
-import { Button, Field, Screen, ScreenHeader } from '@/components';
+import { Button, Field } from '@/components';
+import { useLang } from '@/i18n';
+import { warn } from '@/lib/haptics';
 import { useAuth } from '@/store/auth';
-import { colors, spacing, type } from '@/theme';
+import { colors, gradients, radius, screenPadding, spacing, type } from '@/theme';
 
 export default function SignupScreen() {
   const { signUp } = useAuth();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const top = useTopInset();
+  const { t, align, font } = useLang();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -20,7 +35,8 @@ export default function SignupScreen() {
 
   async function submit() {
     if (!name.trim() || !email.trim() || password.length < 6) {
-      setError('Name, email, and a password of at least 6 characters.');
+      warn();
+      setError(t.fillAllFields);
       return;
     }
 
@@ -29,56 +45,91 @@ export default function SignupScreen() {
     try {
       await signUp({ name, email, password });
     } catch (err) {
-      setError(
-        err instanceof ApiRequestError ? err.message : 'Could not create the account just now.',
-      );
+      warn();
+      setError(err instanceof ApiRequestError ? err.message : t.emailTaken);
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <Screen scroll>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScreenHeader title="Create an account" subtitle="Then pick the mosques you follow." />
+    <LinearGradient
+      colors={[...gradients.masthead]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.fill}
+    >
+      <KeyboardAvoidingView
+        style={styles.fill}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={[
+            styles.scroll,
+            { paddingTop: top + spacing.xl, paddingBottom: insets.bottom + spacing.xl },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.brand}>
+            <Text style={[font(styles.title), align]}>{t.signUpTitle}</Text>
+            <Text style={[font(styles.tagline), align]}>{t.followAMosqueSub}</Text>
+          </View>
 
-        <View style={styles.form}>
-          <Field label="Name" value={name} onChangeText={setName} placeholder="Your name" />
-          <Field
-            label="Email"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            placeholder="you@example.com"
-          />
-          <Field
-            label="Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            placeholder="At least 6 characters"
-            error={error ?? undefined}
-          />
+          <View style={styles.card}>
+            <Field
+              label={t.name}
+              value={name}
+              onChangeText={setName}
+              placeholder={t.name}
+              autoComplete="name"
+            />
+            <Field
+              label={t.email}
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              placeholder="you@example.com"
+            />
+            <Field
+              label={t.password}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              placeholder="••••••••"
+              error={error ?? undefined}
+            />
 
-          <Button label="Create account" size="lg" loading={busy} onPress={() => void submit()} />
-          <Button
-            label="Back to sign in"
-            variant="ghost"
-            disabled={busy}
-            onPress={() => router.back()}
-          />
-
-          <Text style={styles.note}>
-            While we’re on mocks, any of the seeded members sign in with the password “mensemble”.
-          </Text>
-        </View>
+            <Button
+              label={t.createAccount}
+              size="lg"
+              loading={busy}
+              onPress={() => void submit()}
+            />
+            <Button
+              label={t.haveAccount}
+              variant="ghost"
+              disabled={busy}
+              onPress={() => router.back()}
+            />
+          </View>
+        </ScrollView>
       </KeyboardAvoidingView>
-    </Screen>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  form: { gap: spacing.lg, paddingTop: spacing.md },
-  note: { ...type.small, color: colors.inkMuted, textAlign: 'center' },
+  fill: { flex: 1 },
+  scroll: { flexGrow: 1, paddingHorizontal: screenPadding, justifyContent: 'center' },
+  brand: { gap: spacing.xs, marginBottom: spacing.xxl },
+  title: { ...type.display, fontSize: 32, lineHeight: 38, color: colors.inkInverse },
+  tagline: { ...type.body, color: colors.inkOnDark },
+  card: {
+    gap: spacing.lg,
+    padding: spacing.xl,
+    backgroundColor: colors.surface,
+    borderRadius: radius.xl + 4,
+  },
 });
