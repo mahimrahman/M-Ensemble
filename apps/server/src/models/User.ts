@@ -7,15 +7,9 @@ const userSchema = new Schema(
   },
   {
     timestamps: true,
-    toJSON: {
-      virtuals: true,
-      versionKey: false,
-      transform: (_doc, ret) => {
-        ret.id = ret._id?.toString();
-        delete ret._id;
-        return ret;
-      },
-    },
+    // The PHASE 0 contract names the identifier `_id`, so we leave it alone.
+    // Mongoose serialises the ObjectId to a hex string on the way out.
+    toJSON: { versionKey: false },
   },
 );
 
