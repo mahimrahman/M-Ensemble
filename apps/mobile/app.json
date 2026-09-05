@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "M-Ensemble",
+    "slug": "m-ensemble",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "mensemble",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.mahimrahman.mensemble"
+    },
+    "android": {
+      "package": "com.mahimrahman.mensemble",
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
