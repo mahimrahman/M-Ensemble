@@ -19,10 +19,15 @@ void SplashScreen.preventAutoHideAsync();
  * Sends you where the session says you belong:
  *   no session      → auth stack
  *   new account     → onboarding (follow a mosque, pick interests)
- *   otherwise       → the tabs
+ *   coordinator     → the mosque-side app
+ *   otherwise       → the member tabs
+ *
+ * The two shells are separate apps that happen to share a bundle. A
+ * coordinator has no use for a feed of other mosques, and a member has no
+ * business in the dashboard — so nobody sees the other side's tab bar.
  */
 function RootNavigator() {
-  const { status, needsOnboarding } = useAuth();
+  const { status, needsOnboarding, adminMosqueIds } = useAuth();
   const { t } = useLang();
   const segments = useSegments();
   const router = useRouter();
@@ -43,8 +48,20 @@ function RootNavigator() {
       return;
     }
 
-    if (inAuthGroup || inOnboarding) router.replace('/');
-  }, [status, needsOnboarding, segments, router]);
+    // Which home this session gets. Memberships load a tick after the user
+    // does, so an admin briefly looks like a member — landing on the member
+    // tabs first and correcting is better than blocking the whole app on it.
+    if (inAuthGroup || inOnboarding) {
+      router.replace(adminMosqueIds.length > 0 ? '/(admin)' : '/(tabs)');
+      return;
+    }
+
+    // A coordinator who ends up on the member tabs (first load, or the roles
+    // arriving late) gets moved across.
+    if (adminMosqueIds.length > 0 && segments[0] === '(tabs)') {
+      router.replace('/(admin)');
+    }
+  }, [status, needsOnboarding, adminMosqueIds.length, segments, router]);
 
   if (status === 'loading') {
     return <Loading label={t.loading} />;
@@ -62,6 +79,7 @@ function RootNavigator() {
       <Stack.Screen name="(auth)" options={{ animation: 'fade' }} />
       <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
       <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
+      <Stack.Screen name="(admin)" options={{ animation: 'fade' }} />
       {/* member */}
       <Stack.Screen name="post/[id]" />
       <Stack.Screen name="mosque/[id]" />
@@ -74,6 +92,7 @@ function RootNavigator() {
       <Stack.Screen name="manage/iqamah" />
       <Stack.Screen name="manage/coverage/[id]" />
       <Stack.Screen name="manage/checkin/[id]" options={{ animation: 'slide_from_bottom' }} />
+      <Stack.Screen name="manage/member/[id]" />
     </Stack>
   );
 }

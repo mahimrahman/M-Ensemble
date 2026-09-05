@@ -2,14 +2,12 @@ import { Tabs } from 'expo-router';
 import {
   CalendarCheck,
   CircleUser,
-  ClipboardList,
   LayoutGrid,
   Landmark,
   type LucideIcon,
 } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 import { useLang } from '@/i18n';
-import { useAuth } from '@/store/auth';
 import { colors, icon, rule, type } from '@/theme';
 
 /**
@@ -44,9 +42,7 @@ function TabItem({
 }
 
 export default function TabLayout() {
-  const { adminMosqueIds } = useAuth();
   const { t } = useLang();
-  const isAdmin = adminMosqueIds.length > 0;
 
   return (
     <Tabs
@@ -82,17 +78,6 @@ export default function TabLayout() {
           title: t.myStuff,
           tabBarIcon: ({ focused }) => (
             <TabItem Icon={CalendarCheck} label={t.myStuff} focused={focused} />
-          ),
-        }}
-      />
-      {/* Only coordinators see this. `href: null` removes it from the bar. */}
-      <Tabs.Screen
-        name="admin"
-        options={{
-          title: t.manage,
-          href: isAdmin ? '/admin' : null,
-          tabBarIcon: ({ focused }) => (
-            <TabItem Icon={ClipboardList} label={t.manage} focused={focused} />
           ),
         }}
       />

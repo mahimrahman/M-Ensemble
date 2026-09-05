@@ -32,13 +32,13 @@ import { useAdminMosque } from '@/store/adminMosque';
 import { colors, numeric, radius, rule, screenPadding, spacing, type } from '@/theme';
 import type { EventOutcome, Post } from '@/types';
 
-type View = 'upcoming' | 'history' | 'cancelled';
+type EventView = 'upcoming' | 'history' | 'cancelled';
 
 export default function EventsScreen() {
   const router = useRouter();
   const { t, lang, align, row, font } = useLang();
   const { mosqueId } = useAdminMosque();
-  const [view, setView] = useState<View>('upcoming');
+  const [view, setView] = useState<EventView>('upcoming');
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const posts = useApi(
@@ -240,7 +240,7 @@ export default function EventsScreen() {
             { value: 'cancelled', label: t.cancelled },
           ]}
           value={view}
-          onChange={(next) => setView(next as View)}
+          onChange={(next) => setView(next as EventView)}
         />
       </View>
 
