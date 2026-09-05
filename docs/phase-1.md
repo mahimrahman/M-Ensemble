@@ -4,16 +4,16 @@ What landed, and the two steps only a human with a phone in their hand can finis
 
 ## What's in the repo
 
-| Plan item | Where |
-| --- | --- |
-| Locked types (Phase 0) | [packages/shared/src/types.ts](../packages/shared/src/types.ts) |
-| Locked `api` interface (Phase 0) | `MEnsembleApi` in [packages/shared/src/api.ts](../packages/shared/src/api.ts) |
-| Mock client | [apps/mobile/src/api/mock/mockClient.ts](../apps/mobile/src/api/mock/mockClient.ts) |
-| `mockData.ts` — 2 mosques, 12 posts, 20 members | [apps/mobile/src/api/mock/mockData.ts](../apps/mobile/src/api/mock/mockData.ts) |
-| Design tokens, one file | [apps/mobile/src/theme/index.ts](../apps/mobile/src/theme/index.ts) |
-| `Card` `Button` `Badge` `EmptyState` `Loading` (+ `Field`, `Screen`) | [apps/mobile/src/components/](../apps/mobile/src/components/) |
-| Auth stack → main tabs | [apps/mobile/app/](../apps/mobile/app/) |
-| Push registration | [apps/mobile/src/push/notifications.ts](../apps/mobile/src/push/notifications.ts) |
+| Plan item                                                                | Where                                                                               |
+| ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| Locked types (Phase 0)                                                   | [packages/shared/src/types.ts](../packages/shared/src/types.ts)                     |
+| Locked `api` interface (Phase 0)                                         | `MEnsembleApi` in [packages/shared/src/api.ts](../packages/shared/src/api.ts)       |
+| Mock client                                                              | [apps/mobile/src/api/mock/mockClient.ts](../apps/mobile/src/api/mock/mockClient.ts) |
+| Fixtures — 6 mosques, 19 posts, 20 members (shared with the seed script) | [packages/shared/src/fixtures.ts](../packages/shared/src/fixtures.ts)               |
+| Design tokens, one file                                                  | [apps/mobile/src/theme/index.ts](../apps/mobile/src/theme/index.ts)                 |
+| `Card` `Button` `Badge` `EmptyState` `Loading` (+ `Field`, `Screen`)     | [apps/mobile/src/components/](../apps/mobile/src/components/)                       |
+| Auth stack → main tabs                                                   | [apps/mobile/app/](../apps/mobile/app/)                                             |
+| Push registration                                                        | [apps/mobile/src/push/notifications.ts](../apps/mobile/src/push/notifications.ts)   |
 
 Tabs are **Feed · Mosques · My Stuff · Profile**, exactly the Phase 2 split. Each
 tab screen is a working shell reading through `api` — proof the whole chain runs
@@ -49,7 +49,32 @@ npm run dev:mobile
 ```
 
 Scan the QR with Expo Go. Sign in with **yusuf@example.com / mensemble**, or tap
-*Continue as demo member*. Any seeded member signs in with the same password.
+_Continue as demo member_. Any seeded member signs in with the same password.
+
+## Step 0 — sign in, once, on both ends
+
+Current Expo Go refuses to open a project unless the dev server signs the
+manifest with a development certificate, and the CLI can only do that when the
+project has an EAS project id **and** the CLI is logged in to the account that
+owns it. Skip this and every scan ends in _"There was a problem running the
+requested project. You need to sign in to Expo Go and Expo CLI"_ — regardless
+of Wi-Fi, firewall, or QR mode.
+
+From `apps/mobile`, one time:
+
+```bash
+npx expo login          # the Expo account the project will belong to
+npx eas-cli init        # writes extra.eas.projectId into app.json — commit it
+npx expo whoami         # must print the username, not "Not logged in"
+```
+
+Then in **Expo Go** on every phone: Profile tab → sign in with the **same**
+account. Restart `npx expo start` after logging in; the first scan fetches and
+caches the certificate.
+
+Only the person who owns the Expo account can do this; teammates who start the
+dev server on their own laptops must be logged in to an account that has access
+to the same EAS project (add them as members on expo.dev).
 
 ## Step 1 — get it on a physical phone
 
@@ -59,21 +84,18 @@ hour 18 is the failure mode the plan is written to avoid.
 - Phone and laptop on the same Wi-Fi.
 - If the QR won't connect, run `npx expo start --tunnel`.
 - The project is on **Expo SDK 57** — install current Expo Go from the store.
+- Leave the CLI in **Expo Go** mode. Pressing `s` in the terminal switches to
+  development-build mode, which prints a `mensemble://` link Expo Go can't open.
 - **Android + remote push needs a development build.** Since SDK 53, Expo Go on
   Android doesn't receive remote push (local notifications still fire). Expo Go
-  on iOS still does. For the two-phone demo, put the *member* on an iPhone with
+  on iOS still does. For the two-phone demo, put the _member_ on an iPhone with
   Expo Go, or build Android once: `cd apps/mobile && npx expo run:android`
   (needs Android Studio / an SDK on the laptop, ~10 min first time).
 
 ## Step 2 — prove a push arrives
 
-Push tokens need an EAS project id. Once, from `apps/mobile`:
-
-```bash
-npx eas init      # writes extra.eas.projectId into app.json — commit it
-```
-
-Then on the phone:
+Push tokens need the same EAS project id Step 0 wrote into `app.json`. On the
+phone:
 
 1. Open **Profile**. Accept the notification prompt.
 2. The push panel should read **Registered** and show an `ExponentPushToken[…]`.
@@ -82,13 +104,13 @@ Then on the phone:
 4. Tap **Copy token**, paste it into <https://expo.dev/notifications>, send.
    A banner arriving from Expo's servers is the real Phase 1 exit criterion.
 
-If the panel says *Unavailable*, read the reason it prints:
+If the panel says _Unavailable_, read the reason it prints:
 
-| Reason | Fix |
-| --- | --- |
-| "physical device" | You're on a simulator. |
-| Missing project id | Run `npx eas init`, restart the dev server. |
-| *Denied* | Enable notifications for Expo Go in system settings, then **Retry registration**. |
+| Reason             | Fix                                                                               |
+| ------------------ | --------------------------------------------------------------------------------- |
+| "physical device"  | You're on a simulator.                                                            |
+| Missing project id | Do Step 0 (`npx eas-cli init`), restart the dev server.                           |
+| _Denied_           | Enable notifications for Expo Go in system settings, then **Retry registration**. |
 
 Phase 4 sends to these tokens; `api.registerPushToken` already hands each one to
 the client, so the fan-out has somewhere to read them from.
@@ -99,7 +121,7 @@ the client, so the fan-out has somewhere to read them from.
 - [x] Design tokens in one file
 - [x] lucide-react-native wired
 - [x] `Card` `Button` `Badge` `EmptyState` `Loading`
-- [x] `mockData.ts` — Khadija + Madina, 12 posts, 20 members
+- [x] Fixtures — Khadija + Madina (+ 4 more to browse), 19 posts, 20 members
 - [x] Cards render from the mock client; `npm run typecheck` and the Android
       bundle both build clean
 - [ ] **Runs on a physical phone** — step 1

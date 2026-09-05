@@ -15,15 +15,7 @@ import { colors, icon, rule, type } from '@/theme';
  * underline beneath the active tab — that underline is the whole reason this
  * renders its own tab items instead of taking the default ones.
  */
-function TabItem({
-  Icon,
-  label,
-  focused,
-}: {
-  Icon: LucideIcon;
-  label: string;
-  focused: boolean;
-}) {
+function TabItem({ Icon, label, focused }: { Icon: LucideIcon; label: string; focused: boolean }) {
   const { font } = useLang();
   const tint = focused ? colors.accent : colors.inkFaint;
 

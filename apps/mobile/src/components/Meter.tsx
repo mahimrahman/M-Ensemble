@@ -43,16 +43,13 @@ export function Meter({ filled, total, noun, bare = false }: MeterProps) {
       {!bare ? (
         <View style={[styles.row, row]}>
           <Text style={[styles.figure, covered && styles.figureCovered]}>
-            {filled}/{total}{' '}
-            <Text style={font(styles.noun)}>{noun ?? t.volunteers}</Text>
+            {filled}/{total} <Text style={font(styles.noun)}>{noun ?? t.volunteers}</Text>
           </Text>
           {covered ? <Badge label={`${t.full} ✓`} tone="accent" shape="pill" /> : null}
         </View>
       ) : null}
       <View style={styles.track}>
-        <Animated.View
-          style={[styles.fill, { width: pct }, covered && styles.fillCovered]}
-        />
+        <Animated.View style={[styles.fill, { width: pct }, covered && styles.fillCovered]} />
       </View>
     </View>
   );

@@ -12,16 +12,7 @@ import {
 } from 'react-native';
 import { useLang } from '@/i18n';
 import { tap } from '@/lib/haptics';
-import {
-  colors,
-  ctaShadow,
-  hitSize,
-  icon as iconSize,
-  radius,
-  rule,
-  spacing,
-  type,
-} from '@/theme';
+import { colors, ctaShadow, hitSize, icon as iconSize, radius, rule, spacing, type } from '@/theme';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'inverse' | 'muted';
 export type ButtonSize = 'sm' | 'md' | 'lg';
@@ -51,7 +42,11 @@ const fills: Record<ButtonVariant, ViewStyle> = {
   ghost: { backgroundColor: 'transparent', paddingHorizontal: spacing.sm },
   danger: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: colors.dangerBorder },
   /** For use on a dark gradient. */
-  inverse: { backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: rule, borderColor: 'rgba(255,255,255,0.22)' },
+  inverse: {
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    borderWidth: rule,
+    borderColor: 'rgba(255,255,255,0.22)',
+  },
   /** A filled-but-inert action — "Full", or withdraw. */
   muted: { backgroundColor: colors.surfaceSunken },
 };
@@ -131,7 +126,9 @@ export function Button({
           <ActivityIndicator color={tint} size="small" />
         ) : (
           <View style={[styles.content, isAr && styles.contentAr]}>
-            {Icon ? <Icon color={tint} size={size === 'sm' ? iconSize.sm : iconSize.md} strokeWidth={2} /> : null}
+            {Icon ? (
+              <Icon color={tint} size={size === 'sm' ? iconSize.sm : iconSize.md} strokeWidth={2} />
+            ) : null}
             <Text style={[labelStyle, { color: tint }]} numberOfLines={1}>
               {label}
             </Text>

@@ -12,7 +12,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowRight } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTopInset } from '@/hooks/useTopInset';
 import { API_ERROR, api, isApiError } from '@/api/client';
@@ -359,7 +360,9 @@ export default function PostDetailScreen() {
             </View>
           ) : (
             <Button
-              label={full ? (isVolunteer ? t.allFilled : t.full) : isVolunteer ? t.signup : t.imGoing}
+              label={
+                full ? (isVolunteer ? t.allFilled : t.full) : isVolunteer ? t.signup : t.imGoing
+              }
               variant={full ? 'muted' : 'primary'}
               size="lg"
               disabled={full}

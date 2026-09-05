@@ -7,15 +7,8 @@
 import { useRouter } from 'expo-router';
 import { CalendarDays, ExternalLink } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
-import {
-  Alert,
-  Linking,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { api } from '@/api/client';
 import {
   Button,
@@ -91,9 +84,9 @@ export default function MosquesScreen() {
 
   function openDirections(mosque: Mosque) {
     const { lat, lng } = mosque.coordinates;
-    void Linking.openURL(
-      `https://www.openstreetmap.org/directions?from=&to=${lat}%2C${lng}`,
-    ).catch(() => {});
+    void Linking.openURL(`https://www.openstreetmap.org/directions?from=&to=${lat}%2C${lng}`).catch(
+      () => {},
+    );
   }
 
   if (mosques.loading) {
@@ -290,4 +283,3 @@ const styles = StyleSheet.create({
   tableBlock: { marginTop: spacing.xl },
   monthButton: { marginTop: spacing.md },
 });
-

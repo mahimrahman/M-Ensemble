@@ -48,7 +48,7 @@ import {
   mockPosts,
   mockSignups,
   mockUsers,
-} from './mockData';
+} from '@m-ensemble/shared';
 
 /** Enough delay that spinners and disabled states actually get exercised. */
 const LATENCY_MS = 320;
@@ -103,6 +103,23 @@ let state: MockState = fresh();
 /** Wipe back to the fixtures — handy from a dev menu during rehearsal. */
 export function resetMockState(): void {
   state = fresh();
+}
+
+const TOKEN_PREFIX = 'mock-token-';
+
+/**
+ * The mock's answer to a bearer token. `login` hands out `mock-token-<userId>`;
+ * on a cold start the auth store hands the stored one back here so the mock
+ * knows who is signed in — otherwise a reload silently turned every session
+ * into the default member, and coordinators lost their dashboard.
+ *
+ * A token for a user the fixtures don't know (an account created in a
+ * previous session — the state is in-memory) resolves to nobody, so `me()`
+ * throws 401 and the auth store signs out, same as an expired JWT would.
+ */
+export function restoreMockSession(token: string | null): void {
+  const id = token?.startsWith(TOKEN_PREFIX) ? token.slice(TOKEN_PREFIX.length) : null;
+  state.currentUserId = id && state.users.some((u) => u._id === id) ? id : null;
 }
 
 function requireUser(): User {
@@ -246,7 +263,7 @@ export const mockApi: MEnsembleApi = {
       throw new ApiRequestError(API_ERROR.BAD_CREDENTIALS, 'Email or password is incorrect.', 401);
     }
     state.currentUserId = user._id;
-    return delay<AuthResult>({ token: `mock-token-${user._id}`, user: clone(user) });
+    return delay<AuthResult>({ token: `${TOKEN_PREFIX}${user._id}`, user: clone(user) });
   },
 
   async signupAccount(input: SignupInput) {
@@ -264,7 +281,7 @@ export const mockApi: MEnsembleApi = {
     };
     state.users.push(user);
     state.currentUserId = user._id;
-    return delay<AuthResult>({ token: `mock-token-${user._id}`, user: clone(user) });
+    return delay<AuthResult>({ token: `${TOKEN_PREFIX}${user._id}`, user: clone(user) });
   },
 
   async me() {

@@ -93,12 +93,7 @@ export function GradientHeader({
       colors={[...gradients[variant === 'masthead' ? 'masthead' : variant]]}
       start={variant === 'masthead' ? { x: 0, y: 0 } : { x: 0, y: 0 }}
       end={variant === 'masthead' ? { x: 1, y: 1 } : { x: 1, y: 1 }}
-      style={[
-        styles.header,
-        { paddingTop: top + spacing.md },
-        tall && styles.headerTall,
-        style,
-      ]}
+      style={[styles.header, { paddingTop: top + spacing.md }, tall && styles.headerTall, style]}
     >
       {back}
       {children ?? (

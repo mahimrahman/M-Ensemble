@@ -195,7 +195,12 @@ export function PostCard({ post, mosqueName, committed = false, onPress }: PostC
             tap();
             onPress();
           }}
-          style={({ pressed }) => [styles.action, styles.actionWide, isAr && styles.actionAr, pressed && styles.pressed]}
+          style={({ pressed }) => [
+            styles.action,
+            styles.actionWide,
+            isAr && styles.actionAr,
+            pressed && styles.pressed,
+          ]}
         >
           <MoveRight
             color={colors.inkMuted}

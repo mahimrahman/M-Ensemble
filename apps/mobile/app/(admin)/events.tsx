@@ -11,7 +11,8 @@
 import { useRouter } from 'expo-router';
 import { Pencil, Plus, Users, XCircle } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { api } from '@/api/client';
 import {
   Badge,
@@ -162,9 +163,7 @@ export default function EventsScreen() {
 
   /** A finished post: how many actually turned up against how many said they would. */
   const OutcomeRow = ({ outcome }: { outcome: EventOutcome }) => {
-    const rate = outcome.confirmed
-      ? Math.round((outcome.attended / outcome.confirmed) * 100)
-      : 0;
+    const rate = outcome.confirmed ? Math.round((outcome.attended / outcome.confirmed) * 100) : 0;
     const weak = outcome.confirmed > 0 && rate < 60;
 
     return (

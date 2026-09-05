@@ -7,10 +7,7 @@
  * whole design lands wrong for a frame.
  */
 
-import {
-  DMMono_400Regular,
-  DMMono_500Medium,
-} from '@expo-google-fonts/dm-mono';
+import { DMMono_400Regular, DMMono_500Medium } from '@expo-google-fonts/dm-mono';
 import {
   Fraunces_400Regular,
   Fraunces_600SemiBold,

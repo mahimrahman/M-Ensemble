@@ -62,11 +62,7 @@ export function PrayerTable({ table, highlight = null }: PrayerTableProps) {
           {table.jummah.map((session, i) => (
             <View
               key={session.label}
-              style={[
-                styles.row,
-                rowDir,
-                i === table.jummah.length - 1 && styles.rowLast,
-              ]}
+              style={[styles.row, rowDir, i === table.jummah.length - 1 && styles.rowLast]}
             >
               <Text style={[styles.cell, font(styles.name)]} numberOfLines={1}>
                 {session.label}

@@ -12,7 +12,8 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ShieldCheck, ShieldMinus } from 'lucide-react-native';
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { api } from '@/api/client';
 import {
   BackBar,
@@ -116,9 +117,7 @@ export default function MemberDetailScreen() {
         <View>
           <View style={[styles.identity, row]}>
             <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {member.name.trim().charAt(0).toUpperCase()}
-              </Text>
+              <Text style={styles.avatarText}>{member.name.trim().charAt(0).toUpperCase()}</Text>
             </View>
             <View style={styles.identityText}>
               <Text style={[font(styles.name), align]} numberOfLines={2}>

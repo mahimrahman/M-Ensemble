@@ -6,6 +6,7 @@ import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Loading } from '@/components';
 import { LangProvider, useLang } from '@/i18n';
+import { AdminMosqueProvider } from '@/store/adminMosque';
 import { AuthProvider, useAuth } from '@/store/auth';
 import { LocationProvider } from '@/store/location';
 import { SavedProvider } from '@/store/saved';
@@ -113,11 +114,16 @@ export default function RootLayout() {
         <StatusBar style="light" />
         <LangProvider>
           <AuthProvider>
-            <SavedProvider>
-              <LocationProvider>
-                <RootNavigator />
-              </LocationProvider>
-            </SavedProvider>
+            {/* Above the navigator so the manage/* screens — pushed on the root
+                stack, outside the (admin) tab group — can read it too. It only
+                fetches when the session actually coordinates a mosque. */}
+            <AdminMosqueProvider>
+              <SavedProvider>
+                <LocationProvider>
+                  <RootNavigator />
+                </LocationProvider>
+              </SavedProvider>
+            </AdminMosqueProvider>
           </AuthProvider>
         </LangProvider>
       </View>

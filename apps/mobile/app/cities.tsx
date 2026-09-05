@@ -9,7 +9,15 @@ import { Check, LocateFixed, MapPin } from 'lucide-react-native';
 import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { api } from '@/api/client';
-import { BackBar, Badge, Button, GradientHeader, Loading, Screen, SectionTitle } from '@/components';
+import {
+  BackBar,
+  Badge,
+  Button,
+  GradientHeader,
+  Loading,
+  Screen,
+  SectionTitle,
+} from '@/components';
 import { useApi } from '@/hooks/useApi';
 import { useLang } from '@/i18n';
 import { CITIES, cityName, mosqueCity } from '@/lib/cities';

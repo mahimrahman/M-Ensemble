@@ -10,13 +10,21 @@
  */
 
 import type { MEnsembleApi } from '@/types';
-import { httpApi } from './http';
-import { mockApi } from './mock/mockClient';
+import { httpApi, setAuthToken as setHttpAuthToken } from './http';
+import { mockApi, restoreMockSession } from './mock/mockClient';
 
 export const USING_MOCKS = process.env.EXPO_PUBLIC_USE_MOCKS !== 'false';
 
 export const api: MEnsembleApi = USING_MOCKS ? mockApi : httpApi;
 
+/**
+ * Set on login and on a cold start from storage, cleared on logout. The HTTP
+ * client sends it as a bearer; the mock client reads the user id out of it.
+ */
+export function setAuthToken(token: string | null): void {
+  setHttpAuthToken(token);
+  if (USING_MOCKS) restoreMockSession(token);
+}
+
 export { ApiRequestError, isApiError, API_ERROR } from './errors';
-export { setAuthToken } from './http';
 export { resetMockState } from './mock/mockClient';

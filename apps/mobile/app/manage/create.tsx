@@ -8,7 +8,8 @@
 
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { api } from '@/api/client';
 import {
   BackBar,
@@ -204,29 +205,29 @@ export default function CreatePostScreen() {
       <Screen padded={false} edges={['left', 'right']}>
         <GradientHeader back={<BackBar />} title={t.createPost} />
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={[font(styles.lead), align]}>{t.postType}</Text>
-        <View style={styles.typeList}>
-          {TYPES.map(({ value, label, hint }) => {
-            return (
-              <Pressable
-                key={value}
-                accessibilityRole="button"
-                onPress={() => {
-                  set('type', value);
-                  if (value === 'volunteer') set('category', 'Volunteering');
-                  setStep('details');
-                }}
-                style={({ pressed }) => [styles.typeRow, pressed && styles.pressed]}
-              >
-                <View style={styles.typeText}>
-                  <Text style={styles.typeLabel}>{label}</Text>
-                  <Text style={styles.typeHint}>{hint}</Text>
-                </View>
-                <Text style={styles.typeArrow}>→</Text>
-              </Pressable>
-            );
-          })}
-        </View>
+          <Text style={[font(styles.lead), align]}>{t.postType}</Text>
+          <View style={styles.typeList}>
+            {TYPES.map(({ value, label, hint }) => {
+              return (
+                <Pressable
+                  key={value}
+                  accessibilityRole="button"
+                  onPress={() => {
+                    set('type', value);
+                    if (value === 'volunteer') set('category', 'Volunteering');
+                    setStep('details');
+                  }}
+                  style={({ pressed }) => [styles.typeRow, pressed && styles.pressed]}
+                >
+                  <View style={styles.typeText}>
+                    <Text style={styles.typeLabel}>{label}</Text>
+                    <Text style={styles.typeHint}>{hint}</Text>
+                  </View>
+                  <Text style={styles.typeArrow}>→</Text>
+                </Pressable>
+              );
+            })}
+          </View>
         </ScrollView>
       </Screen>
     );
@@ -237,142 +238,148 @@ export default function CreatePostScreen() {
 
   return (
     <Screen padded={false} edges={['left', 'right']}>
-      <GradientHeader back={<BackBar />} title={editId ? t.edit : (typeMeta?.label ?? t.createPost)} />
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-
-      {!editId ? (
-        <Segmented
-          options={TYPES.map((o) => ({ value: o.value, label: o.label }))}
-          value={form.type}
-          onChange={(value) => set('type', value)}
-        />
-      ) : null}
-
-      <Field
-        label={t.postTitle}
-        value={form.title}
-        onChangeText={(v) => set('title', v)}
-        placeholder={
-          form.type === 'volunteer'
-            ? 'Iftar setup — Saturday dinner'
-            : form.type === 'class'
-              ? 'Tajweed for beginners'
-              : 'Neighbourhood BBQ'
-        }
-        error={errors.title}
+      <GradientHeader
+        back={<BackBar />}
+        title={editId ? t.edit : (typeMeta?.label ?? t.createPost)}
       />
-      <Field
-        label={t.postDescription}
-        value={form.description}
-        onChangeText={(v) => set('description', v)}
-        placeholder="What, why, and anything people should bring."
-        multiline
-        numberOfLines={4}
-        style={styles.multiline}
-        error={errors.description}
-      />
-
-      <View style={styles.group}>
-        <Text style={styles.label}>Category</Text>
-        <Text style={styles.hint}>Members who picked this interest get the push.</Text>
-        <View style={styles.chips}>
-          {CATEGORIES.map((c) => (
-            <Chip
-              key={c}
-              label={c}
-              selected={form.category === c}
-              onPress={() => set('category', c)}
-            />
-          ))}
-        </View>
-      </View>
-
-      {!isAnnouncement ? (
-        <>
-          <View style={styles.group}>
-            <Text style={styles.label}>{form.type === 'class' ? 'First session' : 'Day'}</Text>
-            <DayChips value={form.date} onChange={(d) => set('date', d)} />
-          </View>
-
-          <View style={styles.timeRow}>
-            <View style={styles.grow}>
-              <Field
-                label={t.startTime}
-                value={form.startTime}
-                onChangeText={(v) => set('startTime', v)}
-                placeholder="17:00"
-                keyboardType="numbers-and-punctuation"
-                error={errors.startTime}
-              />
-            </View>
-            <View style={styles.grow}>
-              <Field
-                label={t.endTime}
-                value={form.endTime}
-                onChangeText={(v) => set('endTime', v)}
-                placeholder="19:30"
-                keyboardType="numbers-and-punctuation"
-                error={errors.endTime}
-              />
-            </View>
-          </View>
-
-          <Field
-            label={t.location}
-            value={form.location}
-            onChangeText={(v) => set('location', v)}
-            placeholder="Main hall, basement level"
-            error={errors.location}
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {!editId ? (
+          <Segmented
+            options={TYPES.map((o) => ({ value: o.value, label: o.label }))}
+            value={form.type}
+            onChange={(value) => set('type', value)}
           />
-        </>
-      ) : null}
+        ) : null}
 
-      {form.type === 'volunteer' ? (
         <Field
-          label="People needed"
-          value={form.slotsNeeded}
-          onChangeText={(v) => set('slotsNeeded', v.replace(/[^0-9]/g, ''))}
-          keyboardType="number-pad"
-          error={errors.slotsNeeded}
-          hint="Each person claims one slot."
+          label={t.postTitle}
+          value={form.title}
+          onChangeText={(v) => set('title', v)}
+          placeholder={
+            form.type === 'volunteer'
+              ? 'Iftar setup — Saturday dinner'
+              : form.type === 'class'
+                ? 'Tajweed for beginners'
+                : 'Neighbourhood BBQ'
+          }
+          error={errors.title}
         />
-      ) : null}
-
-      {form.type === 'event' || form.type === 'class' ? (
         <Field
-          label={t.capacity}
-          value={form.capacity}
-          onChangeText={(v) => set('capacity', v.replace(/[^0-9]/g, ''))}
-          keyboardType="number-pad"
-          placeholder="Leave blank for no cap"
-          error={errors.capacity}
+          label={t.postDescription}
+          value={form.description}
+          onChangeText={(v) => set('description', v)}
+          placeholder="What, why, and anything people should bring."
+          multiline
+          numberOfLines={4}
+          style={styles.multiline}
+          error={errors.description}
         />
-      ) : null}
 
-      {form.type === 'class' ? (
-        <Field
-          label={t.sessions}
-          value={form.sessionCount}
-          onChangeText={(v) => set('sessionCount', v.replace(/[^0-9]/g, ''))}
-          keyboardType="number-pad"
-          error={errors.sessionCount}
-          hint="Same day and time each week from the first session."
+        <View style={styles.group}>
+          <Text style={styles.label}>Category</Text>
+          <Text style={styles.hint}>Members who picked this interest get the push.</Text>
+          <View style={styles.chips}>
+            {CATEGORIES.map((c) => (
+              <Chip
+                key={c}
+                label={c}
+                selected={form.category === c}
+                onPress={() => set('category', c)}
+              />
+            ))}
+          </View>
+        </View>
+
+        {!isAnnouncement ? (
+          <>
+            <View style={styles.group}>
+              <Text style={styles.label}>{form.type === 'class' ? 'First session' : 'Day'}</Text>
+              <DayChips value={form.date} onChange={(d) => set('date', d)} />
+            </View>
+
+            <View style={styles.timeRow}>
+              <View style={styles.grow}>
+                <Field
+                  label={t.startTime}
+                  value={form.startTime}
+                  onChangeText={(v) => set('startTime', v)}
+                  placeholder="17:00"
+                  keyboardType="numbers-and-punctuation"
+                  error={errors.startTime}
+                />
+              </View>
+              <View style={styles.grow}>
+                <Field
+                  label={t.endTime}
+                  value={form.endTime}
+                  onChangeText={(v) => set('endTime', v)}
+                  placeholder="19:30"
+                  keyboardType="numbers-and-punctuation"
+                  error={errors.endTime}
+                />
+              </View>
+            </View>
+
+            <Field
+              label={t.location}
+              value={form.location}
+              onChangeText={(v) => set('location', v)}
+              placeholder="Main hall, basement level"
+              error={errors.location}
+            />
+          </>
+        ) : null}
+
+        {form.type === 'volunteer' ? (
+          <Field
+            label="People needed"
+            value={form.slotsNeeded}
+            onChangeText={(v) => set('slotsNeeded', v.replace(/[^0-9]/g, ''))}
+            keyboardType="number-pad"
+            error={errors.slotsNeeded}
+            hint="Each person claims one slot."
+          />
+        ) : null}
+
+        {form.type === 'event' || form.type === 'class' ? (
+          <Field
+            label={t.capacity}
+            value={form.capacity}
+            onChangeText={(v) => set('capacity', v.replace(/[^0-9]/g, ''))}
+            keyboardType="number-pad"
+            placeholder="Leave blank for no cap"
+            error={errors.capacity}
+          />
+        ) : null}
+
+        {form.type === 'class' ? (
+          <Field
+            label={t.sessions}
+            value={form.sessionCount}
+            onChangeText={(v) => set('sessionCount', v.replace(/[^0-9]/g, ''))}
+            keyboardType="number-pad"
+            error={errors.sessionCount}
+            hint="Same day and time each week from the first session."
+          />
+        ) : null}
+
+        <Button
+          label={saving ? t.publishing : editId ? t.save : t.publish}
+          size="lg"
+          loading={saving}
+          onPress={() => void submit()}
         />
-      ) : null}
-
-      <Button
-        label={saving ? t.publishing : editId ? t.save : t.publish}
-        size="lg"
-        loading={saving}
-        onPress={() => void submit()}
-      />
-      {!editId ? (
-        <Text style={styles.footnote}>
-          {form.type === 'volunteer'
-            ? 'Followers who care about this category get notified the moment you post.'
-            : 'It goes to the feed of everyone following the mosque.'}
-        </Text>
-      ) : null}
+        {!editId ? (
+          <Text style={styles.footnote}>
+            {form.type === 'volunteer'
+              ? 'Followers who care about this category get notified the moment you post.'
+              : 'It goes to the feed of everyone following the mosque.'}
+          </Text>
+        ) : null}
       </ScrollView>
     </Screen>
   );

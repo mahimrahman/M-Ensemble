@@ -15,7 +15,7 @@
  *   4. Arabic swaps the family to Noto Sans Arabic and the direction to RTL.
  */
 
-import type { TextStyle } from 'react-native';
+import { Platform, type TextStyle, type ViewStyle } from 'react-native';
 
 // ─── Raw palette (matches :root in the prototype's index.css) ────────────────
 export const teal = {
@@ -178,14 +178,21 @@ export const icon = {
   xl: 26,
 } as const;
 
-/** The one shadow in the app: a primary CTA lifting off the page. */
-export const ctaShadow = {
-  shadowColor: '#0A5247',
-  shadowOpacity: 0.35,
-  shadowRadius: 16,
-  shadowOffset: { width: 0, height: 6 },
-  elevation: 6,
-} as const;
+/**
+ * The one shadow in the app: a primary CTA lifting off the page.
+ * react-native-web deprecated the `shadow*` props in favour of `boxShadow`;
+ * native still wants the individual props (plus Android's elevation).
+ */
+export const ctaShadow: ViewStyle = Platform.select<ViewStyle>({
+  web: { boxShadow: '0 6px 16px rgba(10, 82, 71, 0.35)' },
+  default: {
+    shadowColor: '#0A5247',
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+  },
+}) as ViewStyle;
 
 /** Post-type accents, straight from TYPE_CFG in the prototype. */
 export const postTypeColors = {

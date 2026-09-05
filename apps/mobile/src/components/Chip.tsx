@@ -34,10 +34,7 @@ export function Chip({ label, selected, onPress, variant = 'solid' }: ChipProps)
       ]}
     >
       <Text
-        style={[
-          font(styles.label),
-          on && (solid ? styles.solidLabel : styles.washLabel),
-        ]}
+        style={[font(styles.label), on && (solid ? styles.solidLabel : styles.washLabel)]}
         numberOfLines={1}
       >
         {label}

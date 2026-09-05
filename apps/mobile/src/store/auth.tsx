@@ -14,12 +14,18 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { api, setAuthToken } from '@/api/client';
+import { ApiRequestError, api, setAuthToken } from '@/api/client';
 import type { ID, Membership, SignupInput, User } from '@/types';
 
 const TOKEN_KEY = 'mensemble.token';
 const USER_KEY = 'mensemble.user';
 const ONBOARDING_KEY = 'mensemble.needsOnboarding';
+const SESSION_KEYS = [TOKEN_KEY, USER_KEY, ONBOARDING_KEY];
+
+/** The API said the token is dead. Anything else (server down) is not this. */
+function isUnauthorized(err: unknown): boolean {
+  return err instanceof ApiRequestError && err.status === 401;
+}
 
 type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
 
@@ -60,13 +66,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ]);
         if (cancelled) return;
 
-        if (token && raw) {
-          setAuthToken(token);
-          setUserState(JSON.parse(raw) as User);
-          setNeedsOnboarding(onboarding === 'true');
-          setStatus('authenticated');
-        } else {
+        if (!token || !raw) {
           setStatus('unauthenticated');
+          return;
+        }
+
+        // Open on the cached session straight away — no spinner on a warm
+        // start — then confirm it with the API.
+        setAuthToken(token);
+        setUserState(JSON.parse(raw) as User);
+        setNeedsOnboarding(onboarding === 'true');
+        setStatus('authenticated');
+
+        try {
+          const fresh = await api.me();
+          if (cancelled) return;
+          setUserState(fresh);
+          void AsyncStorage.setItem(USER_KEY, JSON.stringify(fresh));
+        } catch (err) {
+          if (cancelled) return;
+          // An expired JWT (or a mock account that didn't survive the reload)
+          // signs out cleanly instead of stranding every screen on a 401. A
+          // server that's merely unreachable keeps the cached session.
+          if (isUnauthorized(err)) {
+            setAuthToken(null);
+            setUserState(null);
+            setNeedsOnboarding(false);
+            setStatus('unauthenticated');
+            await AsyncStorage.multiRemove(SESSION_KEYS);
+          }
         }
       } catch {
         if (!cancelled) setStatus('unauthenticated');
@@ -78,9 +106,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Roles ride along with the session. On mocks the mock client has to know
-  // who's signed in before this resolves — `persist` runs after `api.login`,
-  // so it does.
+  // Roles ride along with the session. The client knows who's signed in
+  // before this runs: `persist` follows `api.login`, and a cold start hands
+  // the stored token to `setAuthToken` first.
   useEffect(() => {
     if (status !== 'authenticated' || !user) {
       setMemberships([]);
@@ -134,7 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setNeedsOnboarding(false);
     setMemberships([]);
     setStatus('unauthenticated');
-    await AsyncStorage.multiRemove([TOKEN_KEY, USER_KEY, ONBOARDING_KEY]);
+    await AsyncStorage.multiRemove(SESSION_KEYS);
   }, []);
 
   const completeOnboarding = useCallback(async () => {

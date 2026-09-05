@@ -10,17 +10,10 @@ import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import { BellRing, ChevronRight, Copy, LogOut } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { USING_MOCKS, api } from '@/api/client';
-import {
-  Button,
-  Card,
-  Chip,
-  GradientHeader,
-  LangSwitcher,
-  Loading,
-  Screen,
-} from '@/components';
+import { Button, Card, Chip, GradientHeader, LangSwitcher, Loading, Screen } from '@/components';
 import { useApi } from '@/hooks/useApi';
 import { usePushToken } from '@/hooks/usePushToken';
 import { useLang } from '@/i18n';

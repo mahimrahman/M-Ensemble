@@ -68,9 +68,12 @@ export default function FeedScreen() {
 
   const refresh = useCallback(() => {
     setRefreshing(true);
-    void Promise.all([feed.reload(), allMosques.reload(), followed.reload(), commitments.reload()]).finally(
-      () => setRefreshing(false),
-    );
+    void Promise.all([
+      feed.reload(),
+      allMosques.reload(),
+      followed.reload(),
+      commitments.reload(),
+    ]).finally(() => setRefreshing(false));
   }, [feed, allMosques, followed, commitments]);
 
   const primaryMosque =

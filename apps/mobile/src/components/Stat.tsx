@@ -20,13 +20,7 @@ export function Stat({ value, label, tone = 'onDark' }: StatProps) {
   return (
     <View style={[styles.tile, dark ? styles.tileDark : styles.tileLight]}>
       <Text style={[styles.value, dark ? styles.valueDark : styles.valueLight]}>{value}</Text>
-      <Text
-        style={[
-          font(styles.label),
-          dark ? styles.labelDark : styles.labelLight,
-          align,
-        ]}
-      >
+      <Text style={[font(styles.label), dark ? styles.labelDark : styles.labelLight, align]}>
         {label}
       </Text>
     </View>

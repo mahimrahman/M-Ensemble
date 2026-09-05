@@ -6,7 +6,8 @@
 
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { api } from '@/api/client';
 import {
   Button,
@@ -50,9 +51,7 @@ export default function MyStuffScreen() {
   const { savedIds } = useSaved();
   const savedKey = [...savedIds].sort().join(',');
   const savedPosts = useApi<Post[]>(async () => {
-    const posts = await Promise.all(
-      [...savedIds].map((id) => api.getPost(id).catch(() => null)),
-    );
+    const posts = await Promise.all([...savedIds].map((id) => api.getPost(id).catch(() => null)));
     return posts.filter((p): p is Post => p !== null && !p.cancelledAt);
   }, [savedKey]);
   const mosqueName = (id: string) => mosques.data?.find((m) => m._id === id)?.name;
@@ -239,7 +238,11 @@ export default function MyStuffScreen() {
 
 const styles = StyleSheet.create({
   headTitle: { ...type.h1, color: colors.inkInverse, marginBottom: 14 },
-  scroll: { paddingHorizontal: feedPadding + 4, paddingTop: spacing.lg, paddingBottom: spacing.xxxl },
+  scroll: {
+    paddingHorizontal: feedPadding + 4,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xxxl,
+  },
 
   card: {
     backgroundColor: colors.surface,

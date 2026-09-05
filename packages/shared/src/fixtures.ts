@@ -1,9 +1,14 @@
 /**
- * PHASE 1 fixture data. Khadija + Madina, the two mosques we're demoing.
+ * Fixture data. Khadija + Madina, the two mosques we're demoing.
  *
- * PHASE 4's seed script mirrors this file exactly — if you change a name or a
- * slot count here, change it there too, or the integration walkthrough will
- * show different data than the rehearsal did.
+ * Lives in the shared package so it has exactly two readers and one truth:
+ *   - the mobile mock client (PHASE 1–4) serves it from memory
+ *   - the server seed script (PHASE 4) writes it to Mongo
+ * If the demo walkthrough and the rehearsal ever show different data, one of
+ * those two has stopped importing this file.
+ *
+ * Every date hangs off "today" at import time, so the seed script must be run
+ * on the morning of the demo (and re-run if the laptop sleeps overnight).
  */
 
 import type {
@@ -17,9 +22,10 @@ import type {
   Post,
   Signup,
   User,
-} from '@/types';
+} from './types';
 
-// Members' interests and posts' categories both draw from `@/lib/interests`.
+// Members' interests and posts' categories both draw from INTEREST_OPTIONS in
+// apps/mobile/src/lib/interests.ts.
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -420,7 +426,7 @@ export const mockPosts: Post[] = [
     capacity: 150,
     slotsFilled: 68,
     imageUrl:
-      "https://images.unsplash.com/photo-1573939705721-9fa2cdcda901?w=800&h=420&fit=crop&auto=format",
+      'https://images.unsplash.com/photo-1573939705721-9fa2cdcda901?w=800&h=420&fit=crop&auto=format',
     createdBy: KHADIJA_ADMIN_ID,
     createdAt: iso(-8, '18:00'),
   },
@@ -446,7 +452,7 @@ export const mockPosts: Post[] = [
       { startAt: nextWeekday(2, '19:00', 5), endAt: nextWeekday(2, '20:30', 5) },
     ],
     imageUrl:
-      "https://images.unsplash.com/photo-1712249239061-7d4f49ec9d44?w=800&h=420&fit=crop&auto=format",
+      'https://images.unsplash.com/photo-1712249239061-7d4f49ec9d44?w=800&h=420&fit=crop&auto=format',
     createdBy: KHADIJA_ADMIN_ID,
     createdAt: iso(-14, '09:30'),
   },
@@ -485,7 +491,7 @@ export const mockPosts: Post[] = [
       { startAt: nextWeekday(0, '11:00', 3), endAt: nextWeekday(0, '12:30', 3) },
     ],
     imageUrl:
-      "https://images.unsplash.com/photo-1547119879-c379a507fd2a?w=800&h=420&fit=crop&auto=format",
+      'https://images.unsplash.com/photo-1547119879-c379a507fd2a?w=800&h=420&fit=crop&auto=format',
     createdBy: KHADIJA_ADMIN_ID,
     createdAt: iso(-10, '14:45'),
   },
@@ -503,7 +509,7 @@ export const mockPosts: Post[] = [
     capacity: 60,
     slotsFilled: 34,
     imageUrl:
-      "https://images.unsplash.com/photo-1600096194534-95cf5ece04cf?w=800&h=420&fit=crop&auto=format",
+      'https://images.unsplash.com/photo-1600096194534-95cf5ece04cf?w=800&h=420&fit=crop&auto=format',
     createdBy: KHADIJA_ADMIN_ID,
     createdAt: iso(-6, '21:10'),
   },
@@ -568,7 +574,7 @@ export const mockPosts: Post[] = [
     capacity: 200,
     slotsFilled: 41,
     imageUrl:
-      "https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=800&h=420&fit=crop&auto=format",
+      'https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=800&h=420&fit=crop&auto=format',
     createdBy: MADINA_ADMIN_ID,
     createdAt: iso(-7, '12:00'),
   },

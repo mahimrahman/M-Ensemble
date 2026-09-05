@@ -52,7 +52,8 @@ const fr = {
   // ── feed ──
   // ── location ──
   locationTitle: 'Où êtes-vous ?',
-  locationBody: 'M’Ensemble utilise votre position pour trouver votre ville et afficher ses mosquées et ses activités. Vous pourrez aussi explorer d’autres villes.',
+  locationBody:
+    'M’Ensemble utilise votre position pour trouver votre ville et afficher ses mosquées et ses activités. Vous pourrez aussi explorer d’autres villes.',
   allowLocation: 'Autoriser la localisation',
   notNow: 'Pas maintenant',
   yourCity: 'Votre ville',
@@ -64,9 +65,11 @@ const fr = {
   locating: 'Recherche de votre ville…',
   useMyLocation: 'Utiliser ma position',
   onlyInCity: 'Inscriptions ouvertes à {city} seulement',
-  notInCity: 'Vous devez être à {city} pour vous inscrire. Vous pouvez tout de même suivre la mosquée.',
+  notInCity:
+    'Vous devez être à {city} pour vous inscrire. Vous pouvez tout de même suivre la mosquée.',
   enableLocationToSignUp: 'Activer la localisation pour s’inscrire',
-  locationDenied: 'La localisation est désactivée. Activez-la dans les réglages pour vous inscrire ici.',
+  locationDenied:
+    'La localisation est désactivée. Activez-la dans les réglages pour vous inscrire ici.',
   noMosquesInCity: 'Aucune mosquée à {city} pour l’instant',
   bookmark: 'Sauvegarder',
   saved: 'Enregistrés',
@@ -279,7 +282,8 @@ const fr = {
   coordinators: 'Coordinateurs',
   searchPeople: 'Rechercher une personne',
   noPeople: 'Personne pour l’instant',
-  noPeopleBody: 'Les personnes apparaissent ici dès qu’elles suivent votre mosquée ou s’inscrivent.',
+  noPeopleBody:
+    'Les personnes apparaissent ici dès qu’elles suivent votre mosquée ou s’inscrivent.',
   memberSince: 'Membre depuis',
   neverAttended: 'Jamais venu',
   lastSeen: 'Vu la dernière fois',
@@ -354,7 +358,8 @@ const en: Strings = {
   date: 'Date',
 
   locationTitle: 'Where are you?',
-  locationBody: 'M’Ensemble uses your location to find your city and show its mosques and events. You can browse other cities too.',
+  locationBody:
+    'M’Ensemble uses your location to find your city and show its mosques and events. You can browse other cities too.',
   allowLocation: 'Allow location',
   notNow: 'Not now',
   yourCity: 'Your city',
@@ -641,7 +646,8 @@ const ar: Strings = {
   date: 'التاريخ',
 
   locationTitle: 'أين أنت؟',
-  locationBody: 'يستخدم التطبيق موقعك للعثور على مدينتك وعرض مساجدها وفعالياتها. يمكنك أيضاً تصفح مدن أخرى.',
+  locationBody:
+    'يستخدم التطبيق موقعك للعثور على مدينتك وعرض مساجدها وفعالياتها. يمكنك أيضاً تصفح مدن أخرى.',
   allowLocation: 'السماح بالموقع',
   notNow: 'ليس الآن',
   yourCity: 'مدينتك',

@@ -89,8 +89,7 @@ export default function DashboardScreen() {
             p.type === 'volunteer' && p.slotsNeeded !== undefined && p.slotsFilled < p.slotsNeeded,
         )
         .sort(
-          (a, b) =>
-            (b.slotsNeeded ?? 0) - b.slotsFilled - ((a.slotsNeeded ?? 0) - a.slotsFilled),
+          (a, b) => (b.slotsNeeded ?? 0) - b.slotsFilled - ((a.slotsNeeded ?? 0) - a.slotsFilled),
         ),
     [live],
   );
@@ -99,10 +98,7 @@ export default function DashboardScreen() {
   const recent = useMemo(
     () =>
       (roster.data ?? [])
-        .filter(
-          (e) =>
-            e.signup.createdAt && now - new Date(e.signup.createdAt).getTime() < DAY_MS,
-        )
+        .filter((e) => e.signup.createdAt && now - new Date(e.signup.createdAt).getTime() < DAY_MS)
         .sort(
           (a, b) =>
             new Date(b.signup.createdAt ?? 0).getTime() -
@@ -230,11 +226,7 @@ export default function DashboardScreen() {
         {/* ── Short of people ── */}
         <SectionTitle
           title={t.needsPeople}
-          right={
-            short.length > 0 ? (
-              <Text style={styles.count}>{short.length}</Text>
-            ) : null
-          }
+          right={short.length > 0 ? <Text style={styles.count}>{short.length}</Text> : null}
         />
         {posts.loading && !posts.data ? null : short.length === 0 ? (
           <Text style={[font(styles.calm), align]}>{t.fullyStaffed}</Text>

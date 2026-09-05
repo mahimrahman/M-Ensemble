@@ -78,9 +78,7 @@ export function PrayerCard({ mosque }: PrayerCardProps) {
 
         <View style={styles.countdown}>
           <Text style={font(styles.countdownLabel)}>{t.in.toUpperCase()}</Text>
-          <Text style={styles.countdownValue}>
-            {clock(next.at.getTime() - now.getTime())}
-          </Text>
+          <Text style={styles.countdownValue}>{clock(next.at.getTime() - now.getTime())}</Text>
         </View>
       </View>
 
@@ -117,7 +115,11 @@ export function PrayerCard({ mosque }: PrayerCardProps) {
             tap();
             router.push({ pathname: '/prayer-month/[mosqueId]', params: { mosqueId: mosque._id } });
           }}
-          style={({ pressed }) => [styles.monthLink, isAr && styles.monthLinkAr, pressed && styles.pressed]}
+          style={({ pressed }) => [
+            styles.monthLink,
+            isAr && styles.monthLinkAr,
+            pressed && styles.pressed,
+          ]}
         >
           <CalendarDays color={colors.inkInverse} size={icon.sm} strokeWidth={2} />
           <Text style={font(styles.monthText)}>{t.seeFullMonth}</Text>

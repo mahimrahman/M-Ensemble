@@ -8,7 +8,8 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Plus, Trash2 } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { api } from '@/api/client';
 import {
   BackBar,
@@ -176,147 +177,157 @@ export default function IqamahScreen() {
   return (
     <Screen padded={false} edges={['left', 'right']}>
       <GradientHeader back={<BackBar />} title={t.manageIqamah} />
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text style={[font(styles.lead), align]}>{t.manageIqamah}</Text>
 
-      <Text style={[font(styles.lead), align]}>
-        {t.manageIqamah}
-      </Text>
+        {PRAYERS.map((prayer) => {
+          const row = rows[prayer];
+          return (
+            <Card key={prayer}>
+              <View style={[styles.rowHead, rowDir]}>
+                <Text style={font(styles.prayer)}>{prayerLabel(prayer, lang)}</Text>
+                <Text style={styles.adhan}>
+                  {t.adhan} {adhanFor(prayer) ?? '—'}
+                </Text>
+              </View>
+              <Segmented
+                options={[
+                  { value: 'fixed' as const, label: t.fixed },
+                  { value: 'offset' as const, label: t.offset },
+                ]}
+                value={row.mode}
+                onChange={(mode) => update(prayer, { mode })}
+              />
+              <View style={styles.inputRow}>
+                {row.mode === 'fixed' ? (
+                  <View style={styles.grow}>
+                    <Field
+                      label={t.iqamah}
+                      value={row.fixedTime}
+                      onChangeText={(v) => update(prayer, { fixedTime: v })}
+                      placeholder="13:30"
+                      keyboardType="numbers-and-punctuation"
+                    />
+                  </View>
+                ) : (
+                  <View style={styles.grow}>
+                    <Field
+                      label={t.minutesAfterAdhan}
+                      value={row.offsetMinutes}
+                      onChangeText={(v) =>
+                        update(prayer, { offsetMinutes: v.replace(/[^0-9]/g, '') })
+                      }
+                      placeholder="15"
+                      keyboardType="number-pad"
+                    />
+                  </View>
+                )}
+                <View style={styles.preview}>
+                  <Text style={font(styles.previewLabel)}>{t.adhan}</Text>
+                  <Text style={styles.previewValue}>{preview(prayer)}</Text>
+                </View>
+              </View>
+            </Card>
+          );
+        })}
 
-      {PRAYERS.map((prayer) => {
-        const row = rows[prayer];
-        return (
-          <Card key={prayer}>
-            <View style={[styles.rowHead, rowDir]}>
-              <Text style={font(styles.prayer)}>{prayerLabel(prayer, lang)}</Text>
-              <Text style={styles.adhan}>{t.adhan} {adhanFor(prayer) ?? '—'}</Text>
-            </View>
-            <Segmented
-              options={[
-                { value: ('fixed' as const), label: t.fixed },
-                { value: ('offset' as const), label: t.offset },
-              ]}
-              value={row.mode}
-              onChange={(mode) => update(prayer, { mode })}
-            />
-            <View style={styles.inputRow}>
-              {row.mode === 'fixed' ? (
+        <View style={styles.sectionRow}>
+          <Text style={[font(styles.section), align]}>{t.jummah}</Text>
+          <Button
+            label={t.createPost}
+            icon={Plus}
+            variant="ghost"
+            fullWidth={false}
+            onPress={() =>
+              setJummah((prev) => [
+                ...prev,
+                {
+                  label: prev.length ? `Jummah ${prev.length + 1}` : 'Jummah',
+                  khutbahTime: '13:00',
+                  iqamahTime: '13:20',
+                },
+              ])
+            }
+          />
+        </View>
+        {jummah.length === 0 ? (
+          <Card>
+            <Text style={[font(styles.muted), align]}>{t.noPosts}</Text>
+          </Card>
+        ) : (
+          jummah.map((session, index) => (
+            <Card key={index}>
+              <View style={styles.rowHead}>
                 <View style={styles.grow}>
                   <Field
-                    label={t.iqamah}
-                    value={row.fixedTime}
-                    onChangeText={(v) => update(prayer, { fixedTime: v })}
-                    placeholder="13:30"
+                    label={t.postTitle}
+                    value={session.label}
+                    onChangeText={(v) =>
+                      setJummah((prev) =>
+                        prev.map((s, i) => (i === index ? { ...s, label: v } : s)),
+                      )
+                    }
+                    placeholder="First jummah"
+                  />
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Remove session"
+                  hitSlop={8}
+                  onPress={() => setJummah((prev) => prev.filter((_, i) => i !== index))}
+                  style={styles.trash}
+                >
+                  <Trash2 color={colors.danger} size={icon.md} />
+                </Pressable>
+              </View>
+              <View style={styles.inputRow}>
+                <View style={styles.grow}>
+                  <Field
+                    label={t.khutbah}
+                    value={session.khutbahTime}
+                    onChangeText={(v) =>
+                      setJummah((prev) =>
+                        prev.map((s, i) => (i === index ? { ...s, khutbahTime: v } : s)),
+                      )
+                    }
+                    placeholder="13:00"
                     keyboardType="numbers-and-punctuation"
                   />
                 </View>
-              ) : (
                 <View style={styles.grow}>
                   <Field
-                    label={t.minutesAfterAdhan}
-                    value={row.offsetMinutes}
+                    label={t.iqamah}
+                    value={session.iqamahTime}
                     onChangeText={(v) =>
-                      update(prayer, { offsetMinutes: v.replace(/[^0-9]/g, '') })
+                      setJummah((prev) =>
+                        prev.map((s, i) => (i === index ? { ...s, iqamahTime: v } : s)),
+                      )
                     }
-                    placeholder="15"
-                    keyboardType="number-pad"
+                    placeholder="13:20"
+                    keyboardType="numbers-and-punctuation"
                   />
                 </View>
-              )}
-              <View style={styles.preview}>
-                <Text style={font(styles.previewLabel)}>{t.adhan}</Text>
-                <Text style={styles.previewValue}>{preview(prayer)}</Text>
               </View>
-            </View>
-          </Card>
-        );
-      })}
+            </Card>
+          ))
+        )}
 
-      <View style={styles.sectionRow}>
-        <Text style={[font(styles.section), align]}>{t.jummah}</Text>
+        <View style={styles.group}>
+          <Text style={[font(styles.section), align]}>{t.save}</Text>
+          <Text style={[font(styles.muted), align]}>{t.cancelPostBody}</Text>
+          <DayChips value={effectiveFrom} onChange={setEffectiveFrom} days={21} />
+        </View>
+
         <Button
-          label={t.createPost}
-          icon={Plus}
-          variant="ghost"
-          fullWidth={false}
-          onPress={() =>
-            setJummah((prev) => [
-              ...prev,
-              {
-                label: prev.length ? `Jummah ${prev.length + 1}` : 'Jummah',
-                khutbahTime: '13:00',
-                iqamahTime: '13:20',
-              },
-            ])
-          }
+          label={saving ? t.saving : t.save}
+          size="lg"
+          loading={saving}
+          onPress={() => void save()}
         />
-      </View>
-      {jummah.length === 0 ? (
-        <Card>
-          <Text style={[font(styles.muted), align]}>{t.noPosts}</Text>
-        </Card>
-      ) : (
-        jummah.map((session, index) => (
-          <Card key={index}>
-            <View style={styles.rowHead}>
-              <View style={styles.grow}>
-                <Field
-                  label={t.postTitle}
-                  value={session.label}
-                  onChangeText={(v) =>
-                    setJummah((prev) => prev.map((s, i) => (i === index ? { ...s, label: v } : s)))
-                  }
-                  placeholder="First jummah"
-                />
-              </View>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Remove session"
-                hitSlop={8}
-                onPress={() => setJummah((prev) => prev.filter((_, i) => i !== index))}
-                style={styles.trash}
-              >
-                <Trash2 color={colors.danger} size={icon.md} />
-              </Pressable>
-            </View>
-            <View style={styles.inputRow}>
-              <View style={styles.grow}>
-                <Field
-                  label={t.khutbah}
-                  value={session.khutbahTime}
-                  onChangeText={(v) =>
-                    setJummah((prev) =>
-                      prev.map((s, i) => (i === index ? { ...s, khutbahTime: v } : s)),
-                    )
-                  }
-                  placeholder="13:00"
-                  keyboardType="numbers-and-punctuation"
-                />
-              </View>
-              <View style={styles.grow}>
-                <Field
-                  label={t.iqamah}
-                  value={session.iqamahTime}
-                  onChangeText={(v) =>
-                    setJummah((prev) =>
-                      prev.map((s, i) => (i === index ? { ...s, iqamahTime: v } : s)),
-                    )
-                  }
-                  placeholder="13:20"
-                  keyboardType="numbers-and-punctuation"
-                />
-              </View>
-            </View>
-          </Card>
-        ))
-      )}
-
-      <View style={styles.group}>
-        <Text style={[font(styles.section), align]}>{t.save}</Text>
-        <Text style={[font(styles.muted), align]}>{t.cancelPostBody}</Text>
-        <DayChips value={effectiveFrom} onChange={setEffectiveFrom} days={21} />
-      </View>
-
-      <Button label={saving ? t.saving : t.save} size="lg" loading={saving} onPress={() => void save()} />
       </ScrollView>
     </Screen>
   );

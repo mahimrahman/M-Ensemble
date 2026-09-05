@@ -42,7 +42,9 @@ async function read(kind: Kind, userId: string): Promise<Set<ID>> {
   try {
     const raw = await AsyncStorage.getItem(storageKey(kind, userId));
     const parsed: unknown = raw ? JSON.parse(raw) : [];
-    return new Set(Array.isArray(parsed) ? parsed.filter((x): x is ID => typeof x === 'string') : []);
+    return new Set(
+      Array.isArray(parsed) ? parsed.filter((x): x is ID => typeof x === 'string') : [],
+    );
   } catch {
     return new Set();
   }

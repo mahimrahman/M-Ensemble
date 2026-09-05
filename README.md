@@ -8,13 +8,13 @@ React Native (Expo) mobile app with an Express + MongoDB API, all TypeScript.
 M-Ensemble/
 ├── apps/
 │   ├── mobile/            Expo + expo-router app (lucide-react-native icons)
-│   │   ├── app/           File-based routes: (auth) stack, (tabs) Feed/Mosques/My Stuff/Profile
-│   │   └── src/           api (+ mock client), components, hooks, lib, push, store, theme, types
+│   │   ├── app/           File-based routes: (auth) · (tabs) member shell · (admin) coordinator shell · manage/* · post/ mosque/ checkin/ …
+│   │   └── src/           api (+ mock client), components, hooks, i18n (EN/FR/AR), lib, push, store, theme, types
 │   └── server/            Express + Mongoose API
 │       ├── src/           config, models, routes, controllers, middleware, services, utils
 │       └── tests/
 ├── packages/
-│   └── shared/            Types shared by mobile and server
+│   └── shared/            The contract: types, the `MEnsembleApi` interface, and the fixtures (mock + seed)
 ├── docs/
 └── tsconfig.base.json     Shared compiler options
 ```
@@ -41,8 +41,15 @@ server nor Mongo. Sign in as **yusuf@example.com / mensemble**. Set the flag to
 On a physical device, set `EXPO_PUBLIC_API_URL` to your machine's LAN IP —
 `localhost` points at the phone itself.
 
-Build order and what's done lives in [plan.md](plan.md); Phase 1 notes, including
-the push-token setup, in [docs/phase-1.md](docs/phase-1.md).
+Build order and what's done lives in [plan.md](plan.md). Per-phase notes:
+
+| Doc                                | What it covers                                                       |
+| ---------------------------------- | -------------------------------------------------------------------- |
+| [docs/phase-1.md](docs/phase-1.md) | Shell, push-token setup on a real phone                              |
+| [docs/phase-2.md](docs/phase-2.md) | Member screens, prayer-time maths                                    |
+| [docs/phase-3.md](docs/phase-3.md) | Coordinator shell and admin screens                                  |
+| [docs/phase-4.md](docs/phase-4.md) | **Backend + DB spec** — every route, model, index, formula, the seed |
+| [docs/phase-5.md](docs/phase-5.md) | Integration checklist, per-screen endpoint map                       |
 
 ## Maps
 
@@ -54,27 +61,24 @@ the map falls back to a list (`MosqueMap.web.tsx`).
 
 ## Scripts
 
-| Command | What it does |
-| --- | --- |
-| `npm run dev:server` | Express API in watch mode |
-| `npm run dev:mobile` | Expo dev server |
-| `npm run build` | Compile shared + server to `dist/` |
-| `npm run typecheck` | Type-check every workspace |
-| `npm test` | Run workspace tests |
-| `npm run format` | Prettier across the repo |
+| Command              | What it does                       |
+| -------------------- | ---------------------------------- |
+| `npm run dev:server` | Express API in watch mode          |
+| `npm run dev:mobile` | Expo dev server                    |
+| `npm run build`      | Compile shared + server to `dist/` |
+| `npm run typecheck`  | Type-check every workspace         |
+| `npm test`           | Run workspace tests                |
+| `npm run format`     | Prettier across the repo           |
 
 ## API
 
-Base path `/api`.
-
-| Method | Route | Description |
-| --- | --- | --- |
-| GET | `/health` | Liveness + DB connection state |
-| GET | `/users` | List users |
-| POST | `/users` | Create a user |
+Base path `/api`. Today the server exposes `GET /health` plus a scaffold; the
+full route list the app already calls, and the rules behind each, is in
+[docs/phase-4.md](docs/phase-4.md).
 
 Every response uses the `ApiResponse<T>` envelope from `@m-ensemble/shared`:
-`{ ok: true, data }` or `{ ok: false, error: { code, message } }`.
+`{ ok: true, data }` or `{ ok: false, error: { code, message } }`. Error codes
+are the uppercase constants in `API_ERROR`.
 
 ## License
 

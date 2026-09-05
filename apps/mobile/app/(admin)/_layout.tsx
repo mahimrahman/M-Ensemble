@@ -21,7 +21,6 @@ import {
 } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 import { useLang } from '@/i18n';
-import { AdminMosqueProvider } from '@/store/adminMosque';
 import { useAuth } from '@/store/auth';
 import { colors, icon, rule, type } from '@/theme';
 
@@ -53,64 +52,62 @@ export default function AdminLayout() {
     return <Redirect href="/(tabs)" />;
   }
 
+  // The mosque context itself lives in the root layout, so the manage/*
+  // screens (outside this tab group) share the same selection.
   return (
-    <AdminMosqueProvider>
-      <Tabs
-        screenOptions={{
-          headerShown: false,
-          tabBarShowLabel: false,
-          tabBarStyle: styles.bar,
-          tabBarItemStyle: styles.barItem,
-          tabBarIconStyle: styles.iconSlot,
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarShowLabel: false,
+        tabBarStyle: styles.bar,
+        tabBarItemStyle: styles.barItem,
+        tabBarIconStyle: styles.iconSlot,
+      }}
+    >
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: t.dashboard,
+          tabBarIcon: ({ focused }) => (
+            <TabItem Icon={LayoutDashboard} label={t.dashboard} focused={focused} />
+          ),
         }}
-      >
-        <Tabs.Screen
-          name="index"
-          options={{
-            title: t.dashboard,
-            tabBarIcon: ({ focused }) => (
-              <TabItem Icon={LayoutDashboard} label={t.dashboard} focused={focused} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="events"
-          options={{
-            title: t.events,
-            tabBarIcon: ({ focused }) => (
-              <TabItem Icon={CalendarRange} label={t.events} focused={focused} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="people"
-          options={{
-            title: t.people,
-            tabBarIcon: ({ focused }) => (
-              <TabItem Icon={Users} label={t.people} focused={focused} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="prayer"
-          options={{
-            title: t.adminPrayer,
-            tabBarIcon: ({ focused }) => (
-              <TabItem Icon={Moon} label={t.adminPrayer} focused={focused} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="settings"
-          options={{
-            title: t.adminSettings,
-            tabBarIcon: ({ focused }) => (
-              <TabItem Icon={Settings} label={t.adminSettings} focused={focused} />
-            ),
-          }}
-        />
-      </Tabs>
-    </AdminMosqueProvider>
+      />
+      <Tabs.Screen
+        name="events"
+        options={{
+          title: t.events,
+          tabBarIcon: ({ focused }) => (
+            <TabItem Icon={CalendarRange} label={t.events} focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="people"
+        options={{
+          title: t.people,
+          tabBarIcon: ({ focused }) => <TabItem Icon={Users} label={t.people} focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="prayer"
+        options={{
+          title: t.adminPrayer,
+          tabBarIcon: ({ focused }) => (
+            <TabItem Icon={Moon} label={t.adminPrayer} focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: t.adminSettings,
+          tabBarIcon: ({ focused }) => (
+            <TabItem Icon={Settings} label={t.adminSettings} focused={focused} />
+          ),
+        }}
+      />
+    </Tabs>
   );
 }
 

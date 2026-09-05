@@ -64,11 +64,7 @@ export default function PrayerMonthScreen() {
 
   return (
     <Screen padded={false} edges={['left', 'right']}>
-      <GradientHeader
-        back={<BackBar />}
-        eyebrow={mosque.data?.name ?? ' '}
-        title={t.monthTimes}
-      />
+      <GradientHeader back={<BackBar />} eyebrow={mosque.data?.name ?? ' '} title={t.monthTimes} />
 
       {/* Month navigator + adhan/iqamah toggle stay put while the table scrolls. */}
       <View style={styles.controls}>
@@ -206,7 +202,13 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.rule,
     alignItems: 'center',
   },
-  headText: { ...type.overline, fontSize: 9, letterSpacing: 0.4, color: colors.inkMuted, textAlign: 'center' },
+  headText: {
+    ...type.overline,
+    fontSize: 9,
+    letterSpacing: 0.4,
+    color: colors.inkMuted,
+    textAlign: 'center',
+  },
   loading: { paddingHorizontal: spacing.lg },
 
   row: {

@@ -113,5 +113,5 @@ export { LANGS, LANG_LABEL, STRINGS, type Lang, type Strings } from './strings';
 
 /** Fills '{city}'-style placeholders in a string from the table. */
 export function fill(template: string, vars: Record<string, string>): string {
-  return template.replace(/{(w+)}/g, (_, key: string) => vars[key] ?? '');
+  return template.replace(/\{(\w+)\}/g, (_, key: string) => vars[key] ?? '');
 }

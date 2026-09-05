@@ -148,7 +148,15 @@ export function LocationProvider({ children }: { children: ReactNode }) {
       dismissPrompt,
       canActIn: (cityId) => detectedCity?.id === cityId,
     }),
-    [promptSeen, status, detectedCity, browsingCity, setBrowsingCity, requestLocation, dismissPrompt],
+    [
+      promptSeen,
+      status,
+      detectedCity,
+      browsingCity,
+      setBrowsingCity,
+      requestLocation,
+      dismissPrompt,
+    ],
   );
 
   return <LocationContext.Provider value={value}>{children}</LocationContext.Provider>;

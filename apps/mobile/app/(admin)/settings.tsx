@@ -8,7 +8,8 @@
 
 import { useRouter } from 'expo-router';
 import { Clock, ListPlus, LogOut, MapPin, QrCode } from 'lucide-react-native';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { Button, Card, GradientHeader, LangSwitcher, Screen, SectionTitle } from '@/components';
 import { useLang } from '@/i18n';
 import { tap } from '@/lib/haptics';

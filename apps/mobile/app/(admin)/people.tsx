@@ -139,10 +139,7 @@ export default function PeopleScreen() {
               >
                 <View style={[styles.avatar, member.role === 'admin' && styles.avatarAdmin]}>
                   <Text
-                    style={[
-                      styles.avatarText,
-                      member.role === 'admin' && styles.avatarTextAdmin,
-                    ]}
+                    style={[styles.avatarText, member.role === 'admin' && styles.avatarTextAdmin]}
                   >
                     {member.name.trim().charAt(0).toUpperCase()}
                   </Text>
@@ -162,20 +159,14 @@ export default function PeopleScreen() {
                     {member.signupCount === 0
                       ? t.neverAttended
                       : `${member.attendedCount}/${member.signupCount} ${t.shifts}` +
-                        (member.lastSeenAt
-                          ? ` · ${formatAgo(member.lastSeenAt, lang)}`
-                          : '')}
+                        (member.lastSeenAt ? ` · ${formatAgo(member.lastSeenAt, lang)}` : '')}
                   </Text>
                 </View>
 
                 {rate === null ? null : (
                   <View style={styles.score}>
-                    <Text style={[styles.scoreValue, rate < 60 && styles.scoreWeak]}>
-                      {rate}%
-                    </Text>
-                    <Text style={styles.scoreLabel}>
-                      {formatHours(member.minutesServed)}h
-                    </Text>
+                    <Text style={[styles.scoreValue, rate < 60 && styles.scoreWeak]}>{rate}%</Text>
+                    <Text style={styles.scoreLabel}>{formatHours(member.minutesServed)}h</Text>
                   </View>
                 )}
               </Pressable>

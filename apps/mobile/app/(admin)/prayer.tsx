@@ -36,21 +36,14 @@ export default function AdminPrayerScreen() {
     async () => (mosqueId ? api.getPrayerTimes(mosqueId, todayDateString()) : null),
     [mosqueId],
   );
-  const config = useApi(
-    async () => (mosqueId ? api.getIqamahConfig(mosqueId) : null),
-    [mosqueId],
-  );
+  const config = useApi(async () => (mosqueId ? api.getIqamahConfig(mosqueId) : null), [mosqueId]);
 
   /** Prayers the congregation would see blank — the one real error state here. */
   const missing = (table.data?.rows ?? []).filter((r) => r.iqamah === null);
 
   return (
     <Screen padded={false} edges={['left', 'right']}>
-      <GradientHeader
-        eyebrow={t.mosqueSide}
-        title={t.adminPrayer}
-        subtitle={mosque?.name}
-      />
+      <GradientHeader eyebrow={t.mosqueSide} title={t.adminPrayer} subtitle={mosque?.name} />
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <Button

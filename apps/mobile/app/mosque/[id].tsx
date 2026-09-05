@@ -6,7 +6,8 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { CalendarDays, Check, KeyRound, MapPin, Navigation } from 'lucide-react-native';
 import { useState } from 'react';
-import { Alert, Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { api } from '@/api/client';
 import {
   BackBar,
@@ -81,9 +82,9 @@ export default function MosqueScreen() {
 
   function openDirections() {
     const { lat, lng } = m.coordinates;
-    void Linking.openURL(
-      `https://www.openstreetmap.org/directions?from=&to=${lat}%2C${lng}`,
-    ).catch(() => {});
+    void Linking.openURL(`https://www.openstreetmap.org/directions?from=&to=${lat}%2C${lng}`).catch(
+      () => {},
+    );
   }
 
   return (

@@ -38,10 +38,12 @@ export function BackBar({ tone = 'onDark', label, onPress }: BackBarProps) {
       style={({ pressed }) => [styles.bar, pressed && styles.pressed]}
     >
       <View style={[styles.row, isAr && styles.rowAr]}>
-        <Arrow color={dark ? 'rgba(255,255,255,0.7)' : colors.inkMuted} size={icon.sm} strokeWidth={2} />
-        <Text style={[styles.label, dark ? styles.onDark : styles.onLight]}>
-          {label ?? t.back}
-        </Text>
+        <Arrow
+          color={dark ? 'rgba(255,255,255,0.7)' : colors.inkMuted}
+          size={icon.sm}
+          strokeWidth={2}
+        />
+        <Text style={[styles.label, dark ? styles.onDark : styles.onLight]}>{label ?? t.back}</Text>
       </View>
     </Pressable>
   );
