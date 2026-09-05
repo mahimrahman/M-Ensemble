@@ -1,0 +1,48 @@
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useRef, useState, type DependencyList } from 'react';
+import { ApiRequestError } from '@/api/client';
+
+export interface ApiState<T> {
+  data: T | null;
+  /** True only until the first result — later reloads keep the old data up. */
+  loading: boolean;
+  error: string | null;
+  reload: () => Promise<void>;
+}
+
+/**
+ * Runs `fetcher` when the screen gains focus and again on demand.
+ *
+ * Refetch-on-focus is what keeps the feed honest after you claim a slot on the
+ * detail screen and come back: no cache invalidation to get wrong.
+ */
+export function useApi<T>(fetcher: () => Promise<T>, deps: DependencyList): ApiState<T> {
+  const [data, setData] = useState<T | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const requestId = useRef(0);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const load = useCallback(async () => {
+    const id = ++requestId.current;
+    try {
+      const result = await fetcher();
+      if (id !== requestId.current) return;
+      setData(result);
+      setError(null);
+    } catch (err) {
+      if (id !== requestId.current) return;
+      setError(err instanceof ApiRequestError ? err.message : 'Something went wrong loading this.');
+    } finally {
+      if (id === requestId.current) setLoading(false);
+    }
+  }, deps);
+
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
+
+  return { data, loading, error, reload: load };
+}

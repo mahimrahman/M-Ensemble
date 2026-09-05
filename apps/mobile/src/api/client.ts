@@ -1,38 +1,22 @@
-import type { ApiResponse } from '@m-ensemble/shared';
+/**
+ * The one door out of the UI.
+ *
+ * No screen calls `fetch`. No screen imports the mock client. No screen knows
+ * which of the two it is talking to — that is what makes PHASE 5 a flag flip
+ * instead of a rewrite.
+ *
+ *   PHASE 1–4: EXPO_PUBLIC_USE_MOCKS unset or "true"  → in-memory fixtures
+ *   PHASE 5:   EXPO_PUBLIC_USE_MOCKS="false"          → real server
+ */
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:4000/api';
+import type { MEnsembleApi } from '@/types';
+import { httpApi } from './http';
+import { mockApi } from './mock/mockClient';
 
-export class ApiRequestError extends Error {
-  constructor(
-    readonly code: string,
-    message: string,
-    readonly status: number,
-  ) {
-    super(message);
-    this.name = 'ApiRequestError';
-  }
-}
+export const USING_MOCKS = process.env.EXPO_PUBLIC_USE_MOCKS !== 'false';
 
-export async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...init?.headers,
-    },
-  });
+export const api: MEnsembleApi = USING_MOCKS ? mockApi : httpApi;
 
-  const body = (await res.json()) as ApiResponse<T>;
-
-  if (!body.ok) {
-    throw new ApiRequestError(body.error.code, body.error.message, res.status);
-  }
-
-  return body.data;
-}
-
-export const api = {
-  get: <T>(path: string) => request<T>(path),
-  post: <T>(path: string, data: unknown) =>
-    request<T>(path, { method: 'POST', body: JSON.stringify(data) }),
-};
+export { ApiRequestError, isApiError, API_ERROR } from './errors';
+export { setAuthToken } from './http';
+export { resetMockState } from './mock/mockClient';

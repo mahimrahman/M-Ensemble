@@ -22,6 +22,7 @@ import {
   EmptyState,
   GradientHeader,
   Loading,
+  LocationPill,
   MosqueMap,
   PrayerTable,
   Screen,
@@ -30,6 +31,8 @@ import {
 import { useApi } from '@/hooks/useApi';
 import { useNextPrayer } from '@/hooks/useNextPrayer';
 import { useLang } from '@/i18n';
+import { cityName, mosqueCity } from '@/lib/cities';
+import { useLocation } from '@/store/location';
 import { todayDateString } from '@/lib/format';
 import { tap } from '@/lib/haptics';
 import { colors, feedPadding, icon as iconSize, radius, spacing, type } from '@/theme';
@@ -37,7 +40,8 @@ import type { Mosque } from '@/types';
 
 export default function MosquesScreen() {
   const router = useRouter();
-  const { t, isAr, align, row, font } = useLang();
+  const { t, lang, isAr, align, row, font } = useLang();
+  const { browsingCity } = useLocation();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
@@ -47,7 +51,7 @@ export default function MosquesScreen() {
   const followed = useApi(() => api.getFollowedMosques(), []);
   const followedIds = new Set((followed.data ?? []).map((m) => m._id));
 
-  const list = mosques.data ?? [];
+  const list = (mosques.data ?? []).filter((m) => mosqueCity(m).id === browsingCity.id);
   const active = list.find((m) => m._id === selectedId) ?? list[0] ?? null;
 
   // The table under the list follows whichever mosque is selected.
@@ -59,7 +63,8 @@ export default function MosquesScreen() {
 
   // Default the selection to the first mosque once the list arrives.
   useEffect(() => {
-    if (!selectedId && list.length > 0) setSelectedId(list[0]!._id);
+    if (list.length === 0) return;
+    if (!selectedId || !list.some((m) => m._id === selectedId)) setSelectedId(list[0]!._id);
   }, [list, selectedId]);
 
   function selectMosque(id: string) {
@@ -101,7 +106,11 @@ export default function MosquesScreen() {
 
   return (
     <Screen padded={false} edges={['left', 'right']}>
-      <GradientHeader title={t.mosques} subtitle={t.nearbyMosques} />
+      <GradientHeader
+        title={t.mosques}
+        subtitle={t.nearbyMosques + ' · ' + cityName(browsingCity, lang)}
+        right={<LocationPill tone="onDark" />}
+      />
 
       <ScrollView
         ref={scrollRef}

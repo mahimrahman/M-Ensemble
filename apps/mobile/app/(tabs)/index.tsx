@@ -13,6 +13,8 @@ import { api } from '@/api/client';
 import {
   Chip,
   EmptyState,
+  LocationPill,
+  LocationPrompt,
   Loading,
   PostCard,
   PrayerCard,
@@ -20,7 +22,9 @@ import {
   postTypeLabel,
 } from '@/components';
 import { useApi } from '@/hooks/useApi';
-import { useLang } from '@/i18n';
+import { fill, useLang } from '@/i18n';
+import { cityName, mosqueCity } from '@/lib/cities';
+import { useLocation } from '@/store/location';
 import { colors, feedPadding, rule, spacing } from '@/theme';
 import type { PostType } from '@/types';
 
@@ -30,37 +34,52 @@ const FILTERS: Filter[] = ['all', 'volunteer', 'event', 'class', 'announcement']
 
 export default function FeedScreen() {
   const router = useRouter();
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const { browsingCity } = useLocation();
   const [filter, setFilter] = useState<Filter>('all');
   const [refreshing, setRefreshing] = useState(false);
 
-  const mosques = useApi(() => api.getFollowedMosques(), []);
+  const allMosques = useApi(() => api.getMosques(), []);
+  const followed = useApi(() => api.getFollowedMosques(), []);
   const commitments = useApi(() => api.getCommitments(), []);
-  const feed = useApi(
-    () => api.getFeed(filter === 'all' ? undefined : { types: [filter] }),
-    [filter],
+
+  const cityMosques = useMemo(
+    () => (allMosques.data ?? []).filter((m) => mosqueCity(m).id === browsingCity.id),
+    [allMosques.data, browsingCity.id],
   );
+  const cityKey = cityMosques.map((m) => m._id).join(',');
+
+  const feed = useApi(async () => {
+    if (!cityMosques.length) return [];
+    return api.getFeed({
+      mosqueIds: cityMosques.map((m) => m._id),
+      ...(filter === 'all' ? {} : { types: [filter] }),
+    });
+  }, [filter, cityKey]);
 
   const committedIds = useMemo(
     () => new Set((commitments.data ?? []).map((s) => s.postId)),
     [commitments.data],
   );
   const mosqueName = useCallback(
-    (id: string) => mosques.data?.find((m) => m._id === id)?.name,
-    [mosques.data],
+    (id: string) => allMosques.data?.find((m) => m._id === id)?.name,
+    [allMosques.data],
   );
 
   const refresh = useCallback(() => {
     setRefreshing(true);
-    void Promise.all([feed.reload(), mosques.reload(), commitments.reload()]).finally(() =>
-      setRefreshing(false),
+    void Promise.all([feed.reload(), allMosques.reload(), followed.reload(), commitments.reload()]).finally(
+      () => setRefreshing(false),
     );
-  }, [feed, mosques, commitments]);
+  }, [feed, allMosques, followed, commitments]);
 
-  const primaryMosque = mosques.data?.[0] ?? null;
+  const primaryMosque =
+    cityMosques.find((m) => (followed.data ?? []).some((f) => f._id === m._id)) ??
+    cityMosques[0] ??
+    null;
   const posts = feed.data ?? [];
 
-  if (feed.loading && mosques.loading) {
+  if (allMosques.loading) {
     return (
       <Screen>
         <Loading label={t.loading} />
@@ -68,15 +87,19 @@ export default function FeedScreen() {
     );
   }
 
-  if (mosques.data && mosques.data.length === 0) {
+  if (allMosques.data && cityMosques.length === 0) {
     return (
       <Screen padded={false} edges={['top', 'left', 'right']}>
+        <LocationPrompt />
         <View style={styles.padded}>
+          <View style={styles.pillRow}>
+            <LocationPill />
+          </View>
           <EmptyState
-            title={t.followMosqueTitle}
-            message={t.followMosqueBody}
-            actionLabel={t.findMosques}
-            onAction={() => router.push('/mosques')}
+            title={fill(t.noMosquesInCity, { city: cityName(browsingCity, lang) })}
+            message={t.nothingComingUpBody}
+            actionLabel={t.changeCity}
+            onAction={() => router.push('/cities')}
           />
         </View>
       </Screen>
@@ -85,6 +108,7 @@ export default function FeedScreen() {
 
   return (
     <Screen padded={false} edges={['left', 'right']}>
+      <LocationPrompt />
       <FlatList
         data={posts}
         keyExtractor={(post) => post._id}
@@ -110,6 +134,8 @@ export default function FeedScreen() {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.chips}
               >
+                <LocationPill />
+                <View style={styles.chipDivider} />
                 {FILTERS.map((value) => (
                   <Chip
                     key={value}
@@ -156,5 +182,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.rule,
     paddingVertical: 10,
   },
-  chips: { gap: spacing.sm, paddingHorizontal: 14 },
+  chips: { gap: spacing.sm, paddingHorizontal: 14, alignItems: 'center' },
+  chipDivider: { width: rule, height: 20, backgroundColor: colors.rule, marginHorizontal: 2 },
+  pillRow: { paddingTop: spacing.lg },
 });

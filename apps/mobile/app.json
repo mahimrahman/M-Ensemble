@@ -31,7 +31,13 @@
           "defaultChannel": "default"
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "M’Ensemble uses your location to find your city and show its mosques and events."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

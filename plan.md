@@ -45,8 +45,8 @@ No screen ever calls `fetch` directly. No screen knows whether data is mocked. S
 # PHASE 0 — Contract (Hours 0–1) · everyone
 **No code. Do not skip this.**
 
-- [ ] Lock the type definitions below verbatim
-- [ ] Lock the `api` interface above
+- [x] Lock the type definitions below verbatim
+- [x] Lock the `api` interface above
 - [ ] Repo created, everyone cloned, branch strategy agreed
 - [ ] Screen list assigned per dev
 - [ ] Decide: Expo Go or dev build (Expo Go is faster; verify push works on it)
@@ -72,11 +72,11 @@ interface Iqamah  { mosqueId, prayer, mode: 'fixed'|'offset', fixedTime?, offset
 Get something on a real device immediately.
 
 - [ ] Expo app runs **on a physical phone** (not simulator)
-- [ ] Navigation: auth stack → main tabs (Feed · Mosques · My Stuff · Profile)
-- [ ] Design tokens: colors, spacing, type scale, in one file
-- [ ] lucide-react-native wired, icon set chosen
-- [ ] Reusable components: `Card`, `Button`, `Badge`, `EmptyState`, `Loading`
-- [ ] `mockData.ts` — Khadija + Madina, 12 realistic posts, 20 fake members
+- [x] Navigation: auth stack → main tabs (Feed · Mosques · My Stuff · Profile)
+- [x] Design tokens: colors, spacing, type scale, in one file
+- [x] lucide-react-native wired, icon set chosen
+- [x] Reusable components: `Card`, `Button`, `Badge`, `EmptyState`, `Loading`
+- [x] `mockData.ts` — Khadija + Madina, 12 realistic posts, 20 fake members
 - [ ] **Register a push token on the real device.** Confirm a test push arrives. Do this NOW, not at hour 18.
 
 **Exit criteria:** app opens on a phone, tabs navigate, a hardcoded card renders, a test push arrives.
@@ -86,15 +86,15 @@ Get something on a real device immediately.
 # PHASE 2 — Member screens (Hours 3–8) · devs A, B, C
 All against mocks.
 
-- [ ] **Auth:** login, signup
-- [ ] **Onboarding:** find/follow mosque, pick interests
-- [ ] **Feed:** unified across followed mosques, type filter chips, mosque badge per card
-- [ ] **Post detail:** three variants (volunteer / event+class / announcement)
-- [ ] **Signup flow:** claim slot, slots-remaining indicator, confirmed state, withdraw
-- [ ] **My Stuff:** upcoming commitments, past, service hours total
-- [ ] **Mosque profile:** info, prayer table (adhan + iqamah), upcoming posts
-- [ ] **Prayer card:** next prayer + live countdown on Feed header
-- [ ] **Profile:** interests, notification prefs, followed mosques
+- [x] **Auth:** login, signup
+- [x] **Onboarding:** find/follow mosque, pick interests
+- [x] **Feed:** unified across followed mosques, type filter chips, mosque badge per card
+- [x] **Post detail:** three variants (volunteer / event+class / announcement)
+- [x] **Signup flow:** claim slot, slots-remaining indicator, confirmed state, withdraw
+- [x] **My Stuff:** upcoming commitments, past, service hours total
+- [x] **Mosque profile:** info, prayer table (adhan + iqamah), upcoming posts
+- [x] **Prayer card:** next prayer + live countdown on Feed header
+- [x] **Profile:** interests, notification prefs, followed mosques
 
 **Prayer times are real from Phase 2** — `adhan` computes locally, no backend needed:
 ```bash
@@ -115,12 +115,12 @@ Iqamah comes from mock config now, admin-entered later. **Store iqamah as wall-c
 # PHASE 3 — Admin screens (Hours 3–8, parallel) · dev D
 Runs alongside Phase 2, same mocks.
 
-- [ ] **Admin home / needs attention:** unfilled shifts, upcoming, new signups
-- [ ] **Create post:** type picker, then type-specific fields (slots for volunteer, capacity for event, sessions for class)
-- [ ] **Manage posts:** list, edit, cancel
-- [ ] **Coverage view:** filled/needed, signup list, check-in buttons — *the screen that kills the WhatsApp comparison; make it look good*
-- [ ] **Check-in:** QR display + manual/bulk fallback
-- [ ] **Iqamah config:** 5 prayers, fixed or offset mode, Jummah sessions, effective-from date
+- [x] **Admin home / needs attention:** unfilled shifts, upcoming, new signups
+- [x] **Create post:** type picker, then type-specific fields (slots for volunteer, capacity for event, sessions for class)
+- [x] **Manage posts:** list, edit, cancel
+- [x] **Coverage view:** filled/needed, signup list, check-in buttons — *the screen that kills the WhatsApp comparison; make it look good*
+- [x] **Check-in:** QR display + manual/bulk fallback
+- [x] **Iqamah config:** 5 prayers, fixed or offset mode, Jummah sessions, effective-from date
 
 **Exit criteria:** admin can post a shift and see a coverage screen fill, all mocked.
 

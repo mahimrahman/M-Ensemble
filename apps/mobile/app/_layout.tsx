@@ -7,6 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Loading } from '@/components';
 import { LangProvider, useLang } from '@/i18n';
 import { AuthProvider, useAuth } from '@/store/auth';
+import { LocationProvider } from '@/store/location';
 import { SavedProvider } from '@/store/saved';
 import { colors } from '@/theme';
 import { useAppFonts } from '@/theme/fonts';
@@ -65,6 +66,7 @@ function RootNavigator() {
       <Stack.Screen name="post/[id]" />
       <Stack.Screen name="mosque/[id]" />
       <Stack.Screen name="prayer-month/[mosqueId]" />
+      <Stack.Screen name="cities" options={{ animation: 'slide_from_bottom' }} />
       <Stack.Screen name="checkin/[postId]" options={{ animation: 'slide_from_bottom' }} />
       {/* coordinator — every screen re-checks the role through the API */}
       <Stack.Screen name="manage/create" options={{ animation: 'slide_from_bottom' }} />
@@ -93,7 +95,9 @@ export default function RootLayout() {
         <LangProvider>
           <AuthProvider>
             <SavedProvider>
-              <RootNavigator />
+              <LocationProvider>
+                <RootNavigator />
+              </LocationProvider>
             </SavedProvider>
           </AuthProvider>
         </LangProvider>

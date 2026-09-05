@@ -1,53 +1,58 @@
 import { useRouter } from 'expo-router';
-import { ArrowLeft } from 'lucide-react-native';
-import type { ReactNode } from 'react';
+import { ArrowLeft, ArrowRight } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, hitSize, icon, spacing, type } from '@/theme';
+import { useLang } from '@/i18n';
+import { tap } from '@/lib/haptics';
+import { colors, icon, spacing, type } from '@/theme';
 
 interface BackBarProps {
-  title?: string;
-  right?: ReactNode;
+  /** `onDark` sits on a gradient header; `onLight` on the page body. */
+  tone?: 'onDark' | 'onLight';
+  label?: string;
+  onPress?: () => void;
 }
 
-/** Back arrow, optional left-aligned title, optional action. */
-export function BackBar({ title, right }: BackBarProps) {
+/**
+ * The prototype's "← Retour" — a text link, not a chrome button, sitting at
+ * the top-left of the gradient header. In Arabic it becomes "رجوع →" and
+ * moves to the right, which is why the arrow is a component and not a glyph
+ * baked into the string.
+ */
+export function BackBar({ tone = 'onDark', label, onPress }: BackBarProps) {
   const router = useRouter();
+  const { t, isAr } = useLang();
+  const dark = tone === 'onDark';
+  const Arrow = isAr ? ArrowRight : ArrowLeft;
 
   return (
-    <View style={styles.bar}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Back"
-        hitSlop={8}
-        onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
-        style={({ pressed }) => [styles.back, pressed && styles.pressed]}
-      >
-        <ArrowLeft color={colors.ink} size={icon.lg} strokeWidth={2} />
-      </Pressable>
-      {title ? (
-        <Text style={styles.title} numberOfLines={1}>
-          {title}
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label ?? t.back}
+      hitSlop={12}
+      onPress={() => {
+        tap();
+        if (onPress) onPress();
+        else if (router.canGoBack()) router.back();
+        else router.replace('/');
+      }}
+      style={({ pressed }) => [styles.bar, pressed && styles.pressed]}
+    >
+      <View style={[styles.row, isAr && styles.rowAr]}>
+        <Arrow color={dark ? 'rgba(255,255,255,0.7)' : colors.inkMuted} size={icon.sm} strokeWidth={2} />
+        <Text style={[styles.label, dark ? styles.onDark : styles.onLight]}>
+          {label ?? t.back}
         </Text>
-      ) : (
-        <View style={styles.spacer} />
-      )}
-      {right}
-    </View>
+      </View>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  bar: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingTop: spacing.sm },
-  back: {
-    width: hitSize,
-    height: hitSize,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    flexDirection: 'row',
-    marginLeft: -spacing.md,
-    paddingLeft: spacing.md,
-  },
-  pressed: { opacity: 0.5 },
-  title: { ...type.title, color: colors.ink, flex: 1 },
-  spacer: { flex: 1 },
+  bar: { alignSelf: 'flex-start', paddingVertical: spacing.xs, marginBottom: spacing.sm },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  rowAr: { flexDirection: 'row-reverse' },
+  pressed: { opacity: 0.6 },
+  label: { ...type.small },
+  onDark: { color: 'rgba(255,255,255,0.7)' },
+  onLight: { color: colors.inkMuted },
 });
