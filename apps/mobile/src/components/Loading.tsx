@@ -1,4 +1,5 @@
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { useLang } from '@/i18n';
 import { colors, radius, spacing, type } from '@/theme';
 
 interface LoadingProps {
@@ -8,10 +9,11 @@ interface LoadingProps {
 }
 
 export function Loading({ label, variant = 'block' }: LoadingProps) {
+  const { font, row } = useLang();
   return (
-    <View style={variant === 'block' ? styles.block : styles.inline}>
+    <View style={variant === 'block' ? styles.block : [styles.inline, row]}>
       <ActivityIndicator color={colors.accent} size="small" />
-      {label ? <Text style={styles.label}>{label}</Text> : null}
+      {label ? <Text style={font(styles.label)}>{label}</Text> : null}
     </View>
   );
 }
@@ -30,7 +32,6 @@ export function Skeleton({
 const styles = StyleSheet.create({
   block: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md },
   inline: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
     paddingVertical: spacing.lg,

@@ -105,7 +105,7 @@ real handsets, a real Expo push token, and the camera opening the QR link.
 
 ## The three tests that matter
 
-1. **Two phones.** Coordinator (amina@example.com) on phone A creates a
+1. **Two phones.** Coordinator (khadija.mosque@gmail.com) on phone A creates a
    volunteer shift with category _Community meals_. Phone B is yusuf@example.com,
    who follows Khadija and has that interest: the push lands within seconds.
    Tap it, claim a slot, and phone A's coverage screen updates on its next

@@ -58,9 +58,17 @@ export async function updatePost(req: Request, res: Response): Promise<void> {
   const post = loadedPost(req);
   const patch = req.body as UpdatePostInput;
 
+  // The schema checks the pair when both arrive; a patch that moves only one
+  // end is checked against what is stored.
+  const nextStart = patch.startAt ? new Date(patch.startAt) : post.startAt;
+  const nextEnd = patch.endAt ? new Date(patch.endAt) : post.endAt;
+  if (nextEnd.getTime() <= nextStart.getTime()) {
+    throw new HttpError(400, 'VALIDATION_ERROR', 'endAt must be after startAt');
+  }
+
   Object.assign(post, patch);
-  if (patch.startAt) post.startAt = new Date(patch.startAt);
-  if (patch.endAt) post.endAt = new Date(patch.endAt);
+  post.startAt = nextStart;
+  post.endAt = nextEnd;
 
   await post.save();
   ok(res, post.toJSON());

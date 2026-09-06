@@ -10,6 +10,7 @@
 
 import {
   COORDINATOR_EMAILS,
+  DEMO_COORDINATOR_EMAIL,
   coordinatorMosqueFor,
   mockFollows,
   mockMemberships,
@@ -59,8 +60,9 @@ for (const c of COORDINATOR_EMAILS) {
 }
 if (coordinatorMosqueFor('YUSUF@example.com'))
   problems.push('a plain member resolved as coordinator');
-if (!coordinatorMosqueFor('  Amina@Example.com  '))
-  problems.push('allowlist is not case/space insensitive');
+// The demo coordinator, typed the way a human would on a phone.
+const sloppy = `  ${DEMO_COORDINATOR_EMAIL.replace(/^./, (c) => c.toUpperCase())}  `;
+if (!coordinatorMosqueFor(sloppy)) problems.push('allowlist is not case/space insensitive');
 
 const posterCount = allPosts.filter((p) => p.posterKey).length;
 const dupPosters = allPosts.map((p) => p.posterKey).filter(Boolean);

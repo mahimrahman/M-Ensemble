@@ -437,11 +437,16 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     overflow: 'hidden',
   },
+  // A solid strip, not a floating button: the body scrolls under it, and the
+  // location gate (a note plus the button) is taller in French and Arabic than
+  // the padding above reserves for it, so text must never show through.
   cta: {
     position: 'absolute',
-    left: spacing.lg,
-    right: spacing.lg,
+    left: 0,
+    right: 0,
     bottom: 0,
     paddingTop: spacing.md,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: colors.background,
   },
 });

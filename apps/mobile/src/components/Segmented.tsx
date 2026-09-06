@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useLang } from '@/i18n';
 import { colors, radius, rule, spacing, type } from '@/theme';
 
 interface Option<T extends string> {
@@ -14,8 +15,9 @@ interface SegmentedProps<T extends string> {
 
 /** Two-to-four mutually exclusive choices. One outline, divided. */
 export function Segmented<T extends string>({ options, value, onChange }: SegmentedProps<T>) {
+  const { font, row } = useLang();
   return (
-    <View style={styles.track} accessibilityRole="radiogroup">
+    <View style={[styles.track, row]} accessibilityRole="radiogroup">
       {options.map((option, index) => {
         const selected = option.value === value;
         return (
@@ -23,10 +25,16 @@ export function Segmented<T extends string>({ options, value, onChange }: Segmen
             key={option.value}
             accessibilityRole="radio"
             accessibilityState={{ selected }}
+            hitSlop={{ top: 2, bottom: 2 }}
             onPress={() => onChange(option.value)}
             style={[styles.segment, index > 0 && styles.divided, selected && styles.selected]}
           >
-            <Text style={[styles.label, selected && styles.selectedLabel]} numberOfLines={1}>
+            <Text
+              style={[font(styles.label), selected && styles.selectedLabel]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
+            >
               {option.label}
             </Text>
           </Pressable>
@@ -38,7 +46,6 @@ export function Segmented<T extends string>({ options, value, onChange }: Segmen
 
 const styles = StyleSheet.create({
   track: {
-    flexDirection: 'row',
     borderWidth: rule,
     borderColor: colors.rule,
     borderRadius: radius.lg,
@@ -52,7 +59,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: spacing.sm,
   },
-  divided: { borderLeftWidth: rule, borderLeftColor: colors.rule },
+  // A start-side rule between segments; `row` may reverse the strip, and the
+  // rule stays between neighbours either way.
+  divided: { borderStartWidth: rule, borderStartColor: colors.rule },
   selected: { backgroundColor: colors.accent },
   label: { ...type.smallStrong, color: colors.inkMuted },
   selectedLabel: { color: colors.inkInverse },

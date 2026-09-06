@@ -276,7 +276,7 @@ export default function EventsScreen() {
             </>
           )
         ) : cancelled.length === 0 ? (
-          <EmptyState title={t.cancelled} message={t.everythingCoveredBody} />
+          <EmptyState title={t.cancelled} message={t.noCancelledPosts} />
         ) : (
           cancelled.map((post) => <CancelledRow key={post._id} post={post} />)
         )}

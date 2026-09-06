@@ -121,7 +121,7 @@ export default function MosqueScreen() {
                 {m.address}
               </Text>
             </View>
-            {m.rating ? (
+            {m.rating && typeof m.rating.score === 'number' ? (
               <View style={[styles.row, row]}>
                 <Star color={colors.inkMuted} size={icon.sm} strokeWidth={1.8} />
                 {/* Two Texts, not one interpolated string: the score keeps its

@@ -14,7 +14,16 @@ import { Alert } from '@/lib/alert';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTopInset } from '@/hooks/useTopInset';
 import { api } from '@/api/client';
-import { Button, Card, Chip, Field, GradientHeader, Loading, Screen } from '@/components';
+import {
+  Button,
+  Card,
+  Chip,
+  EmptyState,
+  Field,
+  GradientHeader,
+  Loading,
+  Screen,
+} from '@/components';
 import { useApi } from '@/hooks/useApi';
 import { useLang } from '@/i18n';
 import { success, warn } from '@/lib/haptics';
@@ -169,6 +178,15 @@ export default function OnboardingScreen() {
 
         {mosques.loading ? (
           <Loading label={t.loading} />
+        ) : mosques.error && !mosques.data ? (
+          // Without the list nothing can be followed and Continue stays
+          // disabled - so the failure must be visible and retryable.
+          <EmptyState
+            title={t.somethingWrong}
+            message={mosques.error}
+            actionLabel={t.retry}
+            onAction={() => void mosques.reload()}
+          />
         ) : visible.length === 0 ? (
           <View style={styles.empty}>
             <Search color={colors.inkMuted} size={20} strokeWidth={1.8} />

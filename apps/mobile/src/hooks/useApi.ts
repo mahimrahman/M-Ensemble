@@ -1,6 +1,7 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState, type DependencyList } from 'react';
 import { ApiRequestError } from '@/api/client';
+import { useLang } from '@/i18n';
 
 export interface ApiState<T> {
   data: T | null;
@@ -17,6 +18,7 @@ export interface ApiState<T> {
  * detail screen and come back: no cache invalidation to get wrong.
  */
 export function useApi<T>(fetcher: () => Promise<T>, deps: DependencyList): ApiState<T> {
+  const { t } = useLang();
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +34,10 @@ export function useApi<T>(fetcher: () => Promise<T>, deps: DependencyList): ApiS
       setError(null);
     } catch (err) {
       if (id !== requestId.current) return;
-      setError(err instanceof ApiRequestError ? err.message : 'Something went wrong loading this.');
+      // The server's message when it sent one; otherwise the app's own, in the
+      // app's language, so a screen never shows an English fallback to a
+      // French or Arabic reader.
+      setError(err instanceof ApiRequestError ? err.message : t.somethingWrong);
     } finally {
       if (id === requestId.current) setLoading(false);
     }

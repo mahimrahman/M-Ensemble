@@ -20,7 +20,7 @@ interface BackBarProps {
  */
 export function BackBar({ tone = 'onDark', label, onPress }: BackBarProps) {
   const router = useRouter();
-  const { t, isAr } = useLang();
+  const { t, isAr, font } = useLang();
   const dark = tone === 'onDark';
   const Arrow = isAr ? ArrowRight : ArrowLeft;
 
@@ -43,7 +43,9 @@ export function BackBar({ tone = 'onDark', label, onPress }: BackBarProps) {
           size={icon.sm}
           strokeWidth={2}
         />
-        <Text style={[styles.label, dark ? styles.onDark : styles.onLight]}>{label ?? t.back}</Text>
+        <Text style={[font(styles.label), dark ? styles.onDark : styles.onLight]}>
+          {label ?? t.back}
+        </Text>
       </View>
     </Pressable>
   );

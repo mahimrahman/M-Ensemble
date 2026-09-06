@@ -166,7 +166,10 @@ export default function PeopleScreen() {
                 {rate === null ? null : (
                   <View style={styles.score}>
                     <Text style={[styles.scoreValue, rate < 60 && styles.scoreWeak]}>{rate}%</Text>
-                    <Text style={styles.scoreLabel}>{formatHours(member.minutesServed)}h</Text>
+                    <Text style={styles.scoreLabel}>
+                      {formatHours(member.minutesServed)}
+                      {t.hoursShort}
+                    </Text>
                   </View>
                 )}
               </Pressable>

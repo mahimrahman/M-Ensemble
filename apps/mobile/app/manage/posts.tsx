@@ -20,13 +20,19 @@ import {
 } from '@/components';
 import { useApi } from '@/hooks/useApi';
 import { useLang } from '@/i18n';
+import { useAdminMosque } from '@/store/adminMosque';
 import { formatWhen } from '@/lib/format';
 import { success, warn } from '@/lib/haptics';
 import { colors, screenPadding, spacing, type } from '@/theme';
 import type { Post } from '@/types';
 
 export default function ManagePostsScreen() {
-  const { mosqueId } = useLocalSearchParams<{ mosqueId: string }>();
+  // The route param when pushed from Settings; the coordinator's current
+  // mosque otherwise, so a deep link or a stale param never asks the API
+  // about `undefined`.
+  const params = useLocalSearchParams<{ mosqueId?: string }>();
+  const { mosqueId: contextMosqueId } = useAdminMosque();
+  const mosqueId = params.mosqueId ?? contextMosqueId ?? '';
   const router = useRouter();
   const { t, lang, align, row, font } = useLang();
   const [busyId, setBusyId] = useState<string | null>(null);

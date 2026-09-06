@@ -83,8 +83,9 @@ npm run seed --workspace @m-ensemble/server   # wipes and rewrites the 8 collect
 npm run dev:server                            # http://localhost:4000
 ```
 
-Everyone in the seed signs in with `mensemble` — `yusuf@example.com` is a
-member, `amina@example.com` coordinates Khadija. Fixture dates are computed when
+Every seeded volunteer signs in with `mensemble` — `yusuf@example.com` is a
+member; the demo coordinator is `khadija.mosque@gmail.com` / `123456` and
+coordinates Khadija. Fixture dates are computed when
 the module is imported, so **re-seed on the morning of the demo**.
 
 Two things about the server workspace worth knowing before you edit it:

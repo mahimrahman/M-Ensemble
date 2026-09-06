@@ -1,3 +1,4 @@
+import { Expo } from 'expo-server-sdk';
 import { z } from 'zod';
 
 /**
@@ -23,7 +24,16 @@ export const notificationPrefsSchema = z
   })
   .strict();
 
-export const pushTokenSchema = z.object({ token: z.string().min(1) }).strict();
+/**
+ * Only a token Expo can deliver to. The fan-out already drops anything else
+ * with `Expo.isExpoPushToken`, so a bad token here would be silently stored
+ * and never used — better to tell the app now than lose the pushes quietly.
+ */
+export const pushTokenSchema = z
+  .object({
+    token: z.string().min(1).refine(Expo.isExpoPushToken, { message: 'not an Expo push token' }),
+  })
+  .strict();
 
 /**
  * `GET /users?ids=a,b,c`. `ids` is optional and an empty string yields `[]`,

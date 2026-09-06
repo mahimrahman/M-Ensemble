@@ -16,6 +16,7 @@ import {
   Button,
   Card,
   DayChips,
+  EmptyState,
   Field,
   GradientHeader,
   Loading,
@@ -23,7 +24,7 @@ import {
   Segmented,
 } from '@/components';
 import { useApi } from '@/hooks/useApi';
-import { useLang } from '@/i18n';
+import { fill, useLang } from '@/i18n';
 import { isWallClock, mosqueDate } from '@/lib/datetime';
 import { success, warn } from '@/lib/haptics';
 import { addMinutes, prayerLabel } from '@/lib/prayer';
@@ -100,20 +101,20 @@ export default function IqamahScreen() {
   }
 
   function validate(): string | null {
-    if (!rows) return 'Still loading.';
+    if (!rows) return t.stillLoading;
     for (const prayer of PRAYERS) {
       const row = rows[prayer];
       if (row.mode === 'fixed' && !isWallClock(row.fixedTime)) {
-        return `${prayerLabel(prayer, lang)}: fixed time must be HH:MM.`;
+        return fill(t.errFixedTime, { prayer: prayerLabel(prayer, lang) });
       }
       if (row.mode === 'offset' && !(Number(row.offsetMinutes) >= 0)) {
         return `${prayerLabel(prayer, lang)}: ${t.minutesAfterAdhan}`;
       }
     }
     for (const [i, j] of jummah.entries()) {
-      if (!j.label.trim()) return `Jummah ${i + 1}: needs a label.`;
+      if (!j.label.trim()) return fill(t.errJummahLabel, { n: String(i + 1) });
       if (!isWallClock(j.khutbahTime) || !isWallClock(j.iqamahTime)) {
-        return `Jummah ${i + 1}: times must be HH:MM.`;
+        return fill(t.errJummahTimes, { n: String(i + 1) });
       }
     }
     return null;
@@ -122,7 +123,7 @@ export default function IqamahScreen() {
   async function save() {
     const problem = validate();
     if (problem || !rows || !config.data) {
-      Alert.alert('Check the form', problem ?? 'Still loading.');
+      Alert.alert(t.checkForm, problem ?? t.stillLoading);
       return;
     }
     setSaving(true);
@@ -153,9 +154,11 @@ export default function IqamahScreen() {
       };
       await api.setIqamahConfig(mosqueId, input);
       Alert.alert(
-        'Saved',
-        `New iqamah times take effect ${effectiveFrom === mosqueDate(0) ? 'today' : effectiveFrom}.`,
-        [{ text: 'Done', onPress: () => router.back() }],
+        t.savedTitle,
+        fill(t.iqamahSavedBody, {
+          when: effectiveFrom === mosqueDate(0) ? t.today.toLowerCase() : effectiveFrom,
+        }),
+        [{ text: t.done, onPress: () => router.back() }],
       );
     } catch {
       warn();
@@ -163,6 +166,24 @@ export default function IqamahScreen() {
     } finally {
       setSaving(false);
     }
+  }
+
+  // The config never arrived: say so and offer a retry, instead of a spinner
+  // that never ends.
+  if (!rows && config.error) {
+    return (
+      <Screen padded={false} edges={['left', 'right']}>
+        <GradientHeader back={<BackBar />} title={t.manageIqamah} />
+        <View style={styles.guard}>
+          <EmptyState
+            title={t.somethingWrong}
+            message={config.error}
+            actionLabel={t.retry}
+            onAction={() => void config.reload()}
+          />
+        </View>
+      </Screen>
+    );
   }
 
   if (!rows) {
@@ -202,7 +223,7 @@ export default function IqamahScreen() {
                 value={row.mode}
                 onChange={(mode) => update(prayer, { mode })}
               />
-              <View style={styles.inputRow}>
+              <View style={[styles.inputRow, rowDir]}>
                 {row.mode === 'fixed' ? (
                   <View style={styles.grow}>
                     <Field
@@ -227,7 +248,7 @@ export default function IqamahScreen() {
                   </View>
                 )}
                 <View style={styles.preview}>
-                  <Text style={font(styles.previewLabel)}>{t.adhan}</Text>
+                  <Text style={font(styles.previewLabel)}>{t.iqamah}</Text>
                   <Text style={styles.previewValue}>{preview(prayer)}</Text>
                 </View>
               </View>
@@ -235,10 +256,10 @@ export default function IqamahScreen() {
           );
         })}
 
-        <View style={styles.sectionRow}>
+        <View style={[styles.sectionRow, rowDir]}>
           <Text style={[font(styles.section), align]}>{t.jummah}</Text>
           <Button
-            label={t.createPost}
+            label={t.addSession}
             icon={Plus}
             variant="ghost"
             fullWidth={false}
@@ -246,7 +267,7 @@ export default function IqamahScreen() {
               setJummah((prev) => [
                 ...prev,
                 {
-                  label: prev.length ? `Jummah ${prev.length + 1}` : 'Jummah',
+                  label: prev.length ? `${t.jummah} ${prev.length + 1}` : t.jummah,
                   khutbahTime: '13:00',
                   iqamahTime: '13:20',
                 },
@@ -256,27 +277,27 @@ export default function IqamahScreen() {
         </View>
         {jummah.length === 0 ? (
           <Card>
-            <Text style={[font(styles.muted), align]}>{t.noPosts}</Text>
+            <Text style={[font(styles.muted), align]}>{t.noJummahSessions}</Text>
           </Card>
         ) : (
           jummah.map((session, index) => (
             <Card key={index}>
-              <View style={styles.rowHead}>
+              <View style={[styles.rowHead, rowDir]}>
                 <View style={styles.grow}>
                   <Field
-                    label={t.postTitle}
+                    label={t.sessionLabel}
                     value={session.label}
                     onChangeText={(v) =>
                       setJummah((prev) =>
                         prev.map((s, i) => (i === index ? { ...s, label: v } : s)),
                       )
                     }
-                    placeholder="First jummah"
+                    placeholder={t.phFirstJummah}
                   />
                 </View>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Remove session"
+                  accessibilityLabel={t.removeSession}
                   hitSlop={8}
                   onPress={() => setJummah((prev) => prev.filter((_, i) => i !== index))}
                   style={styles.trash}
@@ -284,7 +305,7 @@ export default function IqamahScreen() {
                   <Trash2 color={colors.danger} size={icon.md} />
                 </Pressable>
               </View>
-              <View style={styles.inputRow}>
+              <View style={[styles.inputRow, rowDir]}>
                 <View style={styles.grow}>
                   <Field
                     label={t.khutbah}
@@ -317,8 +338,8 @@ export default function IqamahScreen() {
         )}
 
         <View style={styles.group}>
-          <Text style={[font(styles.section), align]}>{t.save}</Text>
-          <Text style={[font(styles.muted), align]}>{t.cancelPostBody}</Text>
+          <Text style={[font(styles.section), align]}>{t.effectiveFrom}</Text>
+          <Text style={[font(styles.muted), align]}>{t.effectiveFromHint}</Text>
           <DayChips value={effectiveFrom} onChange={setEffectiveFrom} days={21} />
         </View>
 
@@ -341,6 +362,7 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   lead: { ...type.body, color: colors.inkMuted },
+  guard: { paddingHorizontal: screenPadding, paddingTop: spacing.xl },
   rowHead: {
     flexDirection: 'row',
     alignItems: 'center',

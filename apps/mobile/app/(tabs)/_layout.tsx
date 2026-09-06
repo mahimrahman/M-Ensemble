@@ -7,8 +7,12 @@ import {
   type LucideIcon,
 } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLang } from '@/i18n';
 import { colors, icon, rule, type } from '@/theme';
+
+/** The bar's own height. The home-indicator inset is added on top of it. */
+const BAR_HEIGHT = 78;
 
 /**
  * The bottom bar. The prototype draws an icon, a label, and a short teal
@@ -35,13 +39,17 @@ function TabItem({ Icon, label, focused }: { Icon: LucideIcon; label: string; fo
 
 export default function TabLayout() {
   const { t } = useLang();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: false,
-        tabBarStyle: styles.bar,
+        // An explicit height is the bar's *total* height: the navigator still
+        // pads the bottom by the safe-area inset inside it, so without adding
+        // the inset here the icon slot is squeezed on home-indicator phones.
+        tabBarStyle: [styles.bar, { height: BAR_HEIGHT + insets.bottom }],
         tabBarItemStyle: styles.barItem,
         tabBarIconStyle: styles.iconSlot,
       }}
@@ -91,7 +99,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderTopWidth: rule,
     borderTopColor: colors.rule,
-    height: 78,
     paddingTop: 10,
     elevation: 0,
   },

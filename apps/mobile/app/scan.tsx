@@ -126,9 +126,7 @@ export default function ScanScreen() {
   if (!permission.granted) {
     return (
       <Screen padded={false} edges={['left', 'right']}>
-        <GradientHeader title={t.scanQr}>
-          <BackBar />
-        </GradientHeader>
+        <GradientHeader back={<BackBar />} title={t.scanQr} />
         <View style={styles.body}>
           <Text style={[font(styles.heading), align]}>{t.cameraNeeded}</Text>
           <Text style={[font(styles.calm), align]}>{t.cameraNeededBody}</Text>
@@ -140,9 +138,7 @@ export default function ScanScreen() {
 
   return (
     <Screen padded={false} edges={['left', 'right']}>
-      <GradientHeader title={t.scanToCheckIn}>
-        <BackBar />
-      </GradientHeader>
+      <GradientHeader back={<BackBar />} title={t.scanToCheckIn} />
 
       <View style={styles.body}>
         {outcome.kind === 'scanning' ? (

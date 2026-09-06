@@ -26,7 +26,7 @@ import { cityName, mosqueCity } from '@/lib/cities';
 import { useLocation } from '@/store/location';
 import { useStarred } from '@/store/starred';
 import { tap } from '@/lib/haptics';
-import { colors, feedPadding, icon as iconSize, radius, spacing, type } from '@/theme';
+import { colors, icon as iconSize, radius, screenPadding, spacing, type } from '@/theme';
 import type { Mosque } from '@/types';
 
 export default function MosquesScreen() {
@@ -252,7 +252,6 @@ export default function MosquesScreen() {
               );
             })
           )}
-
         </View>
       </ScrollView>
     </Screen>
@@ -262,7 +261,7 @@ export default function MosquesScreen() {
 const styles = StyleSheet.create({
   scroll: { paddingBottom: spacing.xxxl },
   scopeRow: { marginBottom: spacing.md },
-  padded: { paddingHorizontal: feedPadding },
+  padded: { paddingHorizontal: screenPadding },
   map: { marginHorizontal: 0, borderRadius: 0, borderWidth: 0 },
 
   row: {

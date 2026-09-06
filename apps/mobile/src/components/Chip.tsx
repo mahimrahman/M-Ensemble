@@ -23,6 +23,8 @@ export function Chip({ label, selected, onPress, variant = 'solid' }: ChipProps)
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected }}
+      // 32px tall: the slop brings the touch target up to `hitSize`.
+      hitSlop={{ top: 6, bottom: 6 }}
       onPress={() => {
         select();
         onPress();

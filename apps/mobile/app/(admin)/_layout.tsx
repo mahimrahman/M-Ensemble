@@ -20,9 +20,13 @@ import {
   type LucideIcon,
 } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLang } from '@/i18n';
 import { useAuth } from '@/store/auth';
 import { colors, icon, rule, type } from '@/theme';
+
+/** The bar's own height. The home-indicator inset is added on top of it. */
+const BAR_HEIGHT = 78;
 
 function TabItem({ Icon, label, focused }: { Icon: LucideIcon; label: string; focused: boolean }) {
   const { font } = useLang();
@@ -45,6 +49,7 @@ function TabItem({ Icon, label, focused }: { Icon: LucideIcon; label: string; fo
 export default function AdminLayout() {
   const { adminMosqueIds, status } = useAuth();
   const { t } = useLang();
+  const insets = useSafeAreaInsets();
 
   // Losing the role mid-session (or deep-linking in without it) drops you back
   // to the member app rather than showing an empty coordinator shell.
@@ -59,7 +64,9 @@ export default function AdminLayout() {
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: false,
-        tabBarStyle: styles.bar,
+        // Total height, so the safe-area inset the navigator pads inside the
+        // bar has to be added here — see the member layout.
+        tabBarStyle: [styles.bar, { height: BAR_HEIGHT + insets.bottom }],
         tabBarItemStyle: styles.barItem,
         tabBarIconStyle: styles.iconSlot,
       }}
@@ -116,7 +123,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderTopWidth: rule,
     borderTopColor: colors.rule,
-    height: 78,
     paddingTop: 10,
     elevation: 0,
   },

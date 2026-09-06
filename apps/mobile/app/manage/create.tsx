@@ -16,6 +16,7 @@ import {
   Button,
   Chip,
   DayChips,
+  EmptyState,
   Field,
   GradientHeader,
   Loading,
@@ -40,7 +41,9 @@ function typeOptions(t: Strings): { value: PostType; label: string; hint: string
   ];
 }
 
-const CATEGORIES = [...INTEREST_OPTIONS, 'Prayer times'];
+/** The one category that is not an interest: stored in English like the rest. */
+const PRAYER_TIMES_CATEGORY = 'Prayer times';
+const CATEGORIES = [...INTEREST_OPTIONS, PRAYER_TIMES_CATEGORY];
 
 interface FormState {
   type: PostType;
@@ -73,8 +76,10 @@ const EMPTY: FormState = {
 export default function CreatePostScreen() {
   const { mosqueId, editId } = useLocalSearchParams<{ mosqueId?: string; editId?: string }>();
   const router = useRouter();
-  const { t, align, row, font } = useLang();
+  const { t, lang, isAr, align, row, font } = useLang();
   const TYPES = typeOptions(t);
+  const categoryLabel = (c: string) =>
+    c === PRAYER_TIMES_CATEGORY ? t.prayerTimesCategory : interestLabel(c, lang);
   const [form, setForm] = useState<FormState>(EMPTY);
   const [step, setStep] = useState<'type' | 'details'>(editId ? 'details' : 'type');
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
@@ -119,29 +124,28 @@ export default function CreatePostScreen() {
 
   function validate(): boolean {
     const next: typeof errors = {};
-    if (!form.title.trim()) next.title = 'Give it a title.';
-    if (!form.description.trim())
-      next.description = 'A sentence or two so people know what to expect.';
+    if (!form.title.trim()) next.title = t.errTitle;
+    if (!form.description.trim()) next.description = t.errDescription;
     if (form.type !== 'announcement') {
-      if (!form.location.trim()) next.location = 'Where should people show up?';
-      if (!isWallClock(form.startTime)) next.startTime = 'Use HH:MM, e.g. 17:00';
-      if (!isWallClock(form.endTime)) next.endTime = 'Use HH:MM, e.g. 19:30';
+      if (!form.location.trim()) next.location = t.errLocation;
+      if (!isWallClock(form.startTime)) next.startTime = t.errStartTime;
+      if (!isWallClock(form.endTime)) next.endTime = t.errEndTime;
       if (
         isWallClock(form.startTime) &&
         isWallClock(form.endTime) &&
         form.endTime <= form.startTime
       ) {
-        next.endTime = 'Ends before it starts.';
+        next.endTime = t.errEndsBeforeStart;
       }
     }
     if (form.type === 'volunteer' && !(Number(form.slotsNeeded) >= 1)) {
-      next.slotsNeeded = 'How many people do you need?';
+      next.slotsNeeded = t.errSlots;
     }
     if (form.type !== 'volunteer' && form.capacity && !(Number(form.capacity) >= 1)) {
-      next.capacity = 'A number, or leave it blank for no cap.';
+      next.capacity = t.errCapacity;
     }
     if (form.type === 'class' && !(Number(form.sessionCount) >= 1)) {
-      next.sessionCount = 'At least one session.';
+      next.sessionCount = t.errSessions;
     }
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -213,6 +217,24 @@ export default function CreatePostScreen() {
     );
   }
 
+  // The post could not be loaded. Never show the blank defaults as if they
+  // were its values: saving them would overwrite the real post.
+  if (editId && !existing.data && existing.error) {
+    return (
+      <Screen padded={false} edges={['left', 'right']}>
+        <GradientHeader back={<BackBar />} title={t.edit} />
+        <View style={styles.guard}>
+          <EmptyState
+            title={t.somethingWrong}
+            message={existing.error}
+            actionLabel={t.retry}
+            onAction={() => void existing.reload()}
+          />
+        </View>
+      </Screen>
+    );
+  }
+
   if (step === 'type') {
     return (
       <Screen padded={false} edges={['left', 'right']}>
@@ -230,13 +252,13 @@ export default function CreatePostScreen() {
                     if (value === 'volunteer') set('category', 'Volunteering');
                     setStep('details');
                   }}
-                  style={({ pressed }) => [styles.typeRow, pressed && styles.pressed]}
+                  style={({ pressed }) => [styles.typeRow, row, pressed && styles.pressed]}
                 >
                   <View style={styles.typeText}>
-                    <Text style={styles.typeLabel}>{label}</Text>
-                    <Text style={styles.typeHint}>{hint}</Text>
+                    <Text style={[font(styles.typeLabel), align]}>{label}</Text>
+                    <Text style={[font(styles.typeHint), align]}>{hint}</Text>
                   </View>
-                  <Text style={styles.typeArrow}>→</Text>
+                  <Text style={styles.typeArrow}>{isAr ? '←' : '→'}</Text>
                 </Pressable>
               );
             })}
@@ -274,10 +296,10 @@ export default function CreatePostScreen() {
           onChangeText={(v) => set('title', v)}
           placeholder={
             form.type === 'volunteer'
-              ? 'Iftar setup — Saturday dinner'
+              ? t.phVolunteerTitle
               : form.type === 'class'
-                ? 'Tajweed for beginners'
-                : 'Neighbourhood BBQ'
+                ? t.phClassTitle
+                : t.phEventTitle
           }
           error={errors.title}
         />
@@ -285,7 +307,7 @@ export default function CreatePostScreen() {
           label={t.postDescription}
           value={form.description}
           onChangeText={(v) => set('description', v)}
-          placeholder="What, why, and anything people should bring."
+          placeholder={t.phDescription}
           multiline
           numberOfLines={4}
           style={styles.multiline}
@@ -293,13 +315,13 @@ export default function CreatePostScreen() {
         />
 
         <View style={styles.group}>
-          <Text style={styles.label}>Category</Text>
-          <Text style={styles.hint}>Members who picked this interest get the push.</Text>
-          <View style={styles.chips}>
+          <Text style={[font(styles.label), align]}>{t.category}</Text>
+          <Text style={[font(styles.hint), align]}>{t.categoryHint}</Text>
+          <View style={[styles.chips, row]}>
             {CATEGORIES.map((c) => (
               <Chip
                 key={c}
-                label={c}
+                label={categoryLabel(c)}
                 selected={form.category === c}
                 onPress={() => set('category', c)}
               />
@@ -310,11 +332,13 @@ export default function CreatePostScreen() {
         {!isAnnouncement ? (
           <>
             <View style={styles.group}>
-              <Text style={styles.label}>{form.type === 'class' ? 'First session' : 'Day'}</Text>
+              <Text style={[font(styles.label), align]}>
+                {form.type === 'class' ? t.firstSession : t.day}
+              </Text>
               <DayChips value={form.date} onChange={(d) => set('date', d)} />
             </View>
 
-            <View style={styles.timeRow}>
+            <View style={[styles.timeRow, row]}>
               <View style={styles.grow}>
                 <Field
                   label={t.startTime}
@@ -353,7 +377,7 @@ export default function CreatePostScreen() {
               label={t.location}
               value={form.location}
               onChangeText={(v) => set('location', v)}
-              placeholder="Main hall, basement level"
+              placeholder={t.phLocation}
               error={errors.location}
             />
           </>
@@ -361,12 +385,12 @@ export default function CreatePostScreen() {
 
         {form.type === 'volunteer' ? (
           <Field
-            label="People needed"
+            label={t.peopleNeeded}
             value={form.slotsNeeded}
             onChangeText={(v) => set('slotsNeeded', v.replace(/[^0-9]/g, ''))}
             keyboardType="number-pad"
             error={errors.slotsNeeded}
-            hint="Each person claims one slot."
+            hint={t.oneSlotEach}
           />
         ) : null}
 
@@ -376,7 +400,7 @@ export default function CreatePostScreen() {
             value={form.capacity}
             onChangeText={(v) => set('capacity', v.replace(/[^0-9]/g, ''))}
             keyboardType="number-pad"
-            placeholder="Leave blank for no cap"
+            placeholder={t.phNoCap}
             error={errors.capacity}
           />
         ) : null}
@@ -388,7 +412,7 @@ export default function CreatePostScreen() {
             onChangeText={(v) => set('sessionCount', v.replace(/[^0-9]/g, ''))}
             keyboardType="number-pad"
             error={errors.sessionCount}
-            hint="Same day and time each week from the first session."
+            hint={t.weeklySessionsHint}
           />
         ) : null}
 
@@ -399,10 +423,8 @@ export default function CreatePostScreen() {
           onPress={() => void submit()}
         />
         {!editId ? (
-          <Text style={styles.footnote}>
-            {form.type === 'volunteer'
-              ? 'Followers who care about this category get notified the moment you post.'
-              : 'It goes to the feed of everyone following the mosque.'}
+          <Text style={font(styles.footnote)}>
+            {form.type === 'volunteer' ? t.publishNoteVolunteer : t.publishNoteFeed}
           </Text>
         ) : null}
       </ScrollView>
@@ -418,6 +440,7 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   lead: { ...type.h2, color: colors.ink },
+  guard: { paddingHorizontal: screenPadding, paddingTop: spacing.xl },
   typeList: {},
   typeRow: {
     flexDirection: 'row',

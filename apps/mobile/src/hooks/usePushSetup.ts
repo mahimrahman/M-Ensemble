@@ -19,6 +19,7 @@
  */
 
 import { useEffect, useRef } from 'react';
+import { Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import { api } from '@/api/client';
@@ -52,7 +53,11 @@ export function usePushSetup(signedIn: boolean): void {
         // Not fatal, and not worth a dialog on launch: Profile shows the real
         // reason, and the console line is what you actually read while
         // debugging a device that isn't getting pushes.
-        console.warn('[push] not registered:', result.status, 'reason' in result ? result.reason : '');
+        console.warn(
+          '[push] not registered:',
+          result.status,
+          'reason' in result ? result.reason : '',
+        );
         return;
       }
       try {
@@ -79,9 +84,14 @@ export function usePushSetup(signedIn: boolean): void {
     if (!signedIn || handledColdStart.current) return;
     handledColdStart.current = true;
 
-    void Notifications.getLastNotificationResponseAsync().then((response) => {
-      const postId = postIdFrom(response?.notification.request.content.data);
-      if (postId) router.push({ pathname: '/post/[id]', params: { id: postId } });
-    });
+    // Not implemented on web, where it throws synchronously; a preview in a
+    // browser must not surface an error for a feature it cannot have.
+    if (Platform.OS === 'web') return;
+    Notifications.getLastNotificationResponseAsync()
+      .then((response) => {
+        const postId = postIdFrom(response?.notification.request.content.data);
+        if (postId) router.push({ pathname: '/post/[id]', params: { id: postId } });
+      })
+      .catch(() => {});
   }, [signedIn, router]);
 }

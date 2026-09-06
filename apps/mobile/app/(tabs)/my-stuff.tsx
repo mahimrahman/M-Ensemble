@@ -8,6 +8,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Alert } from '@/lib/alert';
+import { LATE_CANCEL_HOURS } from '@m-ensemble/shared';
 import { api } from '@/api/client';
 import {
   Button,
@@ -25,7 +26,7 @@ import { useLang } from '@/i18n';
 import { useSaved } from '@/store/saved';
 import { formatDay, formatHours, formatTime } from '@/lib/format';
 import { tap } from '@/lib/haptics';
-import { colors, feedPadding, numeric, radius, rule, spacing, type } from '@/theme';
+import { colors, numeric, radius, rule, screenPadding, spacing, type } from '@/theme';
 import type { Post, Signup } from '@/types';
 
 interface Commitment {
@@ -71,21 +72,33 @@ export default function MyStuffScreen() {
       .sort((a, b) => new Date(a.post.startAt).getTime() - new Date(b.post.startAt).getTime());
   }, []);
 
+  // The same warning the post screen gives: inside the window a withdrawal
+  // goes on the record, and the person should hear that before they confirm.
   function confirmWithdraw({ post }: Commitment) {
-    Alert.alert(post.type === 'volunteer' ? t.giveUpSlot : t.notGoing, post.title, [
-      { text: t.keepIt, style: 'cancel' },
-      {
-        text: post.type === 'volunteer' ? t.withdraw : t.cantMakeIt,
-        style: 'destructive',
-        onPress: () => void withdraw(post._id),
-      },
-    ]);
+    const isVolunteer = post.type === 'volunteer';
+    const hoursBefore = (new Date(post.startAt).getTime() - Date.now()) / 3_600_000;
+    const isLate = hoursBefore < LATE_CANCEL_HOURS;
+
+    Alert.alert(
+      isLate ? t.lateCancelTitle : isVolunteer ? t.giveUpSlot : t.notGoing,
+      isLate ? t.lateCancelBody : post.title,
+      [
+        { text: t.keepIt, style: 'cancel' },
+        {
+          text: isLate ? t.lateCancelConfirm : isVolunteer ? t.withdraw : t.cantMakeIt,
+          style: 'destructive',
+          onPress: () => void withdraw(post._id),
+        },
+      ],
+    );
   }
 
   async function withdraw(postId: string) {
     setBusyId(postId);
     try {
-      await api.withdraw(postId);
+      // The server decides whether it counted as late; report what it recorded.
+      const result = await api.withdraw(postId);
+      if (result.lateCancelled) Alert.warn(t.lateCancelRecorded, t.lateCancelBody);
       await commitments.reload();
     } catch {
       Alert.alert(t.couldNotWithdraw, t.tryAgain);
@@ -115,10 +128,7 @@ export default function MyStuffScreen() {
           <StatRow>
             <Stat value={formatHours(hours.data?.totalMinutes ?? 0)} label={t.hoursTotal} />
             <Stat value={`${upcoming.length}`} label={t.activitiesMonth} />
-            <Stat
-              value={`${record.data?.reliabilityRate ?? 100}%`}
-              label={t.reliabilityRate}
-            />
+            <Stat value={`${record.data?.reliabilityRate ?? 100}%`} label={t.reliabilityRate} />
           </StatRow>
         </View>
       </GradientHeader>
@@ -273,7 +283,10 @@ export default function MyStuffScreen() {
                       .join(' · ')}
                   </Text>
                 </View>
-                <Text style={styles.pastHours}>{formatHours(minutesOf(post))}h</Text>
+                <Text style={styles.pastHours}>
+                  {formatHours(minutesOf(post))}
+                  {t.hoursShort}
+                </Text>
               </View>
             ))}
           </>
@@ -286,7 +299,7 @@ export default function MyStuffScreen() {
 const styles = StyleSheet.create({
   headTitle: { ...type.h1, color: colors.inkInverse, marginBottom: 14 },
   scroll: {
-    paddingHorizontal: feedPadding + 4,
+    paddingHorizontal: screenPadding,
     paddingTop: spacing.lg,
     paddingBottom: spacing.xxxl,
   },
@@ -338,7 +351,7 @@ const styles = StyleSheet.create({
   historyTitle: { marginTop: spacing.xl },
   /** Feed cards are full-bleed; pull them out to the screen edge and round the stack. */
   savedList: {
-    marginHorizontal: -(feedPadding + 4),
+    marginHorizontal: -screenPadding,
     borderTopWidth: rule,
     borderTopColor: colors.rule,
   },

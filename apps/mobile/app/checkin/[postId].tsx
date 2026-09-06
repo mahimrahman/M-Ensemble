@@ -122,7 +122,7 @@ export default function SelfCheckInScreen() {
             <View style={[styles.ring, styles.ringWarn]}>
               <CircleAlert color={colors.attention} size={52} strokeWidth={1.8} />
             </View>
-            <Text style={font(styles.title)}>{t.nobodyYet}</Text>
+            <Text style={font(styles.title)}>{t.notSignedUpYet}</Text>
             <Text style={font(styles.body)}>{title}</Text>
             <Button label={t.signup} loading={busy} onPress={() => void claimAndCheckIn()} />
             <Button label={t.cancel} variant="ghost" onPress={() => router.replace('/')} />

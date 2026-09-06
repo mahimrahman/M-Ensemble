@@ -56,13 +56,23 @@ export function weeklySessions(
   });
 }
 
-/** Short day label for a picker: "Sat 12" / "Today". */
-export function dayLabel(date: DateString): { weekday: string; day: string } {
+/**
+ * Short day label for a picker: "Sat 12" / "Today".
+ *
+ * `locale` is the app's language, not the device's, and `todayLabel` is the
+ * translated word — the strip must read in the language the rest of the
+ * screen is in.
+ */
+export function dayLabel(
+  date: DateString,
+  locale: string,
+  todayLabel: string,
+): { weekday: string; day: string } {
   const [y = 0, m = 1, d = 1] = date.split('-').map(Number);
   const at = new Date(y, m - 1, d, 12);
   const isToday = date === mosqueDate(0);
   return {
-    weekday: isToday ? 'Today' : at.toLocaleDateString(undefined, { weekday: 'short' }),
+    weekday: isToday ? todayLabel : at.toLocaleDateString(locale, { weekday: 'short' }),
     day: `${d}`,
   };
 }

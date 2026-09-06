@@ -14,13 +14,20 @@ const postFields = {
   sessions: z.array(sessionSchema).optional(),
 };
 
+/** A post that ends before (or exactly when) it starts is never valid. */
+const endsAfterStart = (p: { startAt?: string; endAt?: string }): boolean =>
+  !p.startAt || !p.endAt || new Date(p.endAt).getTime() > new Date(p.startAt).getTime();
+
+const END_BEFORE_START = { message: 'endAt must be after startAt', path: ['endAt'] };
+
 export const createPostSchema = z
   .object({
     mosqueId: z.string().min(1),
     type: z.enum(['event', 'class', 'volunteer', 'announcement']),
     ...postFields,
   })
-  .strict();
+  .strict()
+  .refine(endsAfterStart, END_BEFORE_START);
 
 /**
  * `.strict()` is what makes this reject `type` and `mosqueId`. Both are fixed
@@ -30,6 +37,9 @@ export const createPostSchema = z
 export const updatePostSchema = z
   .object(postFields)
   .partial()
-  .strict();
+  .strict()
+  // Only checkable when the patch carries both ends; a lone `endAt` is
+  // checked against the stored `startAt` in the controller.
+  .refine(endsAfterStart, END_BEFORE_START);
 
 export const checkInSchema = z.object({ userId: z.string().min(1) }).strict();

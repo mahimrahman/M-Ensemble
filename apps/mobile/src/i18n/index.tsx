@@ -95,7 +95,18 @@ export function LangProvider({ children }: { children: ReactNode }) {
         if (!isAr) return style;
         const family = style.fontFamily;
         const swap = family ? ARABIC_SUBSTITUTE[family] : undefined;
-        return swap ? { ...style, fontFamily: swap } : style;
+        if (!swap) return style;
+        // Noto Sans Arabic sits taller than the Latin faces it replaces: on a
+        // Latin line-height its descenders and marks clip inside single-line
+        // labels (buttons, headers). Give it the room the script needs.
+        const { fontSize, lineHeight } = style;
+        const arabicLineHeight =
+          fontSize && lineHeight ? Math.max(lineHeight, Math.round(fontSize * 1.5)) : lineHeight;
+        return {
+          ...style,
+          fontFamily: swap,
+          ...(arabicLineHeight ? { lineHeight: arabicLineHeight } : {}),
+        };
       },
     };
   }, [lang, setLang]);

@@ -51,7 +51,7 @@ dep: `react-native-qrcode-svg`.
 
 ## Walk it
 
-Sign in as **Demo coordinator** (amina@example.com — Khadija's admin). You land
+Sign in as **Demo coordinator** (khadija.mosque@gmail.com / 123456 — Khadija's admin). You land
 on the coordinator bar.
 
 1. **Dashboard.** Unfilled slots, followers, attendance rate. _Needs attention_
@@ -75,7 +75,7 @@ on the coordinator bar.
    _Upcoming_ → Cancel one. It leaves the feed; the detail screen shows
    _Cancelled_ if someone had it open.
 8. **Settings** → the mosque switcher lists every mosque you coordinate (one,
-   for Amina). Sign out from here.
+   for the Khadija coordinator). Sign out from here.
 
 ## QR mechanics
 

@@ -50,8 +50,9 @@ export default function ProfileScreen() {
 
   async function toggleInterest(interest: string) {
     if (!user) return;
-    const has = user.interests.includes(interest);
-    const next = has ? user.interests.filter((i) => i !== interest) : [...user.interests, interest];
+    const current = user.interests ?? [];
+    const has = current.includes(interest);
+    const next = has ? current.filter((i) => i !== interest) : [...current, interest];
 
     setSavingInterest(interest);
     try {
@@ -85,12 +86,19 @@ export default function ProfileScreen() {
 
   const pushStatus =
     registration?.status === 'granted'
-      ? 'REGISTERED'
+      ? t.pushRegistered.toUpperCase()
       : registration?.status === 'denied'
-        ? 'DENIED'
+        ? t.pushDenied.toUpperCase()
         : registration
-          ? 'UNAVAILABLE'
+          ? t.pushUnavailable.toUpperCase()
           : '…';
+
+  function confirmSignOut() {
+    Alert.alert(t.signOut, '', [
+      { text: t.cancel, style: 'cancel' },
+      { text: t.signOut, style: 'destructive', onPress: () => void signOut() },
+    ]);
+  }
 
   const initial = (user?.name ?? '?').trim().charAt(0).toUpperCase();
 
@@ -132,7 +140,7 @@ export default function ProfileScreen() {
                 key={interest}
                 variant="wash"
                 label={savingInterest === interest ? '…' : interestLabel(interest, lang)}
-                selected={user?.interests.includes(interest) ?? false}
+                selected={user?.interests?.includes(interest) ?? false}
                 onPress={() => void toggleInterest(interest)}
               />
             ))}
@@ -142,7 +150,18 @@ export default function ProfileScreen() {
         {/* ── Notifications ── */}
         <Card>
           <Text style={[font(styles.cardTitle), align]}>{t.notifications}</Text>
-          {localPrefs ? (
+          {!localPrefs && prefs.error ? (
+            <>
+              <Text style={[font(styles.hint), align]}>{prefs.error}</Text>
+              <Button
+                label={t.retry}
+                variant="secondary"
+                size="sm"
+                fullWidth={false}
+                onPress={() => void prefs.reload()}
+              />
+            </>
+          ) : localPrefs ? (
             (Object.keys(prefLabels) as (keyof NotificationPrefs)[]).map((key, i, arr) => (
               <View
                 key={key}
@@ -256,8 +275,8 @@ export default function ProfileScreen() {
         </Card>
 
         {/* ── Sign out ── */}
-        <Button label={t.signout} icon={LogOut} variant="danger" onPress={() => void signOut()} />
-
+        {/* Same label and same confirmation as the coordinator shell. */}
+        <Button label={t.signOut} icon={LogOut} variant="danger" onPress={confirmSignOut} />
       </ScrollView>
     </Screen>
   );

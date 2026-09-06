@@ -1,4 +1,5 @@
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { useLang } from '@/i18n';
 import { dayLabel, mosqueDate } from '@/lib/datetime';
 import { colors, numeric, radius, rule, spacing, type } from '@/theme';
 import type { DateString } from '@/types';
@@ -12,6 +13,7 @@ interface DayChipsProps {
 
 /** Horizontal strip of the next N days — the date picker we can afford. */
 export function DayChips({ value, onChange, days = 14 }: DayChipsProps) {
+  const { t, lang, isAr, font } = useLang();
   const options = Array.from({ length: days }, (_, i) => mosqueDate(i));
   // An edit may sit on a date outside the strip; keep it selectable.
   if (!options.includes(value)) options.unshift(value);
@@ -20,11 +22,11 @@ export function DayChips({ value, onChange, days = 14 }: DayChipsProps) {
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.row}
+      contentContainerStyle={[styles.row, isAr && styles.rowAr]}
     >
       {options.map((date) => {
         const selected = date === value;
-        const { weekday, day } = dayLabel(date);
+        const { weekday, day } = dayLabel(date, lang, t.todayShort);
         return (
           <Pressable
             key={date}
@@ -33,7 +35,7 @@ export function DayChips({ value, onChange, days = 14 }: DayChipsProps) {
             onPress={() => onChange(date)}
             style={[styles.chip, selected && styles.selected]}
           >
-            <Text style={[styles.weekday, selected && styles.selectedText]}>
+            <Text style={[font(styles.weekday), selected && styles.selectedText]} numberOfLines={1}>
               {weekday.toUpperCase()}
             </Text>
             <Text style={[styles.day, selected && styles.selectedText]}>{day}</Text>
@@ -46,6 +48,7 @@ export function DayChips({ value, onChange, days = 14 }: DayChipsProps) {
 
 const styles = StyleSheet.create({
   row: { gap: spacing.sm },
+  rowAr: { flexDirection: 'row-reverse' },
   chip: {
     width: 52,
     paddingVertical: spacing.sm,

@@ -106,6 +106,8 @@ export function Button({
         accessibilityRole="button"
         accessibilityState={{ disabled: inactive, busy: loading }}
         accessibilityLabel={label}
+        // The small size is 34px tall; the slop keeps the touch target at `hitSize`.
+        hitSlop={size === 'sm' ? { top: 5, bottom: 5 } : undefined}
         onPress={() => {
           tap();
           onPress();

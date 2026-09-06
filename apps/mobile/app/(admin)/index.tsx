@@ -122,7 +122,7 @@ export default function DashboardScreen() {
       <Screen padded={false} edges={['left', 'right']}>
         <GradientHeader title={t.dashboard} />
         <View style={styles.guard}>
-          <EmptyState title={t.noMosques} message={t.everythingCoveredBody} />
+          <EmptyState title={t.noMosques} message={t.noMosqueAssignedBody} />
         </View>
       </Screen>
     );
@@ -232,9 +232,7 @@ export default function DashboardScreen() {
             <Text style={[font(styles.tileLabel), align]}>{t.firstTimers}</Text>
           </View>
           <View style={styles.tile}>
-            <Text style={styles.tileValue}>
-              {d ? d.lateCancellations30d + d.noShows30d : '-'}
-            </Text>
+            <Text style={styles.tileValue}>{d ? d.lateCancellations30d + d.noShows30d : '-'}</Text>
             <Text style={[font(styles.tileLabel), align]}>{t.droppedOut}</Text>
           </View>
         </View>
