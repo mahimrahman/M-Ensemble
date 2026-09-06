@@ -46,10 +46,21 @@ export function AuditLog(): React.JSX.Element {
 
   return (
     <>
-      <PageHeader
-        title="Audit log"
-        subtitle="Every change a platform operator has made. Append-only — nothing here can be edited or removed."
-      />
+      <PageHeader title="Activity log" subtitle="Who changed what, and when." />
+
+      <div className="alert" style={{ marginBottom: 14 }}>
+        <div>
+          <b>What this is</b>
+          Every change anyone makes from this console lands here: a mosque created, a coordinator
+          given credentials, an invoice voided, a campaign approved, an account suspended. It is
+          written automatically — nobody has to remember to log anything.
+          <br />
+          <br />
+          It is <strong>append-only</strong>. There is no edit and no delete, in the console or in
+          the API, because a record the people it describes can change answers no question worth
+          asking it. Support accounts can read it too, for the same reason.
+        </div>
+      </div>
 
       <Card padded={false}>
         <div className="toolbar">

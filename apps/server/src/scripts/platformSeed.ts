@@ -16,6 +16,7 @@ import bcrypt from 'bcryptjs';
 import type { Model } from 'mongoose';
 import {
   AdvertiserModel,
+  AuditEntryModel,
   CampaignModel,
   CampaignStatModel,
   CounterModel,
@@ -798,6 +799,94 @@ async function seedTickets(): Promise<void> {
   );
 }
 
+// ─── The activity log ───────────────────────────────────────────────────────
+
+/**
+ * A history for the activity log.
+ *
+ * Without this the log is empty on a fresh database, and an empty log reads as
+ * a broken feature rather than a new one — the first thing anybody does with
+ * that screen is wonder whether it works. Every row below corresponds to
+ * something the seed above actually did, so the log is not fiction: it is the
+ * record of the seeding, written the way the service would have written it.
+ *
+ * Real rows are appended by `audit.service` from here on. These are seeded with
+ * fixed ids so a re-seed refreshes them rather than stacking up duplicates.
+ */
+async function seedAuditHistory(): Promise<void> {
+  const actor = { id: 'user_platform_admin', name: env.SUPERADMIN_NAME };
+
+  const entries: {
+    id: string;
+    action: string;
+    targetType: string;
+    targetId: string;
+    summary: string;
+    daysAgo: number;
+    hour?: number;
+  }[] = [
+    ...PLAN_ROWS.map((row, i) => ({
+      id: `audit_mosque_${i + 1}`,
+      action: 'subscription.created',
+      targetType: 'subscription',
+      targetId: `sub_${row.mosqueId}`,
+      summary: `Started the ${row.plan} plan for ${row.mosqueId}`,
+      daysAgo: row.startedDaysAgo,
+      hour: 10,
+    })),
+    ...ADVERTISERS.map((a, i) => ({
+      id: `audit_adv_${i + 1}`,
+      action: 'advertiser.created',
+      targetType: 'advertiser',
+      targetId: a._id,
+      summary: `Added partner ${a.name} (${a.category})`,
+      daysAgo: 120 - i * 3,
+      hour: 14,
+    })),
+    ...CAMPAIGNS.filter((c) => c.status !== 'pending').map((c, i) => ({
+      id: `audit_camp_${i + 1}`,
+      action: 'campaign.active',
+      targetType: 'campaign',
+      targetId: c._id,
+      summary: `Campaign "${c.name}": pending → active`,
+      daysAgo: Math.abs(c.startDays) + 2,
+      hour: 11,
+    })),
+    ...INVOICES.map((inv, i) => ({
+      id: `audit_inv_${i + 1}`,
+      action: 'invoice.issued',
+      targetType: 'invoice',
+      targetId: inv.id,
+      summary: `Issued ${inv.number} for ${((inv.unitCents * inv.quantity) / 100).toFixed(2)} CAD`,
+      daysAgo: inv.issuedDaysAgo,
+      hour: 9,
+    })),
+    ...INVOICES.filter((inv) => inv.paid).map((inv, i) => ({
+      id: `audit_pay_${i + 1}`,
+      action: 'invoice.payment_recorded',
+      targetType: 'invoice',
+      targetId: inv.id,
+      summary: `Recorded payment against ${inv.number} (etransfer)`,
+      daysAgo: inv.paidDaysAgo ?? 0,
+      hour: 15,
+    })),
+  ];
+
+  await upsert(
+    AuditEntryModel,
+    entries.map((e) => ({
+      _id: e.id,
+      actorId: actor.id,
+      actorName: actor.name,
+      action: e.action,
+      targetType: e.targetType,
+      targetId: e.targetId,
+      summary: e.summary,
+      createdAt: at(-e.daysAgo, e.hour ?? 12),
+    })),
+  );
+}
+
 // ─── Entry point ────────────────────────────────────────────────────────────
 
 export interface PlatformSeedCounts {
@@ -808,6 +897,7 @@ export interface PlatformSeedCounts {
   advertisers: number;
   campaigns: number;
   tickets: number;
+  auditEntries: number;
   superAdmin: string;
 }
 
@@ -820,18 +910,28 @@ export async function seedPlatform(bcryptRounds = 10): Promise<PlatformSeedCount
   await seedInvoices();
   await seedDonations();
   await seedTickets();
+  await seedAuditHistory();
 
   // Counted only so the seed's output says what it wrote.
-  const [subscriptions, invoices, payments, donations, advertisers, campaigns, tickets] =
-    await Promise.all([
-      SubscriptionModel.countDocuments(),
-      InvoiceModel.countDocuments(),
-      PaymentModel.countDocuments(),
-      DonationModel.countDocuments(),
-      AdvertiserModel.countDocuments(),
-      CampaignModel.countDocuments(),
-      SupportTicketModel.countDocuments(),
-    ]);
+  const [
+    subscriptions,
+    invoices,
+    payments,
+    donations,
+    advertisers,
+    campaigns,
+    tickets,
+    auditEntries,
+  ] = await Promise.all([
+    SubscriptionModel.countDocuments(),
+    InvoiceModel.countDocuments(),
+    PaymentModel.countDocuments(),
+    DonationModel.countDocuments(),
+    AdvertiserModel.countDocuments(),
+    CampaignModel.countDocuments(),
+    SupportTicketModel.countDocuments(),
+    AuditEntryModel.countDocuments(),
+  ]);
 
   return {
     subscriptions,
@@ -841,6 +941,7 @@ export async function seedPlatform(bcryptRounds = 10): Promise<PlatformSeedCount
     advertisers,
     campaigns,
     tickets,
+    auditEntries,
     superAdmin: `${admin.email}${admin.created ? ' (created)' : ' (promoted)'}`,
   };
 }

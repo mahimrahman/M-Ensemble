@@ -12,7 +12,8 @@
     "seed": "tsx src/scripts/seed.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "seed:reset": "tsx src/scripts/seed.ts --reset"
+    "seed:reset": "tsx src/scripts/seed.ts --reset",
+    "smoke": "node tests/smoke.mjs"
   },
   "dependencies": {
     "@m-ensemble/shared": "*",

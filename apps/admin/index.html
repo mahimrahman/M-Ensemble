@@ -3,8 +3,28 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="color-scheme" content="light dark" />
+    <!--
+      Light only, like the app. The console is the same product and should not
+      render a near-black variant nobody designed on a machine set to dark.
+    -->
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#0A5247" />
     <link rel="icon" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+
+    <!--
+      The app's three families, same jobs: Fraunces for display, Outfit for
+      body, DM Mono for numbers. Preconnect because the stylesheet is
+      render-blocking; `display=swap` so a slow font request shows the fallback
+      rather than a blank page.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Outfit:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+
     <title>M'Ensemble — Platform</title>
   </head>
   <body>

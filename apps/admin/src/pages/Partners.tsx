@@ -17,6 +17,7 @@ import {
   useAsync,
   useListState,
 } from '@/ui';
+import { ImageUpload } from '@/ui/ImageUpload';
 import { date } from '@/lib/format';
 
 /**
@@ -81,10 +82,26 @@ export function Partners(): React.JSX.Element {
                     header: 'Partner',
                     sortable: true,
                     render: (row) => (
-                      <>
-                        <div className="cell-main">{row.name}</div>
-                        <div className="cell-sub">{row.category}</div>
-                      </>
+                      <div className="row" style={{ flexWrap: 'nowrap', gap: 10 }}>
+                        {row.logoUrl ? (
+                          <img
+                            src={row.logoUrl}
+                            alt=""
+                            style={{
+                              width: 34,
+                              height: 34,
+                              objectFit: 'contain',
+                              borderRadius: 6,
+                              background: 'var(--surface-sunken)',
+                              flex: 'none',
+                            }}
+                          />
+                        ) : null}
+                        <div>
+                          <div className="cell-main">{row.name}</div>
+                          <div className="cell-sub">{row.category}</div>
+                        </div>
+                      </div>
                     ),
                   },
                   {
@@ -226,6 +243,7 @@ function PartnerDialog({
     website: advertiser?.website ?? '',
     note: advertiser?.note ?? '',
   });
+  const [logoUrl, setLogoUrl] = useState(advertiser?.logoUrl);
 
   const set = (key: keyof typeof form, value: string) =>
     setForm((current) => ({ ...current, [key]: value }));
@@ -311,6 +329,14 @@ function PartnerDialog({
           />
         </Field>
       </div>
+
+      <ImageUpload
+        label="Logo"
+        shape="logo"
+        value={logoUrl}
+        onChange={setLogoUrl}
+        hint="Shown on the partner's record. Square or wide both work."
+      />
 
       <Field label="Note" hint="What they want out of this, when they renew, who introduced them.">
         <textarea value={form.note} onChange={(e) => set('note', e.target.value)} />

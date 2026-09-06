@@ -192,6 +192,7 @@ export function CampaignDetail(): React.JSX.Element {
                   <CreativePreview
                     headline={campaign.creative.headline}
                     body={campaign.creative.body}
+                    imageUrl={campaign.creative.imageUrl}
                     ctaLabel={campaign.creative.ctaLabel}
                     disclosure={
                       campaign.creative.disclosure ??
@@ -281,11 +282,13 @@ export function CampaignDetail(): React.JSX.Element {
 function CreativePreview({
   headline,
   body,
+  imageUrl,
   ctaLabel,
   disclosure,
 }: {
   headline: string;
   body: string;
+  imageUrl?: string;
   ctaLabel: string;
   disclosure: string;
 }): React.JSX.Element {
@@ -311,6 +314,20 @@ function CreativePreview({
       >
         {disclosure}
       </div>
+      {imageUrl ? (
+        <img
+          src={imageUrl}
+          alt=""
+          style={{
+            display: 'block',
+            width: '100%',
+            aspectRatio: '16 / 9',
+            objectFit: 'cover',
+            borderRadius: 8,
+            marginBottom: 10,
+          }}
+        />
+      ) : null}
       <div style={{ fontWeight: 650, fontSize: 15, marginBottom: 4 }}>{headline}</div>
       <div style={{ color: 'var(--ink-2)', marginBottom: 12 }}>{body}</div>
       <span className="btn sm primary" style={{ pointerEvents: 'none' }}>

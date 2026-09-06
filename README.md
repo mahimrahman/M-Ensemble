@@ -93,7 +93,17 @@ the map falls back to a list (`MosqueMap.web.tsx`).
 ## The super-admin console
 
 `apps/admin` — a separate Vite + React app on :5173, sharing the contract in
-`packages/shared` as **types only**. Separate from the mobile app on purpose:
+`packages/shared` as **types only**.
+
+It wears the app's clothes on purpose: every colour token in `styles.css` is
+copied from `apps/mobile/src/theme/index.ts` value for value, the sidebar is the
+app's own masthead gradient, the type is the app's Fraunces / Outfit / DM Mono,
+and the logo is the same artwork in its on-dark cut. **Light only, like the
+app** — there is no dark theme and no toggle, because the app has one look and a
+console that flipped to near-black on a machine set to dark was showing a
+product nobody designed.
+
+Separate from the mobile app on purpose:
 the console is dense tables and money on a wide screen, the app is a phone, and
 one bundle would mean either react-native-web rendering data grids badly or
 shipping every invoice screen to phones that will never open one.
@@ -138,8 +148,8 @@ on them.
   delivery counters. We are the ad server; nothing talks to Meta or Google.
 - **Support** — a ticket inbox with replies and internal notes.
 - **Events** — publish or cancel on a mosque's behalf. The post shows as the
-  mosque's; `createdBy` and the audit log keep who actually typed it honest.
-- **Audit** — every platform write, newest first.
+  mosque's; `createdBy` and the activity log keep who actually typed it honest.
+- **Activity log** — every platform write, newest first. Append-only.
 
 ### The money is modelled, not processed
 
@@ -174,6 +184,44 @@ Three things worth not undoing:
   name its own targeting could enumerate every campaign on the platform. And
   `ServedAd` carries no budget, rate or targeting — those are facts about a deal
   the reader is not party to.
+
+### Uploads
+
+One image pipeline, two doors. Both re-encode through `sharp` to a JPEG at up
+to 1200px, apply the EXIF rotation and drop the rest of the metadata — including
+the GPS coordinates a phone writes into a photo.
+
+| Endpoint                   | Who                                             | For                               |
+| -------------------------- | ----------------------------------------------- | --------------------------------- |
+| `POST /api/uploads/poster` | that mosque's coordinator, **or** a super admin | post posters                      |
+| `POST /api/uploads/image`  | super admin                                     | partner logos, campaign creatives |
+
+The super-admin case on the first row is the seam worth knowing about: a
+platform admin holds no `Membership` anywhere, so the plain mosque guard would
+refuse them on every mosque there is — and the poster field would be
+permanently broken on the one screen that publishes for a mosque.
+
+Every image field — `Post.imageUrl`, `Advertiser.logoUrl`,
+`Campaign.creative.imageUrl` — accepts **only a path this server minted**. These
+are rendered by clients we do not control, so a free-form URL would let one
+operator point every reader's app at a host they own.
+
+Uploading happens **on pick, not on save**, in the console and in the app alike.
+The slow part is over while the form is still being filled in, so the Save
+button only ever sends JSON and cannot fail for a reason unrelated to what was
+typed. The cost is an orphan file when somebody abandons a form; there is no
+sweep for those yet.
+
+### The activity log
+
+Every change made from the console is written to it automatically: a mosque
+created, credentials issued, an invoice voided, a campaign approved, an account
+suspended. **Append-only** — there is no edit and no delete, in the console or
+in the API, because a record the people it describes can change answers no
+question worth asking it. Support accounts can read it, for the same reason.
+
+The seed writes a history so a fresh database does not open on an empty screen
+that reads as a broken feature.
 
 ### The charts
 

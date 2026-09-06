@@ -1,5 +1,15 @@
-import { useEffect, useState } from 'react';
 import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import {
+  Banknote,
+  Building2,
+  CalendarDays,
+  Handshake,
+  LayoutDashboard,
+  LifeBuoy,
+  Megaphone,
+  ScrollText,
+  Users as UsersIcon,
+} from 'lucide-react';
 import { AuthProvider, useAuth } from '@/auth';
 import { ToastProvider, useAsync } from '@/ui';
 import { api } from '@/api';
@@ -22,49 +32,21 @@ import { AuditLog } from '@/pages/AuditLog';
 /**
  * The console's shell and routing.
  *
- * Nothing is rendered until the stored token has been checked, so the app never
- * flashes the sign-in screen at somebody who is already signed in — and never
- * flashes a dashboard at somebody whose token has expired.
+ * Nothing renders until the stored token has been checked, so the app never
+ * flashes the sign-in screen at somebody already signed in, or a dashboard at
+ * somebody whose token has expired.
+ *
+ * **Light only, like the app.** There is no theme toggle: the app has one look
+ * and the console is the same product. See the header of `styles.css`.
  */
 
-const THEME_KEY = 'mensemble.admin.theme';
-
-function useThemeToggle(): [string, () => void] {
-  const [theme, setTheme] = useState<'system' | 'light' | 'dark'>(() => {
-    try {
-      return (localStorage.getItem(THEME_KEY) as 'light' | 'dark' | null) ?? 'system';
-    } catch {
-      return 'system';
-    }
-  });
-
-  useEffect(() => {
-    // `system` removes the attribute entirely rather than writing a value, so
-    // the stylesheet's `prefers-color-scheme` block is what decides — which is
-    // the only way "follow the OS" can keep following it after a change.
-    if (theme === 'system') delete document.documentElement.dataset.theme;
-    else document.documentElement.dataset.theme = theme;
-    try {
-      if (theme === 'system') localStorage.removeItem(THEME_KEY);
-      else localStorage.setItem(THEME_KEY, theme);
-    } catch {
-      /* storage blocked — the theme still applies for this session */
-    }
-  }, [theme]);
-
-  const cycle = () =>
-    setTheme((current) =>
-      current === 'system' ? 'light' : current === 'light' ? 'dark' : 'system',
-    );
-
-  return [theme, cycle];
-}
+const ICON = 17;
 
 function Rail(): React.JSX.Element {
   const { session, signOut } = useAuth();
 
   // The two counts that mean "somebody is waiting on you". Refreshed on every
-  // navigation, which is often enough for an inbox and cheap enough not to poll.
+  // navigation — often enough for an inbox, cheap enough not to poll.
   const location = useLocation();
   const support = useAsync(() => api.supportStats(), [location.pathname]);
   const campaigns = useAsync(
@@ -78,26 +60,35 @@ function Rail(): React.JSX.Element {
   return (
     <nav className="rail">
       <div className="rail-brand">
-        <div>
-          <strong>M&apos;Ensemble</strong>
-          <span>Platform console</span>
-        </div>
+        {/* The cut recoloured for a dark ground — the master's black crescent
+            becomes white there, so the shape survives the gradient. */}
+        <img src="/logo-on-dark.png" alt="M'Ensemble" />
+        <span>Platform console</span>
       </div>
 
       <div className="rail-group">
-        <p>Overview</p>
         <NavLink to="/" end>
+          <LayoutDashboard size={ICON} />
           Dashboard
         </NavLink>
-        <NavLink to="/audit">Audit log</NavLink>
       </div>
 
       <div className="rail-group">
         <p>Community</p>
-        <NavLink to="/mosques">Mosques</NavLink>
-        <NavLink to="/users">People</NavLink>
-        <NavLink to="/events">Events</NavLink>
+        <NavLink to="/mosques">
+          <Building2 size={ICON} />
+          Mosques
+        </NavLink>
+        <NavLink to="/users">
+          <UsersIcon size={ICON} />
+          People
+        </NavLink>
+        <NavLink to="/events">
+          <CalendarDays size={ICON} />
+          Events
+        </NavLink>
         <NavLink to="/support">
+          <LifeBuoy size={ICON} />
           Support
           {open > 0 && <span className="rail-count">{open}</span>}
         </NavLink>
@@ -105,22 +96,33 @@ function Rail(): React.JSX.Element {
 
       <div className="rail-group">
         <p>Revenue</p>
-        <NavLink to="/billing">Billing</NavLink>
-        <NavLink to="/partners">Partners</NavLink>
+        <NavLink to="/billing">
+          <Banknote size={ICON} />
+          Billing
+        </NavLink>
+        <NavLink to="/partners">
+          <Handshake size={ICON} />
+          Partners
+        </NavLink>
         <NavLink to="/campaigns">
+          <Megaphone size={ICON} />
           Campaigns
           {pending > 0 && <span className="rail-count">{pending}</span>}
+        </NavLink>
+      </div>
+
+      <div className="rail-group">
+        <p>Record</p>
+        <NavLink to="/audit">
+          <ScrollText size={ICON} />
+          Activity log
         </NavLink>
       </div>
 
       <div className="rail-foot">
         <b>{session?.name}</b>
         {session?.platformRole === 'superadmin' ? 'Super admin' : 'Support'}
-        <button
-          className="btn ghost sm"
-          style={{ marginTop: 8, color: 'inherit', width: '100%' }}
-          onClick={signOut}
-        >
+        <button className="btn sm" onClick={signOut}>
           Sign out
         </button>
       </div>
@@ -129,7 +131,7 @@ function Rail(): React.JSX.Element {
 }
 
 function Shell(): React.JSX.Element {
-  const [theme, cycleTheme] = useThemeToggle();
+  const { session } = useAuth();
 
   return (
     <div className="shell">
@@ -137,13 +139,10 @@ function Shell(): React.JSX.Element {
       <div className="main">
         <div className="topbar">
           <span className="spacer" />
-          <button
-            className="btn ghost sm"
-            onClick={cycleTheme}
-            title={`Theme: ${theme}. Click to change.`}
-          >
-            {theme === 'dark' ? '◐ Dark' : theme === 'light' ? '◑ Light' : '◒ System'}
-          </button>
+          {session?.platformRole === 'support' && (
+            <span>Read-only — a super admin makes the changes.</span>
+          )}
+          <span className="muted">{session?.email}</span>
         </div>
         <div className="content">
           <Routes>
@@ -176,9 +175,13 @@ function Gate(): React.JSX.Element {
 
   if (checking) {
     return (
-      <div className="loading" style={{ height: '100vh' }}>
-        <span className="spinner" aria-hidden="true" />
-        Checking your session…
+      <div className="signin">
+        <div className="signin-inner" style={{ textAlign: 'center' }}>
+          <img className="signin-logo" src="/logo-on-dark.png" alt="M'Ensemble" />
+          <p className="signin-note">
+            <span className="spinner on-dark" aria-hidden="true" /> Checking your session…
+          </p>
+        </div>
       </div>
     );
   }

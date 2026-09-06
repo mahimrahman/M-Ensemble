@@ -2,3 +2,4 @@
 # src/services/upload.service.ts.
 uploads/
 tests/.uploads/
+tests/.smoke-uploads/

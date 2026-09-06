@@ -116,14 +116,29 @@ async function request<T>(
   options: { body?: unknown; query?: Query } = {},
 ): Promise<T> {
   const token = storedToken();
-  const response = await fetch(`/api${path}${queryString(options.query)}`, {
-    method,
-    headers: {
-      ...(options.body === undefined ? {} : { 'Content-Type': 'application/json' }),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
-  });
+
+  let response: Response;
+  try {
+    response = await fetch(`/api${path}${queryString(options.query)}`, {
+      method,
+      headers: {
+        ...(options.body === undefined ? {} : { 'Content-Type': 'application/json' }),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    });
+  } catch {
+    // `fetch` rejects outright when there is nothing listening — the API not
+    // running is by far the most common reason, and it happens before any
+    // status code exists to branch on. Without this the failure escapes as a
+    // bare TypeError and every screen says "Something went wrong", which sends
+    // people looking for a bug in the console rather than starting the server.
+    throw new ApiError(
+      0,
+      'NETWORK',
+      'Cannot reach the API. Check that it is running on http://localhost:4000.',
+    );
+  }
 
   // The API always sends a body, including on errors — `okNull` exists so that
   // even a void endpoint replies `{ ok: true, data: null }` rather than 204.
@@ -150,6 +165,48 @@ async function request<T>(
     );
   }
 
+  return payload.data;
+}
+
+/**
+ * Upload one image and get back the path the server stored it at.
+ *
+ * **Not through `request`**, which sets `Content-Type: application/json`. A
+ * multipart body needs the browser to write that header itself, including the
+ * boundary token it generates — setting it by hand produces a body the server
+ * cannot parse, and the failure looks like a corrupt file rather than a wrong
+ * header.
+ *
+ * Two endpoints behind one function. With a `mosqueId` this is a poster and
+ * goes through the mosque-scoped route; without one it is a partner logo or a
+ * campaign creative, which belong to no mosque and go through the platform
+ * route. The caller says which by passing the id or not.
+ */
+export async function uploadImage(
+  file: File,
+  mosqueId?: string,
+): Promise<{ url: string; width: number; height: number; bytes: number }> {
+  const form = new FormData();
+  form.append('image', file);
+  if (mosqueId) form.append('mosqueId', mosqueId);
+
+  const token = storedToken();
+  const response = await fetch(`/api/uploads/${mosqueId ? 'poster' : 'image'}`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | { ok: true; data: { url: string; width: number; height: number; bytes: number } }
+    | { ok: false; error: { code: string; message: string } }
+    | null;
+
+  if (!payload) throw new ApiError(response.status, 'NETWORK', 'The upload got no usable reply.');
+  if (!payload.ok) {
+    if (response.status === 401) window.dispatchEvent(new CustomEvent(UNAUTHORIZED_EVENT));
+    throw new ApiError(response.status, payload.error.code, payload.error.message);
+  }
   return payload.data;
 }
 

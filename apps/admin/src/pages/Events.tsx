@@ -4,6 +4,7 @@ import type { PostType } from '@m-ensemble/shared';
 import { api } from '@/api';
 import { useWriteGuard } from '@/auth';
 import { Async, Badge, Card, DataTable, Field, Modal, PageHeader, useAction, useAsync } from '@/ui';
+import { ImageUpload } from '@/ui/ImageUpload';
 import { count, dateTime, humanise } from '@/lib/format';
 
 /**
@@ -198,6 +199,7 @@ function ComposeDialog({
     capacity: '',
     notify: true,
   });
+  const [imageUrl, setImageUrl] = useState<string>();
 
   const set = (key: keyof typeof form, value: string | boolean) =>
     setForm((current) => ({ ...current, [key]: value }));
@@ -243,6 +245,7 @@ function ComposeDialog({
                     (form.type === 'event' || form.type === 'class') && form.capacity
                       ? Number(form.capacity)
                       : undefined,
+                  imageUrl,
                   notify: form.notify,
                 });
                 onCreated();

@@ -53,6 +53,27 @@ export function requireAdmin(getMosqueId: MosqueIdSource): RequestHandler {
 }
 
 /**
+ * Coordinator of the mosque in the body, **or** a platform super admin.
+ *
+ * The poster upload is the one place the two tiers genuinely overlap: a
+ * coordinator uploads a poster for their own mosque, and a super admin
+ * publishing on a mosque's behalf needs to upload one for a mosque they hold no
+ * `Membership` at — which plain `requireAdmin` would refuse everywhere.
+ *
+ * The platform check comes **first** and short-circuits, so a super admin never
+ * pays for a membership lookup that was always going to be empty.
+ */
+export const requirePosterUploader: RequestHandler = asyncHandler(async (req, res, next) => {
+  const user = currentUser(req);
+  if (user.platformRole === 'superadmin') {
+    req.mosqueId = String((req.body as Record<string, unknown>).mosqueId ?? '');
+    next();
+    return;
+  }
+  requireAdmin(fromBody('mosqueId'))(req, res, next);
+});
+
+/**
  * Admin only when `when` says so. Express cannot route on a query string, and
  * `GET /mosques/:id/posts?all=true` is the admin view of the same path that
  * serves every signed-in member without the flag.

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { count, countShort, money, moneyShort } from '@/lib/format';
 
 /**
@@ -889,24 +889,3 @@ export function RampBars({
 
 /** Re-exported so pages can pass a matching formatter to a chart. */
 export { count, countShort, money, moneyShort };
-
-/**
- * Reads the current theme so a chart can be screenshotted in either. Kept here
- * because the palette lives here; nothing else needs it.
- */
-export function useTheme(): 'light' | 'dark' {
-  const [theme, setTheme] = useState<'light' | 'dark'>(() =>
-    document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light',
-  );
-  useEffect(() => {
-    const observer = new MutationObserver(() =>
-      setTheme(document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light'),
-    );
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['data-theme'],
-    });
-    return () => observer.disconnect();
-  }, []);
-  return theme;
-}

@@ -17,3 +17,19 @@ export async function uploadPosterImage(req: Request, res: Response): Promise<vo
   }
   ok(res, await storePoster(req.file.buffer), 201);
 }
+
+/**
+ * `POST /api/uploads/image` — the same pipeline with no mosque attached.
+ *
+ * A partner's logo and a campaign creative belong to no mosque, so there is
+ * nothing to authorise against per-mosque; the route gates this on `superadmin`
+ * instead. Identical bytes out — one JPEG, capped at 1200px, metadata stripped
+ * — so a caller cannot tell the two endpoints apart from the response, which is
+ * the point: there is one image pipeline, not two.
+ */
+export async function uploadPlatformImage(req: Request, res: Response): Promise<void> {
+  if (!req.file) {
+    throw new HttpError(400, ERROR.VALIDATION_ERROR, 'No image was attached.');
+  }
+  ok(res, await storePoster(req.file.buffer), 201);
+}

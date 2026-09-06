@@ -22,7 +22,8 @@
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "seed": "npm run seed --workspace @m-ensemble/server",
-    "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
+    "smoke": "npm run smoke --workspace @m-ensemble/server"
   },
   "devDependencies": {
     "prettier": "^3.3.3",

@@ -18,6 +18,7 @@ import {
   useListState,
   type Tone,
 } from '@/ui';
+import { ImageUpload } from '@/ui/ImageUpload';
 import { Meter } from '@/ui/charts';
 import { count, date, money, percent } from '@/lib/format';
 
@@ -238,6 +239,7 @@ function NewCampaignDialog({
     pricing: 'cpm' as 'flat' | 'cpm' | 'cpc',
     rate: '8',
   });
+  const [imageUrl, setImageUrl] = useState<string>();
   const [cities, setCities] = useState<string[]>([]);
   const [placements, setPlacements] = useState<AdPlacement[]>(['feed']);
 
@@ -277,6 +279,7 @@ function NewCampaignDialog({
                   creative: {
                     headline: form.headline,
                     body: form.body,
+                    imageUrl,
                     ctaLabel: form.ctaLabel,
                     ctaUrl: form.ctaUrl,
                   },
@@ -336,6 +339,13 @@ function NewCampaignDialog({
           onChange={(event) => set('headline', event.target.value)}
         />
       </Field>
+      <ImageUpload
+        label="Card image"
+        value={imageUrl}
+        onChange={setImageUrl}
+        hint="Optional. 16:9 reads best — the app renders it into a fixed band."
+      />
+
       <Field label="Body" hint={`${form.body.length}/200`}>
         <textarea
           maxLength={200}

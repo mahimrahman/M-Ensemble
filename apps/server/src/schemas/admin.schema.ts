@@ -23,6 +23,18 @@ export const pageQuerySchema = z.object({
   dir: z.enum(['asc', 'desc']).optional(),
 });
 
+/**
+ * A path this API minted, and nothing else.
+ *
+ * Every one of these is rendered by a client we do not control — a partner
+ * logo in the console, a campaign creative in twenty thousand feeds — so a
+ * free-form URL here would let one operator point every reader's app at a host
+ * they own. Same rule and same regex as `imageUrl` in `post.schema.ts`.
+ */
+const storedImage = z
+  .string()
+  .regex(/^\/uploads\/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$/, 'Unrecognised image path.');
+
 /** `?flag=true` off a query string, where everything arrives as a string. */
 const boolish = z
   .enum(['true', 'false'])
@@ -218,7 +230,7 @@ export const createAdvertiserSchema = z
     contactEmail: z.string().email().max(200).optional(),
     contactPhone: z.string().max(60).optional(),
     website: z.string().max(300).optional(),
-    logoUrl: z.string().max(500).optional(),
+    logoUrl: storedImage.optional(),
     status: z.enum(['active', 'paused', 'archived']).optional(),
     note: z.string().max(1000).optional(),
   })
@@ -243,7 +255,7 @@ const ctaUrl = z
 const creativeSchema = z.object({
   headline: z.string().trim().min(2).max(80),
   body: z.string().trim().min(2).max(200),
-  imageUrl: z.string().max(500).optional(),
+  imageUrl: storedImage.optional(),
   ctaLabel: z.string().trim().min(1).max(30),
   ctaUrl,
   disclosure: z.string().max(120).optional(),
@@ -374,12 +386,7 @@ export const adminCreateEventSchema = z
     location: z.string().trim().min(1).max(300),
     slotsNeeded: z.number().int().min(1).max(1000).optional(),
     capacity: z.number().int().min(1).max(100_000).optional(),
-    // Only a path this server minted — same rule as `post.schema.ts`, and for
-    // the same reason: this URL is rendered by every client that shows the post.
-    imageUrl: z
-      .string()
-      .regex(/^\/uploads\/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$/, 'Unrecognised poster path.')
-      .optional(),
+    imageUrl: storedImage.optional(),
     notify: z.boolean().optional(),
   })
   .strict()
