@@ -36,18 +36,31 @@ export async function sweepNoShows(mosqueId?: ID): Promise<void> {
       cancelledAt: { $exists: false },
       endAt: { $lt: new Date() },
     },
-    { _id: 1 },
+    { _id: 1, endAt: 1 },
   );
   if (ended.length === 0) return;
 
-  await SignupModel.updateMany(
-    {
-      postId: { $in: ended.map((p) => p._id) },
-      status: 'confirmed',
-      checkedInAt: { $exists: false },
-      noShowAt: { $exists: false },
-    },
-    [{ $set: { noShowAt: '$$NOW' } }],
+  // Stamped with the post's own `endAt`, **not** the time of this sweep.
+  //
+  // A no-show happened when the shift ended, not when the server first got
+  // round to noticing. Using `$$NOW` would date every historical no-show to
+  // today, so the first sweep after a seed would drop a year of them into the
+  // last-30-days window and the "dropped out recently" number would be wrong
+  // in exactly the way that makes a coordinator distrust the screen.
+  //
+  // One `updateMany` per post rather than one overall: each needs its own date.
+  await Promise.all(
+    ended.map((post) =>
+      SignupModel.updateMany(
+        {
+          postId: post._id,
+          status: 'confirmed',
+          checkedInAt: { $exists: false },
+          noShowAt: { $exists: false },
+        },
+        { $set: { noShowAt: post.endAt } },
+      ),
+    ),
   );
 }
 

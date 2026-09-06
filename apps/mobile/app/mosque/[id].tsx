@@ -51,6 +51,13 @@ export default function MosqueScreen() {
 
   const isFollowed = followed.data?.some((m) => m._id === id) ?? false;
 
+  /**
+   * Nobody runs this mosque in the app yet. Read off the prayer table we
+   * already fetched rather than asking the server a second question: a mosque
+   * with a coordinator has entered iqamah times, and one without has none.
+   */
+  const isUnclaimed = !!today && today.rows.every((r) => r.iqamah === null);
+
   async function toggleFollow() {
     setBusy(true);
     try {
@@ -211,6 +218,20 @@ export default function MosqueScreen() {
             </>
           ) : null}
 
+          {/*
+            Most of the directory is mosques nobody has claimed in the app. Say
+            so once, here, rather than letting an empty iqamah column and an
+            empty events list read as a bug. The prayer table below is still
+            real — adhan is computed from coordinates — it is only the iqamah
+            that needs a mosque to have entered it.
+          */}
+          {isUnclaimed ? (
+            <Card>
+              <Text style={[font(styles.unclaimedTitle), align]}>{t.unclaimedMosque}</Text>
+              <Text style={[font(styles.prose), align]}>{t.unclaimedMosqueBody}</Text>
+            </Card>
+          ) : null}
+
           <SectionTitle title={t.todayPrayers} style={styles.sectionGap} />
           {today ? (
             <PrayerTable table={today} highlight={next?.prayer ?? null} />
@@ -261,6 +282,7 @@ const styles = StyleSheet.create({
   row: { alignItems: 'center', gap: spacing.sm },
   rowText: { ...type.small, color: colors.ink, flex: 1 },
   linkText: { ...type.small, color: colors.accent, flex: 1 },
+  unclaimedTitle: { ...type.h3, color: colors.ink, marginBottom: spacing.xs },
   ratingScore: { ...type.smallStrong, color: colors.ink },
 
   /** Body copy the mosque wrote. Looser leading than a data row. */
