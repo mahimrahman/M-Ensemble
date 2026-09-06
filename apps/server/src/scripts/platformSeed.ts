@@ -144,34 +144,26 @@ async function backdateUsers(): Promise<void> {
 
 // ─── Subscriptions ──────────────────────────────────────────────────────────
 
-interface PlanRow {
+interface BillingRow {
   mosqueId: string;
-  plan: 'free' | 'standard' | 'pro';
   status: 'active' | 'trialing' | 'past_due' | 'cancelled';
   priceCents: number;
   note?: string;
   startedDaysAgo: number;
 }
 
-/** A believable spread: two paying well, one comped, one in trial, one late. */
-const PLAN_ROWS: PlanRow[] = [
-  {
-    mosqueId: KHADIJA_ID,
-    plan: 'pro',
-    status: 'active',
-    priceCents: money(129),
-    startedDaysAgo: 280,
-  },
-  {
-    mosqueId: MADINA_ID,
-    plan: 'standard',
-    status: 'active',
-    priceCents: money(49),
-    startedDaysAgo: 210,
-  },
+/**
+ * A believable spread of *arrangements*, not tiers.
+ *
+ * Every mosque here has the same product — the same posts, roster, check-in and
+ * prayer times. What differs is only what each was agreed at and why, which is
+ * exactly what `note` carries and why the console shows it beside the number.
+ */
+const BILLING_ROWS: BillingRow[] = [
+  { mosqueId: KHADIJA_ID, status: 'active', priceCents: money(49), startedDaysAgo: 280 },
+  { mosqueId: MADINA_ID, status: 'active', priceCents: money(49), startedDaysAgo: 210 },
   {
     mosqueId: SALAHOUDDINE_ID,
-    plan: 'standard',
     status: 'past_due',
     priceCents: money(49),
     note: 'Invoice chased twice — treasurer changed in March.',
@@ -179,7 +171,6 @@ const PLAN_ROWS: PlanRow[] = [
   },
   {
     mosqueId: CIIC_ID,
-    plan: 'standard',
     status: 'trialing',
     priceCents: money(49),
     note: '60-day trial, sponsor-funded.',
@@ -187,25 +178,17 @@ const PLAN_ROWS: PlanRow[] = [
   },
   {
     mosqueId: VERDUN_ID,
-    plan: 'free',
     status: 'active',
     priceCents: 0,
-    note: 'Small musallah — free tier indefinitely.',
+    note: 'Waived — forty families, and they asked. Revisit if they grow.',
     startedDaysAgo: 95,
   },
-  {
-    mosqueId: FATIMA_ID,
-    plan: 'pro',
-    status: 'active',
-    priceCents: money(129),
-    startedDaysAgo: 60,
-  },
+  { mosqueId: FATIMA_ID, status: 'active', priceCents: money(49), startedDaysAgo: 60 },
   {
     mosqueId: RAWDAH_ID,
-    plan: 'free',
     status: 'active',
     priceCents: 0,
-    note: 'Pre-approved, coordinator has not signed up yet.',
+    note: 'Onboarded, nothing agreed yet — coordinator has not signed up.',
     startedDaysAgo: 5,
   },
 ];
@@ -213,14 +196,13 @@ const PLAN_ROWS: PlanRow[] = [
 async function seedSubscriptions(): Promise<void> {
   await upsert(
     SubscriptionModel,
-    PLAN_ROWS.map((row) => {
+    BILLING_ROWS.map((row) => {
       const startedAt = at(-row.startedDaysAgo);
       const periodStart = at(-(row.startedDaysAgo % 30 || 30));
       const periodEnd = new Date(periodStart.getTime() + 30 * DAY);
       return {
         _id: `sub_${row.mosqueId}`,
         mosqueId: row.mosqueId,
-        plan: row.plan,
         status: row.status,
         interval: 'monthly' as const,
         priceCents: row.priceCents,
@@ -482,8 +464,8 @@ const INVOICES: InvoiceSpec[] = [
     kind: 'subscription' as const,
     mosqueId: KHADIJA_ID,
     sourceId: `sub_${KHADIJA_ID}`,
-    description: `M'Ensemble Pro — monthly`,
-    unitCents: money(129),
+    description: `M'Ensemble — monthly`,
+    unitCents: money(49),
     quantity: 1,
     issuedDaysAgo: n * 30,
     dueInDays: 30,
@@ -496,7 +478,7 @@ const INVOICES: InvoiceSpec[] = [
     kind: 'subscription',
     mosqueId: MADINA_ID,
     sourceId: `sub_${MADINA_ID}`,
-    description: `M'Ensemble Standard — monthly`,
+    description: `M'Ensemble — monthly`,
     unitCents: money(49),
     quantity: 1,
     issuedDaysAgo: 26,
@@ -510,7 +492,7 @@ const INVOICES: InvoiceSpec[] = [
     kind: 'subscription',
     mosqueId: SALAHOUDDINE_ID,
     sourceId: `sub_${SALAHOUDDINE_ID}`,
-    description: `M'Ensemble Standard — monthly`,
+    description: `M'Ensemble — monthly`,
     unitCents: money(49),
     quantity: 2,
     issuedDaysAgo: 62,
@@ -523,8 +505,8 @@ const INVOICES: InvoiceSpec[] = [
     kind: 'subscription',
     mosqueId: FATIMA_ID,
     sourceId: `sub_${FATIMA_ID}`,
-    description: `M'Ensemble Pro — monthly`,
-    unitCents: money(129),
+    description: `M'Ensemble — monthly`,
+    unitCents: money(49),
     quantity: 1,
     issuedDaysAgo: 8,
     dueInDays: 30,
@@ -825,12 +807,15 @@ async function seedAuditHistory(): Promise<void> {
     daysAgo: number;
     hour?: number;
   }[] = [
-    ...PLAN_ROWS.map((row, i) => ({
+    ...BILLING_ROWS.map((row, i) => ({
       id: `audit_mosque_${i + 1}`,
       action: 'subscription.created',
       targetType: 'subscription',
       targetId: `sub_${row.mosqueId}`,
-      summary: `Started the ${row.plan} plan for ${row.mosqueId}`,
+      summary:
+        row.priceCents > 0
+          ? `${row.mosqueId} billed at ${(row.priceCents / 100).toFixed(2)} CAD/month`
+          : `${row.mosqueId} onboarded — nothing charged`,
       daysAgo: row.startedDaysAgo,
       hour: 10,
     })),

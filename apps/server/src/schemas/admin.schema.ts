@@ -83,7 +83,9 @@ export const createMosqueSchema = z
       })
       .optional(),
     coordinator: coordinatorSchema.optional(),
-    plan: z.enum(['free', 'standard', 'pro']).optional(),
+    // What to charge them per month, in cents. Absent means zero — see
+    // `CreateMosqueInput` for why onboarding never starts billing by itself.
+    priceCents: POSITIVE_CENTS.optional(),
   })
   .strict();
 
@@ -91,7 +93,7 @@ export const issueCredentialSchema = coordinatorSchema.strict();
 
 export const mosqueListQuerySchema = pageQuerySchema.extend({
   operated: boolish,
-  plan: z.enum(['free', 'standard', 'pro']).optional(),
+  billing: z.enum(['active', 'trialing', 'past_due', 'cancelled']).optional(),
   city: z.string().max(80).optional(),
 });
 
@@ -118,7 +120,6 @@ export const membershipRoleSchema = z
 export const createSubscriptionSchema = z
   .object({
     mosqueId: z.string().min(1),
-    plan: z.enum(['free', 'standard', 'pro']),
     interval: z.enum(['monthly', 'yearly']).optional(),
     priceCents: POSITIVE_CENTS.optional(),
     status: z.enum(['active', 'trialing', 'past_due', 'cancelled']).optional(),
@@ -129,7 +130,6 @@ export const createSubscriptionSchema = z
 
 export const updateSubscriptionSchema = z
   .object({
-    plan: z.enum(['free', 'standard', 'pro']).optional(),
     status: z.enum(['active', 'trialing', 'past_due', 'cancelled']).optional(),
     interval: z.enum(['monthly', 'yearly']).optional(),
     priceCents: POSITIVE_CENTS.optional(),

@@ -12,7 +12,6 @@ import type {
   PageQuery,
   PageResult,
   Payment,
-  PlanId,
   RecordPaymentInput,
   RevenuePoint,
   Subscription,
@@ -26,7 +25,7 @@ import { MosqueModel } from '../models/Mosque.js';
 import { AdvertiserModel } from '../models/Advertiser.js';
 import { nextSequence } from '../models/Counter.js';
 import type { UserDocument } from '../models/User.js';
-import { monthlyValueCents, planPriceCents, platformFeeCents } from '../shared.js';
+import { monthlyValueCents, platformFeeCents, standardPriceCents } from '../shared.js';
 import * as audit from './audit.service.js';
 import { HttpError } from '../middleware/errorHandler.js';
 import { ERROR } from '../utils/errors.js';
@@ -38,7 +37,9 @@ import { pageResult, resolvePage, searchRegex, sortSpec } from '../utils/paging.
 /**
  * The money. All three flows the platform models:
  *
- *   - **Subscriptions** — a mosque pays us monthly for the coordinator tools.
+ *   - **Subscriptions** — a mosque pays us monthly. There are no tiers: every
+ *     mosque gets the whole product, and what varies is only what each one was
+ *     agreed at, with the reason in `note`.
  *   - **Campaigns** — a partner pays us for placement (invoiced from here,
  *     with the campaign itself in `campaign.service`).
  *   - **Donations** — a member gives to a mosque through us, and we keep a fee.
@@ -67,7 +68,7 @@ export async function upsertSubscription(
 
   const now = new Date();
   const interval = input.interval ?? 'monthly';
-  const priceCents = input.priceCents ?? planPriceCents(input.plan, interval);
+  const priceCents = input.priceCents ?? standardPriceCents(interval);
   const periodEnd = new Date(now);
   if (interval === 'yearly') periodEnd.setFullYear(periodEnd.getFullYear() + 1);
   else periodEnd.setMonth(periodEnd.getMonth() + 1);
@@ -76,17 +77,16 @@ export async function upsertSubscription(
     ? new Date(now.getTime() + input.trialDays * DAY_MS)
     : undefined;
 
-  // One row per mosque — the unique index says so, and "upgrade" is a field
-  // change rather than a second row. What they used to be on is readable from
-  // the invoices, which is where anyone asking that is actually looking.
+  // One row per mosque — the unique index says so. What they used to be
+  // charged is readable from the invoices, which is where anyone asking that is
+  // actually looking.
   const existing = await SubscriptionModel.findOne({ mosqueId: input.mosqueId });
-  const previousPlan = existing?.plan;
+  const previousPrice = existing?.priceCents;
 
   const doc = await SubscriptionModel.findOneAndUpdate(
     { mosqueId: input.mosqueId },
     {
       $set: {
-        plan: input.plan,
         status: input.status ?? (trialEndsAt ? 'trialing' : 'active'),
         interval,
         priceCents,
@@ -104,13 +104,14 @@ export async function upsertSubscription(
   await audit.record(
     actor,
     {
-      action: previousPlan ? 'subscription.changed' : 'subscription.created',
+      action: previousPrice === undefined ? 'subscription.created' : 'subscription.changed',
       targetType: 'subscription',
       targetId: doc._id,
-      summary: previousPlan
-        ? `${mosque.name}: plan ${previousPlan} → ${input.plan}`
-        : `${mosque.name} started on the ${input.plan} plan`,
-      meta: { mosqueId: input.mosqueId, previousPlan, plan: input.plan, priceCents },
+      summary:
+        previousPrice === undefined
+          ? `${mosque.name} billed at ${(priceCents / 100).toFixed(2)} CAD/${interval === 'yearly' ? 'yr' : 'mo'}`
+          : `${mosque.name}: ${(previousPrice / 100).toFixed(2)} → ${(priceCents / 100).toFixed(2)} CAD`,
+      meta: { mosqueId: input.mosqueId, previousPrice, priceCents, interval },
     },
     req,
   );
@@ -127,8 +128,7 @@ export async function updateSubscription(
   const sub = await SubscriptionModel.findById(id);
   if (!sub) throw new HttpError(404, ERROR.NOT_FOUND, 'No such subscription.');
 
-  const before = { plan: sub.plan, status: sub.status, priceCents: sub.priceCents };
-  if (patch.plan !== undefined) sub.plan = patch.plan;
+  const before = { status: sub.status, priceCents: sub.priceCents };
   if (patch.interval !== undefined) sub.interval = patch.interval;
   if (patch.priceCents !== undefined) sub.priceCents = patch.priceCents;
   if (patch.note !== undefined) sub.note = patch.note;
@@ -148,8 +148,8 @@ export async function updateSubscription(
       action: 'subscription.updated',
       targetType: 'subscription',
       targetId: sub._id,
-      summary: `Subscription for ${sub.mosqueId}: ${before.plan}/${before.status} → ${sub.plan}/${sub.status}`,
-      meta: { before, after: { plan: sub.plan, status: sub.status, priceCents: sub.priceCents } },
+      summary: `Billing for ${sub.mosqueId}: ${before.status} → ${sub.status}, ${(before.priceCents / 100).toFixed(2)} → ${(sub.priceCents / 100).toFixed(2)} CAD`,
+      meta: { before, after: { status: sub.status, priceCents: sub.priceCents } },
     },
     req,
   );
@@ -252,8 +252,8 @@ export async function createInvoice(
     throw new HttpError(400, ERROR.VALIDATION_ERROR, 'An invoice needs at least one line.');
   }
 
-  // Line totals are computed here and stored. A plan's price changing next year
-  // must never rewrite what somebody was billed last year.
+  // Line totals are computed here and stored. A price change next year must
+  // never rewrite what somebody was billed last year.
   const lines = input.lines.map((l) => ({
     description: l.description,
     quantity: l.quantity,
@@ -588,15 +588,18 @@ export async function billingSummary(): Promise<BillingSummary> {
     revenueByMonth(12),
   ]);
 
-  const byPlan = (['free', 'standard', 'pro'] as PlanId[]).map((plan) => {
-    const rows = subs.filter((s) => s.plan === plan);
+  // Grouped by where a mosque's billing *stands*, not by what it gets — every
+  // mosque gets the same product, so a breakdown by tier would be a chart of
+  // one bar.
+  const byStatus = (['active', 'trialing', 'past_due', 'cancelled'] as const).map((status) => {
+    const rows = subs.filter((s) => s.status === status);
     return {
-      plan,
+      status,
       mosques: rows.length,
       mrrCents: rows.reduce((sum, s) => sum + monthlyValueCents(s), 0),
     };
   });
-  const mrrCents = byPlan.reduce((sum, p) => sum + p.mrrCents, 0);
+  const mrrCents = byStatus.reduce((sum, row) => sum + row.mrrCents, 0);
 
   return {
     mrrCents,
@@ -606,7 +609,8 @@ export async function billingSummary(): Promise<BillingSummary> {
     collected30dCents: collected[0]?.total ?? 0,
     donationVolume30dCents: donations30d[0]?.gross ?? 0,
     donationFees30dCents: donations30d[0]?.fees ?? 0,
-    byPlan,
+    byStatus,
+    notBilledCount: subs.filter((s) => s.priceCents === 0).length,
     revenue,
   };
 }

@@ -3,12 +3,13 @@ import type { Subscription } from '@m-ensemble/shared';
 import { contractJson } from '../utils/serialize.js';
 
 /**
- * What a mosque is on, and until when.
+ * A mosque's billing arrangement with us, and until when.
  *
- * One row per mosque, enforced by the unique index — a mosque cannot be on two
- * plans at once, and "upgrade" is a field change rather than a second row. The
- * history of what they were on lives in the invoices, which is where anyone
- * asking that question is actually looking.
+ * **There is no tier.** Every mosque gets the whole product; what this row
+ * carries is whether they are paying, how much was agreed, and why if it is not
+ * the standard price. One row per mosque, enforced by the unique index — the
+ * history of what they were charged lives in the invoices, which is where
+ * anyone asking that question is actually looking.
  */
 export interface SubscriptionRecord extends Omit<
   Subscription,
@@ -33,7 +34,6 @@ const subscriptionSchema = new Schema<SubscriptionRecord>(
   {
     _id: { type: String, required: true },
     mosqueId: { type: String, required: true },
-    plan: { type: String, required: true, enum: ['free', 'standard', 'pro'] },
     status: {
       type: String,
       required: true,
@@ -57,8 +57,8 @@ const subscriptionSchema = new Schema<SubscriptionRecord>(
 );
 
 subscriptionSchema.index({ mosqueId: 1 }, { unique: true });
-// The billing screen groups by both, and MRR sums over `status`.
-subscriptionSchema.index({ status: 1, plan: 1 });
+// The billing screen groups by status, and MRR sums over it.
+subscriptionSchema.index({ status: 1 });
 
 export type SubscriptionDocument = HydratedDocument<SubscriptionRecord>;
 export const SubscriptionModel = model<SubscriptionRecord>('Subscription', subscriptionSchema);

@@ -78,8 +78,12 @@ export interface CreateMosqueInput {
   prayerConfig?: Mosque['prayerConfig'];
   /** Provision the coordinator in the same call. */
   coordinator?: CoordinatorInput;
-  /** Start them on a plan. Defaults to `free`. */
-  plan?: PlanId;
+  /**
+   * What to charge them per month, in cents. Defaults to **0** — a mosque we
+   * have just onboarded has agreed to nothing yet, and a console that quietly
+   * starts billing on creation is one nobody can trust.
+   */
+  priceCents?: number;
 }
 
 export interface CoordinatorInput {
@@ -167,8 +171,9 @@ export interface MosqueSummary {
   city: string;
   /** False for directory-only rows: public data, no account, no coordinator. */
   operated: boolean;
-  plan: PlanId;
   subscriptionStatus: SubscriptionStatus;
+  /** What this mosque pays per period. Zero for waived and sponsored ones. */
+  priceCents: number;
   coordinatorCount: number;
   followerCount: number;
   memberCount: number;
@@ -204,59 +209,33 @@ export interface PlatformAlert {
 
 // ─── Subscriptions (mosque → us) ────────────────────────────────────────────
 
-export type PlanId = 'free' | 'standard' | 'pro';
-
-export interface Plan {
-  id: PlanId;
-  name: string;
-  /** Per month, in cents. `free` is 0. */
-  priceCents: number;
-  description: string;
-  features: string[];
-}
-
 /**
- * The three tiers from the pitch: free for small musallahs, paid above that.
- * Prices live in the contract so the dashboard, the invoice generator and any
- * future pricing page cannot disagree about what a plan costs.
+ * What a mosque pays us, per month, in cents.
+ *
+ * **One price. There are no tiers.** Every mosque gets the whole product — the
+ * same posts, roster, check-in, prayer times and reliability records — because
+ * a mosque with fifty families is not running a lesser version of the thing a
+ * mosque with two thousand is running, and gating the roster behind an upgrade
+ * would land hardest on the ones with the least. A mosque either has a billing
+ * arrangement with us or it does not.
+ *
+ * What varies is `Subscription.priceCents`, which is what *this* mosque was
+ * actually agreed at: the standard price, zero for a waived or sponsor-funded
+ * one, or something negotiated. The reason goes in `Subscription.note`, so the
+ * variation is always explained rather than merely recorded.
  */
-export const PLANS: readonly Plan[] = [
-  {
-    id: 'free',
-    name: 'Free',
-    priceCents: 0,
-    description: 'For small musallahs finding their feet.',
-    features: ['Up to 5 live posts', 'Prayer times & iqamah', 'Push announcements'],
-  },
-  {
-    id: 'standard',
-    name: 'Standard',
-    priceCents: 4900,
-    description: 'The coordinator toolkit, for a mosque running a weekly programme.',
-    features: [
-      'Unlimited posts',
-      'Volunteer roster & QR check-in',
-      'Member reliability records',
-      'Event outcomes',
-    ],
-  },
-  {
-    id: 'pro',
-    name: 'Pro',
-    priceCents: 12900,
-    description: 'Multi-coordinator mosques with a real programme calendar.',
-    features: [
-      'Everything in Standard',
-      'Multiple coordinators',
-      'Priority support',
-      'Campaign revenue share',
-    ],
-  },
-];
+export const STANDARD_PRICE_CENTS = 4900;
 
-export function planById(id: PlanId): Plan {
-  return PLANS.find((p) => p.id === id) ?? PLANS[0]!;
-}
+/** Everything the platform includes. The same list for every mosque. */
+export const INCLUDED_FEATURES: readonly string[] = [
+  'Unlimited posts, events, classes and volunteer requests',
+  'Prayer times and iqamah, set by the mosque',
+  'Push announcements to followers',
+  'Volunteer roster and QR check-in',
+  'Member reliability records',
+  'Event outcomes and attendance',
+  'As many coordinators as the mosque needs',
+];
 
 export type SubscriptionStatus = 'active' | 'trialing' | 'past_due' | 'cancelled';
 
@@ -273,12 +252,15 @@ export type BillingInterval = 'monthly' | 'yearly';
 export interface Subscription {
   _id: ID;
   mosqueId: ID;
-  plan: PlanId;
   status: SubscriptionStatus;
   interval: BillingInterval;
   /**
-   * What this mosque is actually charged — may differ from the plan's list
-   * price, because mosques get discounted and comped all the time.
+   * What this mosque is actually charged per period.
+   *
+   * Defaults to `STANDARD_PRICE_CENTS` and is freely overridden: mosques get
+   * waived, sponsored and negotiated all the time, and `note` is where the
+   * reason lives. It is **not** a tier — nothing about the product changes
+   * with this number.
    */
   priceCents: number;
   currency: Currency;
@@ -297,9 +279,8 @@ export interface Subscription {
 
 export interface CreateSubscriptionInput {
   mosqueId: ID;
-  plan: PlanId;
   interval?: BillingInterval;
-  /** Defaults to the plan's list price for the interval. */
+  /** Defaults to the standard price for the interval. */
   priceCents?: number;
   status?: SubscriptionStatus;
   trialDays?: number;
@@ -307,7 +288,7 @@ export interface CreateSubscriptionInput {
 }
 
 export type UpdateSubscriptionInput = Partial<
-  Pick<Subscription, 'plan' | 'status' | 'interval' | 'priceCents' | 'note' | 'currentPeriodEnd'>
+  Pick<Subscription, 'status' | 'interval' | 'priceCents' | 'note' | 'currentPeriodEnd'>
 >;
 
 // ─── Invoices & payments ────────────────────────────────────────────────────
@@ -822,7 +803,10 @@ export interface BillingSummary {
   collected30dCents: number;
   donationVolume30dCents: number;
   donationFees30dCents: number;
-  byPlan: { plan: PlanId; mosques: number; mrrCents: number }[];
+  /** Mosques grouped by where their billing stands, not by what they get. */
+  byStatus: { status: SubscriptionStatus; mosques: number; mrrCents: number }[];
+  /** Mosques on a zero price — waived, sponsored, or not yet agreed. */
+  notBilledCount: number;
   revenue: RevenuePoint[];
 }
 
@@ -838,10 +822,9 @@ export function formatMoney(cents: number, currency: Currency = DEFAULT_CURRENCY
   return `${sign}${symbol}${whole}.${frac}`;
 }
 
-/** What a plan costs over one billing period. Yearly is ten months' price. */
-export function planPriceCents(plan: PlanId, interval: BillingInterval = 'monthly'): number {
-  const monthly = planById(plan).priceCents;
-  return interval === 'yearly' ? monthly * 10 : monthly;
+/** The standard price over one billing period. Yearly is ten months' worth. */
+export function standardPriceCents(interval: BillingInterval = 'monthly'): number {
+  return interval === 'yearly' ? STANDARD_PRICE_CENTS * 10 : STANDARD_PRICE_CENTS;
 }
 
 /** A subscription's contribution to MRR, whatever interval it bills on. */

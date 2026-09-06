@@ -6,7 +6,6 @@ import type {
   MosqueSummary,
   PageQuery,
   PageResult,
-  PlanId,
   PlatformAlert,
   PlatformOverview,
   Subscription,
@@ -384,8 +383,8 @@ export async function mosqueSummaries(): Promise<MosqueSummary[]> {
       // Not `isOperatedMosque` from the fixtures — that is a hardcoded list and
       // would call every mosque onboarded through this dashboard unoperated.
       operated: coordinatorCount > 0,
-      plan: (sub?.plan ?? 'free') as PlanId,
       subscriptionStatus: (sub?.status ?? 'cancelled') as SubscriptionStatus,
+      priceCents: sub?.priceCents ?? 0,
       coordinatorCount,
       followerCount: followers.get(id) ?? 0,
       memberCount: (members.get(id) ?? 0) + coordinatorCount,
@@ -402,7 +401,7 @@ export async function mosqueSummaries(): Promise<MosqueSummary[]> {
 
 /** The mosque table: search, sort and page over the summaries above. */
 export async function listMosques(
-  query: PageQuery & { operated?: boolean; plan?: PlanId; city?: string },
+  query: PageQuery & { operated?: boolean; billing?: SubscriptionStatus; city?: string },
 ): Promise<PageResult<MosqueSummary>> {
   const resolved = resolvePage(query);
   let rows = await mosqueSummaries();
@@ -410,7 +409,7 @@ export async function listMosques(
   const rx = searchRegex(query.q);
   if (rx) rows = rows.filter((r) => rx.test(r.name) || rx.test(r.city));
   if (query.operated !== undefined) rows = rows.filter((r) => r.operated === query.operated);
-  if (query.plan) rows = rows.filter((r) => r.plan === query.plan);
+  if (query.billing) rows = rows.filter((r) => r.subscriptionStatus === query.billing);
   if (query.city) rows = rows.filter((r) => r.city === query.city);
 
   const key = (query.sort ?? 'signupCount') as keyof MosqueSummary;

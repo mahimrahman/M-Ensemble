@@ -19,7 +19,7 @@ import { MosqueModel } from '../models/Mosque.js';
 import { SignupModel } from '../models/Signup.js';
 import { SubscriptionModel } from '../models/Subscription.js';
 import { UserModel, type UserDocument } from '../models/User.js';
-import { defaultNotificationPrefs, planPriceCents } from '../shared.js';
+import { defaultNotificationPrefs } from '../shared.js';
 import { hashPassword } from './auth.service.js';
 import * as audit from './audit.service.js';
 import { HttpError } from '../middleware/errorHandler.js';
@@ -123,15 +123,18 @@ export async function createMosque(
       targetType: 'mosque',
       targetId: mosque._id,
       summary: `Created ${mosque.name} with join code ${joinCode}`,
-      meta: { joinCode, plan: input.plan ?? 'free' },
+      meta: { joinCode, priceCents: input.priceCents ?? 0 },
     },
     req,
   );
 
-  // Every mosque gets a subscription row, free included. A mosque with no row
-  // and a mosque on the free plan are the same thing commercially, and having
-  // one shape rather than two means the billing screens never branch on null.
-  await startSubscription(mosque._id, input.plan ?? 'free', actor, req);
+  // Every mosque gets a billing row, including the ones paying nothing. A
+  // mosque with no row and a mosque at zero are the same thing commercially,
+  // and one shape rather than two means the billing screens never branch on
+  // null. It starts at zero: a mosque onboarded a minute ago has agreed to
+  // nothing, and a console that quietly starts billing on creation is one
+  // nobody can trust.
+  await startSubscription(mosque._id, input.priceCents ?? 0, actor, req);
 
   const credential = input.coordinator
     ? await issueCoordinatorCredential(mosque._id, input.coordinator, actor, req)
@@ -142,7 +145,7 @@ export async function createMosque(
 
 async function startSubscription(
   mosqueId: string,
-  plan: CreateMosqueInput['plan'],
+  priceCents: number,
   actor: UserDocument,
   req?: Request,
 ): Promise<void> {
@@ -153,10 +156,9 @@ async function startSubscription(
   await SubscriptionModel.create({
     _id: newId(),
     mosqueId,
-    plan: plan ?? 'free',
     status: 'active',
     interval: 'monthly',
-    priceCents: planPriceCents(plan ?? 'free', 'monthly'),
+    priceCents,
     currency: 'CAD',
     startedAt: now,
     currentPeriodStart: now,
@@ -171,7 +173,10 @@ async function startSubscription(
       action: 'subscription.created',
       targetType: 'subscription',
       targetId: mosqueId,
-      summary: `Started ${plan ?? 'free'} plan`,
+      summary:
+        priceCents > 0
+          ? `Billing opened at ${(priceCents / 100).toFixed(2)} CAD/month`
+          : 'Billing opened — nothing charged',
     },
     req,
   );
