@@ -78,6 +78,18 @@ export interface Mosque {
   coordinates: Coordinates;
   joinCode: string;
   prayerConfig: PrayerConfig;
+  /** A paragraph in the mosque's own voice — what it is and who it serves. */
+  bio?: string;
+  /** Bare host, no scheme: 'khadijahmtl.org'. The UI adds the https://. */
+  website?: string;
+  /** Phone as the mosque publishes it, dialled verbatim. */
+  phone?: string;
+  /** When it was founded and how it got here. A short paragraph, not an essay. */
+  history?: string;
+  /** Google rating out of 5 and how many reviews it came from. */
+  rating?: { score: number; count: number };
+  /** Standing programs — the things that run every week, not dated posts. */
+  services?: string[];
 }
 
 /** One meeting of a multi-session post (a class that runs six Saturdays). */
@@ -108,6 +120,13 @@ export interface Post {
    * when it's absent the app draws a geometric placeholder instead.
    */
   imageUrl?: string;
+  /**
+   * A poster that ships inside the app bundle, named rather than fetched —
+   * see POSTER_ART in the mobile app. Fixtures use this so the demo has real
+   * artwork with no network; a mosque uploading its own gets `imageUrl`.
+   * When both are set, `imageUrl` wins.
+   */
+  posterKey?: string;
   createdBy: ID;
   createdAt: Timestamp;
   /** Set when an admin cancels. Cancelled posts leave the feed but keep history. */

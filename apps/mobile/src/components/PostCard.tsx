@@ -136,7 +136,7 @@ export function PostCard({ post, mosqueName, committed = false, onPress }: PostC
           }}
           style={({ pressed }) => pressed && styles.pressed}
         >
-          <Poster imageUrl={post.imageUrl} seed={post._id} height={200} radius={0} />
+          <Poster imageUrl={post.imageUrl} posterKey={post.posterKey} seed={post._id} height={200} radius={0} />
         </Pressable>
       ) : null}
 

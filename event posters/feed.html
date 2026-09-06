@@ -1,0 +1,183 @@
+<!doctype html><html lang="en"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Community feed — mockup</title>
+<style>
+:root{--bg:#0B0D0F;--card:#15181C;--line:#252A30;--ink:#EDEAE4;--dim:#8B949E;--accent:#E8B54D}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:16px/1.55 "PosterText",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  display:flex;flex-direction:column;align-items:center;padding:0 0 60px}
+.top{position:sticky;top:0;z-index:5;width:100%;max-width:520px;background:rgba(11,13,15,.9);
+  backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:16px 18px;
+  display:flex;align-items:baseline;gap:10px}
+.top h1{font-family:"PosterDisplay",sans-serif;font-size:19px;margin:0;letter-spacing:-.3px}
+.top span{color:var(--dim);font-size:13px}
+.note{max-width:520px;width:100%;padding:16px 18px;color:var(--dim);font-size:13.5px;
+  border-bottom:1px solid var(--line)}
+.feed{width:100%;max-width:520px}
+.post{border-bottom:1px solid var(--line);padding:18px 18px 8px}
+.post header{display:flex;align-items:center;gap:11px;margin-bottom:11px}
+.av{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;flex:0 0 42px;
+  font-family:"PosterDisplay",sans-serif;font-size:15px;font-weight:700;color:#fff;letter-spacing:.4px}
+.who{display:flex;flex-direction:column;line-height:1.3;min-width:0}
+.who b{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.who span{font-size:13px;color:var(--dim)}
+.more{margin-left:auto;background:none;border:0;color:var(--dim);font-size:17px;cursor:pointer;padding:4px 6px}
+.cap{margin:0 0 12px;font-size:15px;color:#DBD7CF}
+.media{border-radius:14px;overflow:hidden;border:1px solid var(--line);line-height:0}
+.media img{width:100%;height:auto;display:block}
+.acts{display:flex;gap:26px;padding:11px 2px 6px;color:var(--dim)}
+.acts button{background:none;border:0;color:inherit;display:flex;align-items:center;gap:7px;
+  font:inherit;font-size:13.5px;cursor:pointer;padding:6px 2px;border-radius:8px}
+.acts svg{width:19px;height:19px}
+.acts button:hover{color:var(--accent)}
+.acts .sh{margin-left:auto}
+footer{max-width:520px;padding:24px 18px;color:#5D666E;font-size:12.5px}
+</style>
+<div class="top"><h1>Community feed</h1><span>mockup</span></div>
+<div class="note">Ten programs from the Montreal database, shown as a social feed. Every date, time and price
+comes from the mosque's own listing. Artwork is original — swap any panel for the mosque's own photography by
+replacing the image file.</div>
+<main class="feed">
+<article class="post">
+  <header>
+    <div class="av" style="background:#0B4F4A">KH</div>
+    <div class="who"><b>Khadijah Islamic Center</b><span>@khadijahmtl · 2h</span></div>
+    <button class="more" aria-label="More">···</button>
+  </header>
+  <p class="cap">Registration is open for weekend Quran classes. Saturdays and Sundays, 10:30 to 1:30, ages 5 to 12. $75 a month with $20 off for each extra sibling.</p>
+  <div class="media"><img src="quran-classes.png" alt="Khadijah Islamic Center — Registration is open for weekend Quran classes. Saturdays an"></div>
+  <div class="acts">
+    <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l8.8 8.8 8.8-8.8a5.5 5.5 0 0 0 0-7.8z"/></svg><span>214</span></button>
+    <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.7-.8L3 21l1.9-5a8.2 8.2 0 0 1-.9-3.8 8.4 8.4 0 0 1 8.4-8.4 8.4 8.4 0 0 1 8.6 8.2z"/></svg><span>18</span></button>
+    <button class="sh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg></button>
+  </div>
+</article>
+<article class="post">
+  <header>
+    <div class="av" style="background:#6B2C1E">SM</div>
+    <div class="who"><b>Salahouddine Mosque</b><span>@salahouddine.mtl · 5h</span></div>
+    <button class="more" aria-label="More">···</button>
+  </header>
+  <p class="cap">Friday lesson at 7pm as always, dinner served straight after. Everyone welcome, no need to register.</p>
+  <div class="media"><img src="friday-dinner.png" alt="Salahouddine Mosque — Friday lesson at 7pm as always, dinner served straight after"></div>
+  <div class="acts">
+    <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l8.8 8.8 8.8-8.8a5.5 5.5 0 0 0 0-7.8z"/></svg><span>176</span></button>
+    <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.7-.8L3 21l1.9-5a8.2 8.2 0 0 1-.9-3.8 8.4 8.4 0 0 1 8.4-8.4 8.4 8.4 0 0 1 8.6 8.2z"/></svg><span>9</span></button>
+    <button class="sh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg></button>
+  </div>
+</article>
+<article class="post">
+  <header>
+    <div class="av" style="background:#241436">CIV</div>
+    <div class="who"><b>Centre Islamique de Verdun</b><span>@civ.verdun · 7h</span></div>
+    <button class="more" aria-label="More">···</button>
+  </header>
+  <p class="cap">Our iftar buffet runs every night of Ramadan, cooked by the community. Bring your family, bring a neighbour.</p>
+  <div class="media"><img src="ramadan-iftar.png" alt="Centre Islamique de Verdun — Our iftar buffet runs every night of Ramadan, cooked by the "></div>
+  <div class="acts">
+    <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l8.8 8.8 8.8-8.8a5.5 5.5 0 0 0 0-7.8z"/></svg><span>402</span></button>
+    <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.7-.8L3 21l1.9-5a8.2 8.2 0 0 1-.9-3.8 8.4 8.4 0 0 1 8.4-8.4 8.4 8.4 0 0 1 8.6 8.2z"/></svg><span>64</span></button>
+    <button class="sh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg></button>
+  </div>
+</article>
+<article class="post">
+  <header>
+    <div class="av" style="background:#8C3A5A">CI</div>
+    <div class="who"><b>CIIC — Sisters Youth Team</b><span>@ciicmac · 9h</span></div>
+    <button class="more" aria-label="More">···</button>
+  </header>
+  <p class="cap">Sisters&#x27; potluck brunch this Saturday, 10:30 to 1:00 on the sixth floor. Bring a dish to share.</p>
+  <div class="media"><img src="sisters-brunch.png" alt="CIIC — Sisters Youth Team — Sisters&#x27; potluck brunch this Saturday, 10:30 to 1:00 on the "></div>
+  <div class="acts">
+    <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l8.8 8.8 8.8-8.8a5.5 5.5 0 0 0 0-7.8z"/></svg><span>287</span></button>
+    <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.7-.8L3 21l1.9-5a8.2 8.2 0 0 1-.9-3.8 8.4 8.4 0 0 1 8.4-8.4 8.4 8.4 0 0 1 8.6 8.2z"/></svg><span>41</span></button>
+    <button class="sh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg></button>
+  </div>
+</article>
+<article class="post">
+  <header>
+    <div class="av" style="background:#1B6B3A">SM</div>
+    <div class="who"><b>Salahouddine Mosque</b><span>@salahouddine.mtl · 12h</span></div>
+    <button class="more" aria-label="More">···</button>
+  </header>
+  <p class="cap">Training is back. Adult team looking for players too — call the mosque for this season&#x27;s times.</p>
+  <div class="media"><img src="soccer.png" alt="Salahouddine Mosque — Training is back. Adult team looking for players too — call "></div>
+  <div class="acts">
+    <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l8.8 8.8 8.8-8.8a5.5 5.5 0 0 0 0-7.8z"/></svg><span>158</span></button>
+    <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.7-.8L3 21l1.9-5a8.2 8.2 0 0 1-.9-3.8 8.4 8.4 0 0 1 8.4-8.4 8.4 8.4 0 0 1 8.6 8.2z"/></svg><span>27</span></button>
+    <button class="sh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg></button>
+  </div>
+</article>
+<article class="post">
+  <header>
+    <div class="av" style="background:#1D7FA8">AM</div>
+    <div class="who"><b>Al-Madinah Center</b><span>@almadinah.mtl · 1d</span></div>
+    <button class="more" aria-label="More">···</button>
+  </header>
+  <p class="cap">Summer camp spots are filling. Robotics, pool days, skating and Friday outings. $150 a week, or $1,100 for all eight.</p>
+  <div class="media"><img src="summer-camp.png" alt="Al-Madinah Center — Summer camp spots are filling. Robotics, pool days, skating "></div>
+  <div class="acts">
+    <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l8.8 8.8 8.8-8.8a5.5 5.5 0 0 0 0-7.8z"/></svg><span>512</span></button>
+    <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.7-.8L3 21l1.9-5a8.2 8.2 0 0 1-.9-3.8 8.4 8.4 0 0 1 8.4-8.4 8.4 8.4 0 0 1 8.6 8.2z"/></svg><span>88</span></button>
+    <button class="sh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg></button>
+  </div>
+</article>
+<article class="post">
+  <header>
+    <div class="av" style="background:#23384A">MF</div>
+    <div class="who"><b>Mosquée Fatima</b><span>@masjid.fatima · 1d</span></div>
+    <button class="more" aria-label="More">···</button>
+  </header>
+  <p class="cap">Study circles continue through the week. Call for this week&#x27;s schedule.</p>
+  <div class="media"><img src="halaqat-dars.png" alt="Mosquée Fatima — Study circles continue through the week. Call for this week&#x27;"></div>
+  <div class="acts">
+    <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l8.8 8.8 8.8-8.8a5.5 5.5 0 0 0 0-7.8z"/></svg><span>96</span></button>
+    <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.7-.8L3 21l1.9-5a8.2 8.2 0 0 1-.9-3.8 8.4 8.4 0 0 1 8.4-8.4 8.4 8.4 0 0 1 8.6 8.2z"/></svg><span>7</span></button>
+    <button class="sh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg></button>
+  </div>
+</article>
+<article class="post">
+  <header>
+    <div class="av" style="background:#0F2A47">AM</div>
+    <div class="who"><b>Al-Madinah Center</b><span>@almadinah.mtl · 2d</span></div>
+    <button class="more" aria-label="More">···</button>
+  </header>
+  <p class="cap">Arabic school returns Sundays: language, Quranic recitation and Islamic manners. Pay early and it&#x27;s $650 for the year.</p>
+  <div class="media"><img src="arabic-school.png" alt="Al-Madinah Center — Arabic school returns Sundays: language, Quranic recitation "></div>
+  <div class="acts">
+    <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l8.8 8.8 8.8-8.8a5.5 5.5 0 0 0 0-7.8z"/></svg><span>341</span></button>
+    <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.7-.8L3 21l1.9-5a8.2 8.2 0 0 1-.9-3.8 8.4 8.4 0 0 1 8.4-8.4 8.4 8.4 0 0 1 8.6 8.2z"/></svg><span>53</span></button>
+    <button class="sh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg></button>
+  </div>
+</article>
+<article class="post">
+  <header>
+    <div class="av" style="background:#1C1C22">SM</div>
+    <div class="who"><b>Salahouddine Mosque</b><span>@salahouddine.mtl · 2d</span></div>
+    <button class="more" aria-label="More">···</button>
+  </header>
+  <p class="cap">Free self-defence classes at the mosque. Weekly — ring us for current times.</p>
+  <div class="media"><img src="self-defence.png" alt="Salahouddine Mosque — Free self-defence classes at the mosque. Weekly — ring us fo"></div>
+  <div class="acts">
+    <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l8.8 8.8 8.8-8.8a5.5 5.5 0 0 0 0-7.8z"/></svg><span>229</span></button>
+    <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.7-.8L3 21l1.9-5a8.2 8.2 0 0 1-.9-3.8 8.4 8.4 0 0 1 8.4-8.4 8.4 8.4 0 0 1 8.6 8.2z"/></svg><span>34</span></button>
+    <button class="sh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg></button>
+  </div>
+</article>
+<article class="post">
+  <header>
+    <div class="av" style="background:#3B1F52">SM</div>
+    <div class="who"><b>Salahouddine Mosque</b><span>@salahouddine.mtl · 3d</span></div>
+    <button class="more" aria-label="More">···</button>
+  </header>
+  <p class="cap">Zikr and madih every Saturday at 7:30pm, followed by a lesson. Open to all.</p>
+  <div class="media"><img src="zikr-madih.png" alt="Salahouddine Mosque — Zikr and madih every Saturday at 7:30pm, followed by a lesso"></div>
+  <div class="acts">
+    <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l8.8 8.8 8.8-8.8a5.5 5.5 0 0 0 0-7.8z"/></svg><span>183</span></button>
+    <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.7-.8L3 21l1.9-5a8.2 8.2 0 0 1-.9-3.8 8.4 8.4 0 0 1 8.4-8.4 8.4 8.4 0 0 1 8.6 8.2z"/></svg><span>12</span></button>
+    <button class="sh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg></button>
+  </div>
+</article></main>
+<footer>Mockup only. Engagement counts are placeholder. Each mosque should approve its own post before publishing.</footer>
+</html>

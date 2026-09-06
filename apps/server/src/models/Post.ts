@@ -42,6 +42,9 @@ const postSchema = new Schema<PostRecord>(
     // create form reads `post.sessions?.length` to decide the session count.
     sessions: { type: [sessionSchema], default: undefined },
     imageUrl: { type: String },
+    // Names artwork bundled with the app rather than hosted — see POSTER_ART
+    // in the mobile app. The seed's programs use it; uploads set `imageUrl`.
+    posterKey: { type: String },
     createdBy: { type: String, required: true },
     createdAt: { type: Date, required: true },
     cancelledAt: { type: Date },

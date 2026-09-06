@@ -2,9 +2,39 @@ import { Image, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-n
 import Svg, { Circle, G, Line, Path, Rect } from 'react-native-svg';
 import { colors, radius, teal } from '@/theme';
 
+/**
+ * The posters that ship in the bundle, keyed by `Post.posterKey`.
+ *
+ * Metro resolves `require` at build time, so the paths have to be literal —
+ * a key indirects to one instead of building the path from data. These are the
+ * ten programme posters designed with the mosques; a mosque that uploads its
+ * own gets an `imageUrl` and never comes through here.
+ */
+const POSTER_ART = {
+  'arabic-school': require('../../assets/posters/arabic-school.png'),
+  'friday-dinner': require('../../assets/posters/friday-dinner.png'),
+  'halaqat-dars': require('../../assets/posters/halaqat-dars.png'),
+  'quran-classes': require('../../assets/posters/quran-classes.png'),
+  'ramadan-iftar': require('../../assets/posters/ramadan-iftar.png'),
+  'self-defence': require('../../assets/posters/self-defence.png'),
+  'sisters-brunch': require('../../assets/posters/sisters-brunch.png'),
+  soccer: require('../../assets/posters/soccer.png'),
+  'summer-camp': require('../../assets/posters/summer-camp.png'),
+  'zikr-madih': require('../../assets/posters/zikr-madih.png'),
+} as const;
+
+export type PosterKey = keyof typeof POSTER_ART;
+
+/** True when the app can draw real artwork rather than falling back to a motif. */
+export function hasPosterArt(post: { imageUrl?: string; posterKey?: string }): boolean {
+  return Boolean(post.imageUrl) || (!!post.posterKey && post.posterKey in POSTER_ART);
+}
+
 interface PosterProps {
-  /** A poster the mosque uploaded. When absent, a motif is drawn instead. */
+  /** A poster the mosque uploaded. Takes precedence over `posterKey`. */
   imageUrl?: string;
+  /** One of the bundled posters. Ignored when it names artwork we don't ship. */
+  posterKey?: string;
   /** Seeds which motif and colourway — pass the post id so it stays stable. */
   seed: string;
   aspect?: number;
@@ -122,6 +152,7 @@ function Motif({ variant, ink }: { variant: number; ink: string }) {
 
 export function Poster({
   imageUrl,
+  posterKey,
   seed,
   aspect = 16 / 9,
   height,
@@ -132,6 +163,14 @@ export function Poster({
   const colourway = COLOURWAYS[h % COLOURWAYS.length] ?? COLOURWAYS[0];
   const variant = Math.floor(h / 7) % 4;
 
+  // An uploaded poster wins; a bundled one is the fixtures' path; a motif is
+  // what's left when a post has neither.
+  const source = imageUrl
+    ? { uri: imageUrl }
+    : posterKey && posterKey in POSTER_ART
+      ? POSTER_ART[posterKey as PosterKey]
+      : null;
+
   return (
     <View
       style={[
@@ -141,8 +180,8 @@ export function Poster({
         style,
       ]}
     >
-      {imageUrl ? (
-        <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
+      {source ? (
+        <Image source={source} style={styles.image} resizeMode="cover" />
       ) : (
         <View style={[styles.motif, { backgroundColor: colourway.ground }]}>
           <Svg

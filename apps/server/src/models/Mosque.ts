@@ -27,6 +27,17 @@ const mosqueSchema = new Schema<MosqueRecord>(
       madhab: { type: String, required: true, enum: ['shafi', 'hanafi'] },
       highLatitudeRule: { type: String, required: true },
     },
+    // The profile the mosque writes about itself. All optional: a mosque that
+    // has told us nothing but its address still renders.
+    bio: { type: String },
+    website: { type: String, trim: true },
+    phone: { type: String, trim: true },
+    history: { type: String },
+    rating: {
+      score: { type: Number },
+      count: { type: Number },
+    },
+    services: { type: [String], default: undefined },
     timezone: { type: String, default: 'America/Toronto' },
   },
   contractJson(['timezone']),

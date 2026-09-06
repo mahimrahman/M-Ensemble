@@ -218,7 +218,7 @@ export default function PostDetailScreen() {
         showsVerticalScrollIndicator={false}
       >
         {isPosterPost(p) ? (
-          <Poster imageUrl={p.imageUrl} seed={p._id} height={180} radius={0} />
+          <Poster imageUrl={p.imageUrl} posterKey={p.posterKey} seed={p._id} height={180} radius={0} />
         ) : null}
 
         <View style={styles.body}>

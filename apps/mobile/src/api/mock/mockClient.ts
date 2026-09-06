@@ -38,6 +38,7 @@ import { buildPrayerTable } from '@/lib/prayer';
 import {
   CURRENT_USER_ID,
   MOCK_PASSWORD,
+  coordinatorMosqueFor,
   defaultNotificationPrefs,
   mockFollows,
   mockIqamah,
@@ -267,20 +268,40 @@ export const mockApi: MEnsembleApi = {
   },
 
   async signupAccount(input: SignupInput) {
-    const exists = state.users.some(
-      (u) => u.email.toLowerCase() === input.email.trim().toLowerCase(),
-    );
-    if (exists) {
+    const email = input.email.trim().toLowerCase();
+    if (state.users.some((u) => u.email.toLowerCase() === email)) {
       throw new ApiRequestError(API_ERROR.EMAIL_TAKEN, 'That email already has an account.', 409);
     }
     const user: User = {
       _id: makeId('user'),
       name: input.name.trim(),
-      email: input.email.trim().toLowerCase(),
+      email,
       interests: [],
     };
     state.users.push(user);
     state.currentUserId = user._id;
+
+    // Coordinator access is granted, never requested. If the mosque gave us
+    // this email it holds the admin role from its first session; if not, the
+    // account is an ordinary member and no screen in the app can change that.
+    const mosqueId = coordinatorMosqueFor(email);
+    if (mosqueId) {
+      state.memberships.push({
+        _id: makeId('member'),
+        userId: user._id,
+        mosqueId,
+        role: 'admin',
+        createdAt: new Date().toISOString(),
+      });
+      // A coordinator follows the mosque they run, so its feed is theirs too.
+      state.follows.push({
+        _id: makeId('follow'),
+        userId: user._id,
+        mosqueId,
+        createdAt: new Date().toISOString(),
+      });
+    }
+
     return delay<AuthResult>({ token: `${TOKEN_PREFIX}${user._id}`, user: clone(user) });
   },
 

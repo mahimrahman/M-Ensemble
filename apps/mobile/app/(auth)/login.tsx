@@ -1,7 +1,7 @@
 /**
  * Sign in — the app's cover. The whole screen is the gradient, with the
- * wordmark set in Fraunces over it and the form on a white card that floats
- * up from the bottom. Two one-tap demo accounts for the two-phone walkthrough.
+ * M'Ensemble lockup over it and the form on a white card that floats up from
+ * the bottom. Two one-tap demo accounts for the two-phone walkthrough.
  */
 
 import { LinearGradient } from 'expo-linear-gradient';
@@ -11,7 +11,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } fr
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTopInset } from '@/hooks/useTopInset';
 import { ApiRequestError } from '@/api/client';
-import { Button, Field, LangSwitcher } from '@/components';
+import { Button, Field, LangSwitcher, Logo } from '@/components';
 import { useLang } from '@/i18n';
 import { warn } from '@/lib/haptics';
 import { useAuth } from '@/store/auth';
@@ -68,7 +68,7 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.brand}>
-            <Text style={[font(styles.wordmark), align]}>{t.welcome}</Text>
+            <Logo tone="onDark" height={92} label={t.welcome} />
             <Text style={[font(styles.tagline), align]}>{t.welcomeSub}</Text>
           </View>
 
@@ -134,9 +134,8 @@ const styles = StyleSheet.create({
   scroll: { flexGrow: 1, paddingHorizontal: screenPadding, justifyContent: 'center' },
   langRow: { justifyContent: 'center', marginBottom: spacing.xl },
 
-  brand: { gap: spacing.xs, marginBottom: spacing.xxl },
-  wordmark: { ...type.display, fontSize: 40, lineHeight: 46, color: colors.inkInverse },
-  tagline: { ...type.body, color: colors.inkOnDark },
+  brand: { alignItems: 'center', gap: spacing.md, marginBottom: spacing.xxl },
+  tagline: { ...type.body, color: colors.inkOnDark, textAlign: 'center' },
 
   card: {
     gap: spacing.lg,

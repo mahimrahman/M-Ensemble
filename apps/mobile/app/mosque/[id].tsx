@@ -1,12 +1,22 @@
 /**
- * Mosque profile — where it is, a follow button, today's prayer table (adhan
- * beside the iqamah this mosque actually prays at), and its upcoming posts.
+ * Mosque profile — where it is and how to reach it, a follow button, what the
+ * mosque says about itself (about, services, history), today's prayer table
+ * (adhan beside the iqamah this mosque actually prays at), and its posts.
  */
 
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { CalendarDays, Check, KeyRound, MapPin, Navigation } from 'lucide-react-native';
+import {
+  CalendarDays,
+  Check,
+  Globe,
+  KeyRound,
+  MapPin,
+  Navigation,
+  Phone,
+  Star,
+} from 'lucide-react-native';
 import { useState } from 'react';
-import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Alert } from '@/lib/alert';
 import { api } from '@/api/client';
 import {
@@ -102,6 +112,41 @@ export default function MosqueScreen() {
                 {m.address}
               </Text>
             </View>
+            {m.rating ? (
+              <View style={[styles.row, row]}>
+                <Star color={colors.inkMuted} size={icon.sm} strokeWidth={1.8} />
+                {/* Two Texts, not one interpolated string: the score keeps its
+                    own weight, and the pair reorders under RTL on its own. */}
+                <Text style={font(styles.ratingScore)}>{m.rating.score.toFixed(1)}</Text>
+                <Text style={[font(styles.rowText), align]}>
+                  {m.rating.count} {t.reviews}
+                </Text>
+              </View>
+            ) : null}
+            {m.phone ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${t.callMosque} ${m.phone}`}
+                onPress={() => void Linking.openURL(`tel:${m.phone}`).catch(() => {})}
+                style={[styles.row, row]}
+              >
+                <Phone color={colors.inkMuted} size={icon.sm} strokeWidth={1.8} />
+                <Text style={[font(styles.linkText), align]}>{m.phone}</Text>
+              </Pressable>
+            ) : null}
+            {m.website ? (
+              <Pressable
+                accessibilityRole="link"
+                accessibilityLabel={`${t.visitWebsite} ${m.website}`}
+                onPress={() => void Linking.openURL(`https://${m.website}`).catch(() => {})}
+                style={[styles.row, row]}
+              >
+                <Globe color={colors.inkMuted} size={icon.sm} strokeWidth={1.8} />
+                <Text style={[font(styles.linkText), align]} numberOfLines={1}>
+                  {m.website}
+                </Text>
+              </Pressable>
+            ) : null}
             <View style={[styles.row, row]}>
               <KeyRound color={colors.inkMuted} size={icon.sm} strokeWidth={1.8} />
               <Text style={[font(styles.rowText), align]}>
@@ -129,6 +174,42 @@ export default function MosqueScreen() {
               onPress={openDirections}
             />
           </View>
+
+          {/* The mosque in its own words. Every field is optional, so each
+              section disappears rather than rendering an empty heading. */}
+          {m.bio ? (
+            <>
+              <SectionTitle title={t.about} style={styles.sectionGap} />
+              <Card>
+                <Text style={[font(styles.prose), align]}>{m.bio}</Text>
+              </Card>
+            </>
+          ) : null}
+
+          {m.services?.length ? (
+            <>
+              <SectionTitle title={t.whatWeOffer} style={styles.sectionGap} />
+              <Card>
+                <View style={styles.services}>
+                  {m.services.map((service) => (
+                    <View key={service} style={[styles.serviceRow, row]}>
+                      <View style={styles.bullet} />
+                      <Text style={[font(styles.serviceText), align]}>{service}</Text>
+                    </View>
+                  ))}
+                </View>
+              </Card>
+            </>
+          ) : null}
+
+          {m.history ? (
+            <>
+              <SectionTitle title={t.ourHistory} style={styles.sectionGap} />
+              <Card>
+                <Text style={[font(styles.prose), align]}>{m.history}</Text>
+              </Card>
+            </>
+          ) : null}
 
           <SectionTitle title={t.todayPrayers} style={styles.sectionGap} />
           {today ? (
@@ -179,6 +260,22 @@ const styles = StyleSheet.create({
   body: { paddingHorizontal: screenPadding, paddingTop: spacing.lg, gap: 14 },
   row: { alignItems: 'center', gap: spacing.sm },
   rowText: { ...type.small, color: colors.ink, flex: 1 },
+  linkText: { ...type.small, color: colors.accent, flex: 1 },
+  ratingScore: { ...type.smallStrong, color: colors.ink },
+
+  /** Body copy the mosque wrote. Looser leading than a data row. */
+  prose: { ...type.body, color: colors.ink },
+  services: { gap: spacing.sm },
+  serviceRow: { alignItems: 'flex-start', gap: spacing.md },
+  bullet: {
+    width: 5,
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: colors.accent,
+    // Sits on the first line's optical centre rather than its top.
+    marginTop: 9,
+  },
+  serviceText: { ...type.small, color: colors.ink, flex: 1 },
   actions: { gap: spacing.sm },
   grow: { flex: 1 },
   sectionGap: { marginTop: spacing.md },

@@ -59,79 +59,190 @@ export const RAWDAH_ID: ID = 'mosque_rawdah';
 export const LAVAL_ID: ID = 'mosque_laval';
 export const OTTAWA_ID: ID = 'mosque_ottawa';
 export const TORONTO_ID: ID = 'mosque_toronto';
+export const SALAHOUDDINE_ID: ID = 'mosque_salahouddine';
+export const CIIC_ID: ID = 'mosque_ciic';
+export const VERDUN_ID: ID = 'mosque_verdun';
+export const FATIMA_ID: ID = 'mosque_fatima';
+
+/** North American calc with the Twilight Angle rule — right for this latitude. */
+const QC_PRAYER = {
+  calculationMethod: 'NorthAmerica',
+  madhab: 'shafi',
+  highLatitudeRule: 'TwilightAngle',
+} as const;
 
 export const mockMosques: Mosque[] = [
   {
     _id: KHADIJA_ID,
-    name: 'Mosquée Khadija',
-    address: '3456 rue Jean-Talon Est',
-    coordinates: { lat: 45.564, lng: -73.587 },
+    name: 'Khadijah Islamic Center',
+    address: '2385 Rue Centre, Montréal, QC H3K 1J6',
+    coordinates: { lat: 45.4799461, lng: -73.5671381 },
     joinCode: 'KHADIJA',
-    prayerConfig: {
-      calculationMethod: 'NorthAmerica',
-      madhab: 'hanafi',
-      highLatitudeRule: 'TwilightAngle',
-    },
+    prayerConfig: { ...QC_PRAYER, madhab: 'hanafi' },
+    phone: '+1 514-934-7684',
+    website: 'khadijahmtl.org',
+    rating: { score: 4.9, count: 245 },
+    bio: 'A Point-Saint-Charles masjid that has grown into the neighbourhood’s front door. Weekend Quran classes have run here for nine years, and the doors stay open through Ramadan for iftars advertised to Muslims and non-Muslims alike.',
+    history:
+      'The centre began as a weekend school in rented rooms and took the Rue Centre building to give the classes a permanent home. It is now licensed by the Government of Quebec to perform Islamic marriages, and runs a marriage and family counselling program alongside a full-time Islamic library.',
+    services: [
+      'Weekend Quran classes, ages 5–12',
+      'Weekly family halaqahs',
+      'Summer and winter camps',
+      'Marriage services and family counselling',
+      'New-immigrant settlement help',
+      'Islamic library and hall rental',
+    ],
   },
   {
     _id: MADINA_ID,
-    name: 'Mosquée Madina',
-    address: '5890 boul. Saint-Laurent',
-    coordinates: { lat: 45.524, lng: -73.61 },
+    name: 'Al-Madinah Center',
+    address: '1260 Rue Mackay, Montréal, QC H3G 2H4',
+    coordinates: { lat: 45.4953827, lng: -73.5765974 },
     joinCode: 'MADINA',
-    prayerConfig: {
-      calculationMethod: 'NorthAmerica',
-      madhab: 'shafi',
-      highLatitudeRule: 'TwilightAngle',
-    },
+    prayerConfig: QC_PRAYER,
+    phone: '514-360-3175',
+    website: 'almadinah-center.org',
+    rating: { score: 4.7, count: 230 },
+    bio: 'Downtown on Mackay, a few minutes from Concordia. The Quran Academy runs circles at every level with teachers holding Ijaza in all Qira’at, and the eight-week summer camp has become the thing families plan their July around.',
+    history:
+      'Founded as the Association Salam Paix de Montréal to serve students and families in the downtown core. What started as a prayer space now carries a library, a conference room and a multi-purpose hall, alongside a zakat desk, orphan sponsorship and a food bank.',
+    services: [
+      'Arabic School — language, recitation, manners',
+      'Quran Academy — Hifz and Tajweed, all levels',
+      'Eight-week summer camp with robotics',
+      'Zakat support and orphan sponsorship',
+      'Food bank and scholarships',
+      'Eid prayers at 6:00 and 7:00 AM',
+    ],
+  },
+  {
+    _id: SALAHOUDDINE_ID,
+    name: 'Salahouddine Mosque',
+    address: '6691 Av. du Parc, Montréal, QC H2V 4J1',
+    coordinates: { lat: 45.5285181, lng: -73.6158974 },
+    joinCode: 'SALAH',
+    prayerConfig: QC_PRAYER,
+    phone: '+1 514-274-6194',
+    website: 'aicp.ca',
+    rating: { score: 4.7, count: 179 },
+    bio: 'One of the busiest program calendars in the city. There is a lesson and a free dinner every Friday, zikr and madih every Saturday, soccer and free self-defence for the youth, and a Mawlid parade that goes out through the streets once a year.',
+    history:
+      'The Av. du Parc mosque of the Association of Islamic Charitable Projects. It built its reputation on the Friday lesson and the dinner that follows it — open to anyone who walks in, no registration, running for years without a break.',
+    services: [
+      'Friday lesson and free dinner, 7:00 PM',
+      'Zikr and madih, Saturdays 7:30 PM',
+      'Cultural School An-Nour, Saturdays',
+      'Men’s soccer training and adult team',
+      'Free self-defence classes',
+      'Scouts, summer camp and Hajj trips',
+    ],
+  },
+  {
+    _id: CIIC_ID,
+    name: 'Canadian Institute of Islamic Civilization',
+    address: '615 Rue Belmont, Montréal, QC H3B 2L8',
+    coordinates: { lat: 45.5020208, lng: -73.5656974 },
+    joinCode: 'CIIC',
+    prayerConfig: QC_PRAYER,
+    phone: '+1 514-508-2444',
+    website: 'theciic.com',
+    rating: { score: 4.9, count: 274 },
+    bio: 'MAC’s flagship downtown centre, six floors with a café on the ground level. Three jummah services run back to back to get everyone through, and the Sisters Youth Team and CIIC Juniors keep their own calendars.',
+    history:
+      'Opened by the Muslim Association of Canada to give downtown Montreal a centre rather than only a prayer hall. It hosts the Al-Huda weekend school, welcomes McGill and Concordia groups on interfaith visits, and programs heritage and arts alongside its social services.',
+    services: [
+      'Three jummah services — 11:45, 12:30, 1:15',
+      'MAC Al-Huda weekend Islamic school',
+      'Sisters’ potluck brunch, monthly',
+      'CIIC Juniors children’s workshops',
+      'Ramadan halaqa and taraweeh',
+      'Rawasi Café and interfaith visits',
+    ],
+  },
+  {
+    _id: VERDUN_ID,
+    name: 'Centre Islamique de Verdun',
+    address: '4538 Rue de Verdun, Montréal, QC H4G 1M3',
+    coordinates: { lat: 45.4590693, lng: -73.57144 },
+    joinCode: 'VERDUN',
+    prayerConfig: QC_PRAYER,
+    phone: '+1 514-508-9419',
+    website: 'civmac.ca',
+    rating: { score: 4.9, count: 311 },
+    bio: 'MAC’s mosque and community centre in Verdun, known across the city for the homemade Algerian iftar buffet it puts on every night of Ramadan, cooked by the community and free to whoever comes.',
+    history:
+      'Established to serve Verdun’s growing Muslim families, with a separate women’s musallah from the start. It anchors the MAC Al-Huda Verdun weekend school and runs family and youth programming through the year.',
+    services: [
+      'Free Algerian iftar buffet through Ramadan',
+      'Separate women’s musallah',
+      'Al-Huda Verdun weekend school',
+      'Family and youth programs',
+    ],
+  },
+  {
+    _id: FATIMA_ID,
+    name: 'Mosquée Fatima',
+    address: '2012 Rue Saint-Dominique, Montréal, QC H2X 1G9',
+    coordinates: { lat: 45.5118625, lng: -73.5669616 },
+    joinCode: 'FATIMA',
+    prayerConfig: QC_PRAYER,
+    phone: '514-285-1893',
+    rating: { score: 4.6, count: 87 },
+    bio: 'Two minutes’ walk from métro Saint-Laurent, open for every salat. Small, plain and reliable — the early fajr congregation is the reason a lot of people know it.',
+    history:
+      'A downtown mosque that has kept to what it does well: the five prayers on time, and regular halaqat and dars at the mosque. Free and donation-based, with no programming it cannot sustain.',
+    services: ['Open for every salat', 'Regular halaqat and dars', 'Early fajr congregation'],
   },
   {
     _id: RAWDAH_ID,
     name: 'Mosquée Al-Rawdah',
-    address: '1248 av. Décarie',
-    coordinates: { lat: 45.485, lng: -73.65 },
+    address: '12253 Blvd. Laurentien, Montréal, QC H4K 1N5',
+    coordinates: { lat: 45.5292443, lng: -73.7222824 },
     joinCode: 'RAWDAH',
-    prayerConfig: {
-      calculationMethod: 'NorthAmerica',
-      madhab: 'shafi',
-      highLatitudeRule: 'TwilightAngle',
-    },
+    prayerConfig: QC_PRAYER,
+    phone: '+1 514-227-5000',
+    website: 'alrawdah.ca',
+    rating: { score: 4.8, count: 596 },
+    bio: 'A MAC neighbourhood masjid in Ahuntsic-Cartierville, paired with the Centre Communautaire Laurentien next door. Daily prayers, jummah, and a separate sisters’ section.',
+    history:
+      'Built to serve the families spreading north along Boulevard Laurentien, and run alongside the community centre next door so the prayer hall and the programming have room apart from each other.',
+    services: [
+      'Daily prayers and jummah',
+      'Separate sisters’ section',
+      'Al-Huda weekend school',
+      'Ramadan iftars and taraweeh',
+    ],
   },
   {
     _id: LAVAL_ID,
-    name: 'Centre islamique de Laval',
-    address: '3325 boul. Dagenais O.',
+    name: 'Laval Islamic Cultural Centre',
+    address: '3325 boul. Dagenais O., Laval, QC',
     coordinates: { lat: 45.567, lng: -73.72 },
     joinCode: 'LAVAL',
-    prayerConfig: {
-      calculationMethod: 'NorthAmerica',
-      madhab: 'hanafi',
-      highLatitudeRule: 'TwilightAngle',
-    },
+    prayerConfig: { ...QC_PRAYER, madhab: 'hanafi' },
+    bio: 'The cultural centre serving Laval’s families north of the river, with weekend classes and a hall that carries the community’s weddings and funerals alike.',
+    services: ['Daily prayers and jummah', 'Weekend Islamic school', 'Community hall'],
   },
   {
     _id: OTTAWA_ID,
-    name: 'Ottawa Mosque',
-    address: '251 Northwestern Ave, Ottawa',
+    name: 'Ottawa Muslim Association',
+    address: '251 Northwestern Ave, Ottawa, ON',
     coordinates: { lat: 45.4038, lng: -75.7285 },
     joinCode: 'OTTAWA',
-    prayerConfig: {
-      calculationMethod: 'NorthAmerica',
-      madhab: 'shafi',
-      highLatitudeRule: 'TwilightAngle',
-    },
+    prayerConfig: QC_PRAYER,
+    bio: 'The oldest mosque in Ottawa and still the one most of the city’s families pass through, with a full-time school on the same grounds.',
+    services: ['Daily prayers and jummah', 'Full-time Islamic school', 'Community iftars'],
   },
   {
     _id: TORONTO_ID,
     name: 'Masjid Toronto',
-    address: '168 Dundas St W, Toronto',
+    address: '168 Dundas St W, Toronto, ON',
     coordinates: { lat: 43.6559, lng: -79.386 },
     joinCode: 'TORONTO',
-    prayerConfig: {
-      calculationMethod: 'NorthAmerica',
-      madhab: 'hanafi',
-      highLatitudeRule: 'TwilightAngle',
-    },
+    prayerConfig: { ...QC_PRAYER, madhab: 'hanafi' },
+    bio: 'A downtown masjid built around the working day — several jummah services so people can get back, and a steady stream of walk-ins between prayers.',
+    services: ['Multiple jummah services', 'Daily prayers downtown', 'Weekly halaqas'],
   },
 ];
 
@@ -140,9 +251,17 @@ export const mockMosques: Mosque[] = [
 /** The account the app is signed in as while we're on mocks. */
 export const CURRENT_USER_ID: ID = 'user_001';
 
-/** Khadija's coordinator — creator of the Khadija posts, owner of admin screens. */
+/**
+ * The coordinators. Each one creates their mosque's posts and owns its admin
+ * screens; every id here also appears in COORDINATOR_EMAILS below, because a
+ * coordinator is exactly someone whose email was pre-approved.
+ */
 export const KHADIJA_ADMIN_ID: ID = 'user_002';
 export const MADINA_ADMIN_ID: ID = 'user_003';
+export const SALAH_ADMIN_ID: ID = 'user_004';
+export const CIIC_ADMIN_ID: ID = 'user_008';
+export const VERDUN_ADMIN_ID: ID = 'user_012';
+export const FATIMA_ADMIN_ID: ID = 'user_016';
 
 export const mockUsers: User[] = [
   {
@@ -270,6 +389,46 @@ export const mockUsers: User[] = [
 /** Any mock account signs in with this. */
 export const MOCK_PASSWORD = 'mensemble';
 
+// ------------------------------------------------- coordinator allowlist ---
+
+/**
+ * Who may coordinate a mosque, and which one.
+ *
+ * A mosque's admin screens are not something you can sign up for. The mosque
+ * gives us an email, it goes on this list, and the account that email creates
+ * gets the admin role on that mosque the moment it is made — before then, the
+ * same email signing up is an ordinary member like anyone else.
+ *
+ * This is the whole gate. `signupAccount` reads it, the server's seed reads it,
+ * and nothing else grants an `admin` membership except a coordinator promoting
+ * someone from the People screen, which is itself an admin-only action.
+ *
+ * In production this table lives in the database and is edited by whoever
+ * administers the platform; the shape is the same.
+ */
+export interface CoordinatorGrant {
+  email: string;
+  mosqueId: ID;
+}
+
+export const COORDINATOR_EMAILS: CoordinatorGrant[] = [
+  { email: 'amina@example.com', mosqueId: KHADIJA_ID },
+  { email: 'bilal@example.com', mosqueId: MADINA_ID },
+  { email: 'fatima@example.com', mosqueId: SALAHOUDDINE_ID },
+  { email: 'sumaya@example.com', mosqueId: CIIC_ID },
+  { email: 'nadia@example.com', mosqueId: VERDUN_ID },
+  { email: 'mariam@example.com', mosqueId: FATIMA_ID },
+  // Pre-approved but not yet signed up — creating this account hands it the
+  // Al-Rawdah admin screens straight away. It's the one to demo the gate with.
+  { email: 'coordinator@alrawdah.ca', mosqueId: RAWDAH_ID },
+];
+
+/** The mosque a pre-approved email coordinates, or null for everyone else. */
+export function coordinatorMosqueFor(email: string): ID | null {
+  const match = email.trim().toLowerCase();
+  return COORDINATOR_EMAILS.find((c) => c.email === match)?.mosqueId ?? null;
+}
+
 // -------------------------------------------------- follows & memberships ---
 
 export const mockFollows: Follow[] = [
@@ -280,6 +439,17 @@ export const mockFollows: Follow[] = [
     createdAt: iso(-30, '09:00'),
   },
   { _id: 'follow_002', userId: CURRENT_USER_ID, mosqueId: MADINA_ID, createdAt: iso(-12, '19:40') },
+  // Four mosques is what an actual Montrealer's feed looks like — the one they
+  // pray at, the one near work, and the two that run the programs their kids go
+  // to. It's also what puts a poster in the feed rather than a wall of notices.
+  {
+    _id: 'follow_021',
+    userId: CURRENT_USER_ID,
+    mosqueId: SALAHOUDDINE_ID,
+    createdAt: iso(-70, '18:30'),
+  },
+  { _id: 'follow_022', userId: CURRENT_USER_ID, mosqueId: CIIC_ID, createdAt: iso(-25, '12:10') },
+  { _id: 'follow_023', userId: CURRENT_USER_ID, mosqueId: VERDUN_ID, createdAt: iso(-8, '20:05') },
 
   // Khadija's congregation. Spread over two years so "member since" varies.
   { _id: 'follow_003', userId: 'user_005', mosqueId: KHADIJA_ID, createdAt: iso(-620, '11:00') },
@@ -321,6 +491,34 @@ export const mockMemberships: Membership[] = [
   },
   {
     _id: 'member_003',
+    userId: SALAH_ADMIN_ID,
+    mosqueId: SALAHOUDDINE_ID,
+    role: 'admin',
+    createdAt: iso(-360, '09:00'),
+  },
+  {
+    _id: 'member_004',
+    userId: CIIC_ADMIN_ID,
+    mosqueId: CIIC_ID,
+    role: 'admin',
+    createdAt: iso(-340, '09:00'),
+  },
+  {
+    _id: 'member_005',
+    userId: VERDUN_ADMIN_ID,
+    mosqueId: VERDUN_ID,
+    role: 'admin',
+    createdAt: iso(-320, '09:00'),
+  },
+  {
+    _id: 'member_006',
+    userId: FATIMA_ADMIN_ID,
+    mosqueId: FATIMA_ID,
+    role: 'admin',
+    createdAt: iso(-300, '09:00'),
+  },
+  {
+    _id: 'member_007',
     userId: CURRENT_USER_ID,
     mosqueId: KHADIJA_ID,
     role: 'member',
@@ -330,42 +528,42 @@ export const mockMemberships: Membership[] = [
 
 // ------------------------------------------------------------------ posts ---
 
+/**
+ * The ten poster programs, plus the volunteer shifts and announcements that
+ * surround them.
+ *
+ * Every dated program here is a real listing from the Montreal mosque
+ * database, and the ones carrying a poster carry the poster designed for it —
+ * same mosque, same schedule, same price. The posterKey field names artwork
+ * bundled with the app; POSTER_ART in components/Poster.tsx maps it to a file.
+ */
 export const mockPosts: Post[] = [
-  {
-    _id: 'post_ottawa_1',
-    mosqueId: OTTAWA_ID,
-    type: 'event',
-    title: 'Community iftar — open to all',
-    description:
-      'A shared iftar in the main hall. Bring a dish if you can; everyone is welcome regardless.',
-    category: 'Community meals',
-    startAt: nextWeekday(5, '19:30'),
-    endAt: nextWeekday(5, '21:30'),
-    location: 'Main hall',
-    capacity: 200,
-    slotsFilled: 84,
-    imageUrl:
-      'https://images.unsplash.com/photo-1547119879-c379a507fd2a?w=800&h=420&fit=crop&auto=format',
-    createdBy: MADINA_ADMIN_ID,
-    createdAt: iso(-2, '10:00'),
-  },
-  {
-    _id: 'post_toronto_1',
-    mosqueId: TORONTO_ID,
-    type: 'volunteer',
-    title: 'Friday parking and welcome team',
-    description: 'Four people to direct parking and greet at the door for jummah.',
-    category: 'Volunteering',
-    startAt: nextWeekday(5, '12:30'),
-    endAt: nextWeekday(5, '14:30'),
-    location: 'Front entrance',
-    slotsNeeded: 4,
-    slotsFilled: 1,
-    createdBy: MADINA_ADMIN_ID,
-    createdAt: iso(-1, '09:00'),
-  },
+  // ── Khadijah ──────────────────────────────────────────────────────────────
   {
     _id: 'post_001',
+    mosqueId: KHADIJA_ID,
+    type: 'class',
+    title: 'Weekend Quran classes',
+    description:
+      'Registration is open for the weekend Quran school, running its ninth year. Saturdays and Sundays, 10:30 to 1:30, ages 5 to 12 — reading and memorization, September through June. $75 a month, with $20 off for each additional sibling.',
+    category: 'Education',
+    startAt: nextWeekday(6, '10:30'),
+    endAt: nextWeekday(6, '13:30'),
+    location: '2385 Rue Centre',
+    capacity: 60,
+    slotsFilled: 41,
+    posterKey: 'quran-classes',
+    sessions: [
+      { startAt: nextWeekday(6, '10:30', 0), endAt: nextWeekday(6, '13:30', 0) },
+      { startAt: nextWeekday(0, '10:30', 0), endAt: nextWeekday(0, '13:30', 0) },
+      { startAt: nextWeekday(6, '10:30', 1), endAt: nextWeekday(6, '13:30', 1) },
+      { startAt: nextWeekday(0, '10:30', 1), endAt: nextWeekday(0, '13:30', 1) },
+    ],
+    createdBy: KHADIJA_ADMIN_ID,
+    createdAt: iso(-9, '19:20'),
+  },
+  {
+    _id: 'post_002',
     mosqueId: KHADIJA_ID,
     type: 'volunteer',
     title: 'Iftar setup — Saturday community dinner',
@@ -381,23 +579,23 @@ export const mockPosts: Post[] = [
     createdAt: iso(-1, '20:15'),
   },
   {
-    _id: 'post_002',
+    _id: 'post_003',
     mosqueId: KHADIJA_ID,
     type: 'volunteer',
     title: 'Jummah parking marshals',
     description:
-      'Two entrances, two exits. Keep the lane by the fire door clear and help the elders find a spot near the ramp. Vests provided.',
+      'Two jummah services back to back at 1:00 and 2:00, so the lot turns over completely in between. Keep the lane by the fire door clear and help the elders find a spot near the ramp. Vests provided.',
     category: 'Facilities',
-    startAt: nextWeekday(5, '12:00'),
-    endAt: nextWeekday(5, '14:00'),
-    location: 'Saint-Urbain parking lot',
+    startAt: nextWeekday(5, '12:30'),
+    endAt: nextWeekday(5, '14:30'),
+    location: 'Rue Centre parking lot',
     slotsNeeded: 6,
     slotsFilled: 2,
     createdBy: KHADIJA_ADMIN_ID,
     createdAt: iso(-3, '11:05'),
   },
   {
-    _id: 'post_003',
+    _id: 'post_004',
     mosqueId: KHADIJA_ID,
     type: 'volunteer',
     title: 'Kitchen cleanup crew',
@@ -413,105 +611,77 @@ export const mockPosts: Post[] = [
     createdAt: iso(-3, '11:20'),
   },
   {
-    _id: 'post_004',
-    mosqueId: KHADIJA_ID,
-    type: 'event',
-    title: 'Neighbourhood BBQ',
-    description:
-      'Open to the whole street, not just the community. Halal grill, a bouncy castle for the kids, and a table for questions about the mosque.',
-    category: 'Outreach',
-    startAt: nextWeekday(0, '13:00'),
-    endAt: nextWeekday(0, '17:00'),
-    location: 'Courtyard',
-    capacity: 150,
-    slotsFilled: 68,
-    imageUrl:
-      'https://images.unsplash.com/photo-1573939705721-9fa2cdcda901?w=800&h=420&fit=crop&auto=format',
-    createdBy: KHADIJA_ADMIN_ID,
-    createdAt: iso(-8, '18:00'),
-  },
-  {
     _id: 'post_005',
     mosqueId: KHADIJA_ID,
-    type: 'class',
-    title: 'Tajweed for beginners',
+    type: 'event',
+    title: 'Weekly family halaqah',
     description:
-      'Six weekly sessions with Ustadh Anas, starting from the makharij. No prior study needed. Bring your own mushaf.',
+      'The whole family in one room — a short talk, then tea and questions. Children welcome; there is no separate program, that is the point of it.',
     category: 'Education',
-    startAt: nextWeekday(2, '19:00'),
-    endAt: nextWeekday(2, '20:30'),
-    location: 'Classroom B',
-    capacity: 25,
-    slotsFilled: 17,
-    sessions: [
-      { startAt: nextWeekday(2, '19:00', 0), endAt: nextWeekday(2, '20:30', 0) },
-      { startAt: nextWeekday(2, '19:00', 1), endAt: nextWeekday(2, '20:30', 1) },
-      { startAt: nextWeekday(2, '19:00', 2), endAt: nextWeekday(2, '20:30', 2) },
-      { startAt: nextWeekday(2, '19:00', 3), endAt: nextWeekday(2, '20:30', 3) },
-      { startAt: nextWeekday(2, '19:00', 4), endAt: nextWeekday(2, '20:30', 4) },
-      { startAt: nextWeekday(2, '19:00', 5), endAt: nextWeekday(2, '20:30', 5) },
-    ],
-    imageUrl:
-      'https://images.unsplash.com/photo-1712249239061-7d4f49ec9d44?w=800&h=420&fit=crop&auto=format',
+    startAt: nextWeekday(3, '19:00'),
+    endAt: nextWeekday(3, '20:30'),
+    location: 'Islamic library',
+    capacity: 50,
+    slotsFilled: 28,
     createdBy: KHADIJA_ADMIN_ID,
-    createdAt: iso(-14, '09:30'),
+    createdAt: iso(-6, '17:40'),
   },
   {
     _id: 'post_006',
     mosqueId: KHADIJA_ID,
     type: 'announcement',
-    title: 'Roof repair fund — 62% of the way there',
+    title: 'Marriage and family counselling — now booking',
     description:
-      'Jazakum Allahu khayran. We have $41,300 of the $67,000 needed. The contractor holds our September slot until the end of the month.',
-    category: 'Fundraising',
+      'The counselling program has openings again. Sessions are confidential and free to the community. The centre is licensed by the Government of Quebec for Islamic marriages; call 514-934-7684 to arrange either.',
+    category: 'Outreach',
     startAt: iso(-2, '10:00'),
-    endAt: iso(28, '23:59'),
-    location: 'Centre Islamique Khadija',
+    endAt: iso(30, '23:59'),
+    location: 'Khadijah Islamic Center',
     slotsFilled: 0,
     createdBy: KHADIJA_ADMIN_ID,
     createdAt: iso(-2, '10:00'),
   },
+
+  // ── Al-Madinah ────────────────────────────────────────────────────────────
   {
     _id: 'post_007',
-    mosqueId: KHADIJA_ID,
+    mosqueId: MADINA_ID,
     type: 'class',
-    title: 'Sunday youth halaqa',
+    title: 'Arabic School 2025–26 — registration open',
     description:
-      'Ages 12–17. Seerah this term, then a games hour in the gym. Parents are welcome to sit in on the first session.',
-    category: 'Youth',
-    startAt: nextWeekday(0, '11:00'),
-    endAt: nextWeekday(0, '12:30'),
-    location: 'Classroom A',
-    capacity: 30,
-    slotsFilled: 22,
+      'Three streams on Sundays: Arabic Language, Quranic Recitation, and Islamic Manners. Pay in full for $700, or $650 on the early bird with registration waived. There is also a register-now-pay-later option: $50 deposit, then $250 in September, $200 in January, $200 in March. Optional lunch is $150 for the year.',
+    category: 'Education',
+    startAt: nextWeekday(0, '09:30'),
+    endAt: nextWeekday(0, '13:00'),
+    location: '1260 Rue Mackay',
+    capacity: 120,
+    slotsFilled: 87,
+    posterKey: 'arabic-school',
     sessions: [
-      { startAt: nextWeekday(0, '11:00', 0), endAt: nextWeekday(0, '12:30', 0) },
-      { startAt: nextWeekday(0, '11:00', 1), endAt: nextWeekday(0, '12:30', 1) },
-      { startAt: nextWeekday(0, '11:00', 2), endAt: nextWeekday(0, '12:30', 2) },
-      { startAt: nextWeekday(0, '11:00', 3), endAt: nextWeekday(0, '12:30', 3) },
+      { startAt: nextWeekday(0, '09:30', 0), endAt: nextWeekday(0, '13:00', 0) },
+      { startAt: nextWeekday(0, '09:30', 1), endAt: nextWeekday(0, '13:00', 1) },
+      { startAt: nextWeekday(0, '09:30', 2), endAt: nextWeekday(0, '13:00', 2) },
+      { startAt: nextWeekday(0, '09:30', 3), endAt: nextWeekday(0, '13:00', 3) },
     ],
-    imageUrl:
-      'https://images.unsplash.com/photo-1547119879-c379a507fd2a?w=800&h=420&fit=crop&auto=format',
-    createdBy: KHADIJA_ADMIN_ID,
-    createdAt: iso(-10, '14:45'),
+    createdBy: MADINA_ADMIN_ID,
+    createdAt: iso(-16, '09:30'),
   },
   {
     _id: 'post_008',
-    mosqueId: KHADIJA_ID,
+    mosqueId: MADINA_ID,
     type: 'event',
-    title: 'Sisters brunch and halaqa',
+    title: 'Summer camp 2026 — eight weeks, deposits open',
     description:
-      'Potluck brunch followed by a short talk on the fiqh of everyday transactions. Childcare available in the back room.',
-    category: 'Sisters',
-    startAt: nextWeekday(6, '10:00'),
-    endAt: nextWeekday(6, '12:30'),
-    location: 'Sisters hall, second floor',
-    capacity: 60,
-    slotsFilled: 34,
-    imageUrl:
-      'https://images.unsplash.com/photo-1600096194534-95cf5ece04cf?w=800&h=420&fit=crop&auto=format',
-    createdBy: KHADIJA_ADMIN_ID,
-    createdAt: iso(-6, '21:10'),
+      'Robotics and coding for the kids, a pool visit every week, skating at the arena down the street, a group restaurant meal on Fridays and something outdoors every day. $150 a week, or $1,100 for all eight weeks — which saves you $100. Hold a place with a $50 deposit. Early drop-off and late pick-up are $25 each.',
+    category: 'Youth',
+    startAt: iso(12, '09:00'),
+    endAt: iso(12, '16:00'),
+    location: 'Al-Madinah Center',
+    capacity: 80,
+    slotsFilled: 52,
+    posterKey: 'summer-camp',
+    createdBy: MADINA_ADMIN_ID,
+    createdAt: iso(-11, '12:15'),
   },
   {
     _id: 'post_009',
@@ -519,11 +689,11 @@ export const mockPosts: Post[] = [
     type: 'volunteer',
     title: 'Food bank packing night',
     description:
-      'We pack 200 boxes for the Décarie food bank. Standing work for two hours; bring gloves if you have them.',
+      'We pack 200 boxes for the food bank. Standing work for two hours; bring gloves if you have them.',
     category: 'Outreach',
     startAt: iso(2, '18:30'),
     endAt: iso(2, '20:30'),
-    location: 'Madina community room',
+    location: 'Multi-purpose hall',
     slotsNeeded: 8,
     slotsFilled: 5,
     createdBy: MADINA_ADMIN_ID,
@@ -532,6 +702,312 @@ export const mockPosts: Post[] = [
   {
     _id: 'post_010',
     mosqueId: MADINA_ID,
+    type: 'class',
+    title: 'Quran Academy — Hifz and Tajweed circles',
+    description:
+      'Weekly circles at every level and every age, with teachers holding Ijaza in all Qira’at. The schedule is flexible — tell us when you can come and we will place you in a circle. Free.',
+    category: 'Education',
+    startAt: nextWeekday(1, '18:00'),
+    endAt: nextWeekday(1, '19:30'),
+    location: 'Conference room',
+    capacity: 40,
+    slotsFilled: 31,
+    createdBy: MADINA_ADMIN_ID,
+    createdAt: iso(-13, '10:40'),
+  },
+  {
+    _id: 'post_011',
+    mosqueId: MADINA_ID,
+    type: 'announcement',
+    title: 'Zakat-ul-Fitr set at $15 per person',
+    description:
+      'Zakat-ul-Fitr is $15 per head this year, and fidya or kaffara the same. The zakat desk is open after dhuhr and maghrib, or give through the website. Orphan sponsorship and the seniors’ support fund take donations at the same desk.',
+    category: 'Fundraising',
+    startAt: iso(-1, '12:00'),
+    endAt: iso(21, '23:59'),
+    location: 'Al-Madinah Center',
+    slotsFilled: 0,
+    createdBy: MADINA_ADMIN_ID,
+    createdAt: iso(-1, '12:00'),
+  },
+
+  // ── Salahouddine ──────────────────────────────────────────────────────────
+  {
+    _id: 'post_012',
+    mosqueId: SALAHOUDDINE_ID,
+    type: 'event',
+    title: 'Friday lesson, then dinner',
+    description:
+      'The lesson on belief and religious themes at 7:00, as it is every Friday, and dinner served straight after. Free, no registration, everyone welcome — just come.',
+    category: 'Community meals',
+    startAt: nextWeekday(5, '19:00'),
+    endAt: nextWeekday(5, '21:00'),
+    location: '6691 Av. du Parc',
+    capacity: 150,
+    slotsFilled: 96,
+    posterKey: 'friday-dinner',
+    createdBy: SALAH_ADMIN_ID,
+    createdAt: iso(-5, '14:00'),
+  },
+  {
+    _id: 'post_013',
+    mosqueId: SALAHOUDDINE_ID,
+    type: 'event',
+    title: 'Zikr and madih, Saturday evening',
+    description:
+      'Zikr and madih followed by an Islamic lesson, every Saturday at 7:30. The madih groups for men, women and children all sing; come to listen or come to join in.',
+    category: 'Community',
+    startAt: nextWeekday(6, '19:30'),
+    endAt: nextWeekday(6, '21:00'),
+    location: 'Main hall',
+    capacity: 120,
+    slotsFilled: 63,
+    posterKey: 'zikr-madih',
+    createdBy: SALAH_ADMIN_ID,
+    createdAt: iso(-8, '20:30'),
+  },
+  {
+    _id: 'post_014',
+    mosqueId: SALAHOUDDINE_ID,
+    type: 'class',
+    title: 'Free self-defence classes',
+    description:
+      'Free self-defence, taught by instructors from the community. Open to youth and adults. Times shift with the season — call 514-274-6194 for the current schedule before your first session.',
+    category: 'Youth',
+    startAt: nextWeekday(2, '18:30'),
+    endAt: nextWeekday(2, '20:00'),
+    location: 'Gymnasium',
+    capacity: 30,
+    slotsFilled: 19,
+    posterKey: 'self-defence',
+    createdBy: SALAH_ADMIN_ID,
+    createdAt: iso(-7, '16:45'),
+  },
+  {
+    _id: 'post_015',
+    mosqueId: SALAHOUDDINE_ID,
+    type: 'event',
+    title: 'Soccer training — men’s team and open sessions',
+    description:
+      'Training for the adult team plus open sessions for anyone who wants a game. Boots and shin pads; we have the rest. Call the mosque for this week’s pitch and time.',
+    category: 'Youth',
+    startAt: nextWeekday(0, '15:00'),
+    endAt: nextWeekday(0, '17:00'),
+    location: 'Parc Jarry pitch',
+    capacity: 40,
+    slotsFilled: 24,
+    posterKey: 'soccer',
+    createdBy: SALAH_ADMIN_ID,
+    createdAt: iso(-4, '11:10'),
+  },
+  {
+    _id: 'post_016',
+    mosqueId: SALAHOUDDINE_ID,
+    type: 'volunteer',
+    title: 'Friday dinner serving line',
+    description:
+      'Six people on the line and two on the washing-up. The dinner runs every week and it only works because this shift fills — take one Friday a month if you can.',
+    category: 'Community meals',
+    startAt: nextWeekday(5, '18:30'),
+    endAt: nextWeekday(5, '21:30'),
+    location: 'Kitchen and main hall',
+    slotsNeeded: 8,
+    slotsFilled: 3,
+    createdBy: SALAH_ADMIN_ID,
+    createdAt: iso(-2, '09:50'),
+  },
+  {
+    _id: 'post_017',
+    mosqueId: SALAHOUDDINE_ID,
+    type: 'announcement',
+    title: 'Mawlid parade — route and stewards',
+    description:
+      'The annual parade goes out through the streets next month. We need stewards along the route and drivers for the sound van. The Ma’had institute semester starts the same week — sign-up sheets are on the noticeboard for both.',
+    category: 'Community',
+    startAt: iso(-3, '18:00'),
+    endAt: iso(25, '23:59'),
+    location: 'Salahouddine Mosque',
+    slotsFilled: 0,
+    createdBy: SALAH_ADMIN_ID,
+    createdAt: iso(-3, '18:00'),
+  },
+
+  // ── CIIC ──────────────────────────────────────────────────────────────────
+  {
+    _id: 'post_018',
+    mosqueId: CIIC_ID,
+    type: 'event',
+    title: 'Sisters’ potluck brunch',
+    description:
+      'The Sisters Youth Team’s monthly brunch, 10:30 to 1:00 on the sixth floor. Bring a dish to share. There is a short halaqa in the middle and the rest is company.',
+    category: 'Sisters',
+    startAt: nextWeekday(6, '10:30'),
+    endAt: nextWeekday(6, '13:00'),
+    location: '615 Rue Belmont, 6th floor',
+    capacity: 70,
+    slotsFilled: 44,
+    posterKey: 'sisters-brunch',
+    createdBy: CIIC_ADMIN_ID,
+    createdAt: iso(-6, '21:10'),
+  },
+  {
+    _id: 'post_019',
+    mosqueId: CIIC_ID,
+    type: 'class',
+    title: 'MAC Al-Huda weekend Islamic school',
+    description:
+      'The weekend school runs here through the academic year. Registration is $60 and non-refundable; tuition can be paid in full or by two post-dated cheques. A rejected cheque carries a $50 penalty.',
+    category: 'Education',
+    startAt: nextWeekday(6, '09:00'),
+    endAt: nextWeekday(6, '12:30'),
+    location: 'CIIC classrooms',
+    capacity: 150,
+    slotsFilled: 118,
+    createdBy: CIIC_ADMIN_ID,
+    createdAt: iso(-20, '08:30'),
+  },
+  {
+    _id: 'post_020',
+    mosqueId: CIIC_ID,
+    type: 'event',
+    title: 'CIIC Juniors — Ramadan fiqh workshop',
+    description:
+      'A workshop for the children on the fiqh of fasting, run by the Juniors Team. Ages 7 to 12, two hours with a break, and they go home with a workbook.',
+    category: 'Youth',
+    startAt: iso(6, '14:00'),
+    endAt: iso(6, '16:00'),
+    location: '3rd floor, CIIC',
+    capacity: 45,
+    slotsFilled: 29,
+    createdBy: CIIC_ADMIN_ID,
+    createdAt: iso(-9, '13:20'),
+  },
+  {
+    _id: 'post_021',
+    mosqueId: CIIC_ID,
+    type: 'volunteer',
+    title: 'Jummah welcome team — three services',
+    description:
+      'Three jummah services at 11:45, 12:30 and 1:15 means three turnovers in ninety minutes. Four people on the doors and the shoe racks keeps it moving.',
+    category: 'Volunteering',
+    startAt: nextWeekday(5, '11:15'),
+    endAt: nextWeekday(5, '14:00'),
+    location: 'Ground floor entrance',
+    slotsNeeded: 4,
+    slotsFilled: 2,
+    createdBy: CIIC_ADMIN_ID,
+    createdAt: iso(-2, '15:00'),
+  },
+  {
+    _id: 'post_022',
+    mosqueId: CIIC_ID,
+    type: 'announcement',
+    title: 'Interfaith visit — McGill and Concordia groups',
+    description:
+      'We are hosting the My Neighbour’s Faith groups from both universities this month. If you can help show people round after jummah, tell the office — it is an hour and it does more good than most things we run.',
+    category: 'Outreach',
+    startAt: iso(-1, '11:00'),
+    endAt: iso(18, '23:59'),
+    location: 'CIIC',
+    slotsFilled: 0,
+    createdBy: CIIC_ADMIN_ID,
+    createdAt: iso(-1, '11:00'),
+  },
+
+  // ── Verdun ────────────────────────────────────────────────────────────────
+  {
+    _id: 'post_023',
+    mosqueId: VERDUN_ID,
+    type: 'event',
+    title: 'Ramadan iftar buffet — every night',
+    description:
+      'The homemade Algerian buffet runs every night of Ramadan, cooked by the community and free to everyone. Bring your family, bring a neighbour. Taraweeh follows.',
+    category: 'Community meals',
+    startAt: nextWeekday(4, '19:30'),
+    endAt: nextWeekday(4, '21:30'),
+    location: '4538 Rue de Verdun',
+    capacity: 250,
+    slotsFilled: 163,
+    posterKey: 'ramadan-iftar',
+    createdBy: VERDUN_ADMIN_ID,
+    createdAt: iso(-5, '10:00'),
+  },
+  {
+    _id: 'post_024',
+    mosqueId: VERDUN_ID,
+    type: 'volunteer',
+    title: 'Iftar kitchen — cooking and serving',
+    description:
+      'The buffet is cooked here, not catered. Ten people across the evening: prep from four, serving from seven, clearing after. Take one night or take a week.',
+    category: 'Community meals',
+    startAt: nextWeekday(4, '16:00'),
+    endAt: nextWeekday(4, '22:00'),
+    location: 'Kitchen',
+    slotsNeeded: 10,
+    slotsFilled: 6,
+    createdBy: VERDUN_ADMIN_ID,
+    createdAt: iso(-5, '10:30'),
+  },
+  {
+    _id: 'post_025',
+    mosqueId: VERDUN_ID,
+    type: 'class',
+    title: 'Al-Huda Verdun weekend school',
+    description:
+      'Registration is $60, non-refundable. Tuition in full online or by two post-dated cheques to the Muslim Association of Canada. Fees are non-refundable after 30 September. Questions: (438) 308-9735.',
+    category: 'Education',
+    startAt: nextWeekday(0, '09:30'),
+    endAt: nextWeekday(0, '12:30'),
+    location: 'Centre Islamique de Verdun',
+    capacity: 90,
+    slotsFilled: 74,
+    createdBy: VERDUN_ADMIN_ID,
+    createdAt: iso(-18, '11:00'),
+  },
+
+  // ── Fatima ────────────────────────────────────────────────────────────────
+  {
+    _id: 'post_026',
+    mosqueId: FATIMA_ID,
+    type: 'class',
+    title: 'Halaqat and dars',
+    description:
+      'Regular study circles at the mosque, two minutes from métro Saint-Laurent. Free and donation-based, as everything here is. Come to one and see.',
+    category: 'Education',
+    startAt: nextWeekday(1, '19:30'),
+    endAt: nextWeekday(1, '20:45'),
+    location: '2012 Rue Saint-Dominique',
+    capacity: 35,
+    slotsFilled: 21,
+    posterKey: 'halaqat-dars',
+    sessions: [
+      { startAt: nextWeekday(1, '19:30', 0), endAt: nextWeekday(1, '20:45', 0) },
+      { startAt: nextWeekday(1, '19:30', 1), endAt: nextWeekday(1, '20:45', 1) },
+      { startAt: nextWeekday(1, '19:30', 2), endAt: nextWeekday(1, '20:45', 2) },
+    ],
+    createdBy: FATIMA_ADMIN_ID,
+    createdAt: iso(-10, '18:00'),
+  },
+  {
+    _id: 'post_027',
+    mosqueId: FATIMA_ID,
+    type: 'announcement',
+    title: 'Fajr congregation — the early one',
+    description:
+      'People come across town for the fajr jama’ah here. Doors open twenty minutes before; there is tea afterwards and nobody is in a hurry.',
+    category: 'Prayer times',
+    startAt: iso(-4, '05:00'),
+    endAt: iso(26, '23:59'),
+    location: 'Mosquée Fatima',
+    slotsFilled: 0,
+    createdBy: FATIMA_ADMIN_ID,
+    createdAt: iso(-4, '05:00'),
+  },
+
+  // ── Al-Rawdah, Ottawa, Toronto ────────────────────────────────────────────
+  {
+    _id: 'post_028',
+    mosqueId: RAWDAH_ID,
     type: 'volunteer',
     title: 'New carpet installation — lifting help',
     description:
@@ -546,37 +1022,35 @@ export const mockPosts: Post[] = [
     createdAt: iso(-1, '08:05'),
   },
   {
-    _id: 'post_011',
-    mosqueId: MADINA_ID,
-    type: 'announcement',
-    title: 'Isha iqamah moves to 21:15 from Monday',
+    _id: 'post_029',
+    mosqueId: OTTAWA_ID,
+    type: 'event',
+    title: 'Community iftar — open to all',
     description:
-      'With the nights drawing in we are moving Isha iqamah fifteen minutes earlier. The prayer table in the app updates on its own.',
-    category: 'Prayer times',
-    startAt: iso(-1, '19:00'),
-    endAt: iso(14, '23:59'),
-    location: 'Masjid Madina',
-    slotsFilled: 0,
+      'A shared iftar in the main hall. Bring a dish if you can; everyone is welcome regardless.',
+    category: 'Community meals',
+    startAt: nextWeekday(5, '19:30'),
+    endAt: nextWeekday(5, '21:30'),
+    location: 'Main hall',
+    capacity: 200,
+    slotsFilled: 84,
     createdBy: MADINA_ADMIN_ID,
-    createdAt: iso(-1, '19:00'),
+    createdAt: iso(-2, '10:00'),
   },
   {
-    _id: 'post_012',
-    mosqueId: MADINA_ID,
-    type: 'event',
-    title: 'Open house — meet your neighbours',
-    description:
-      'Guided tour of the masjid, tea, and a short talk. Bring a neighbour who has never been inside a mosque.',
-    category: 'Outreach',
-    startAt: iso(9, '14:00'),
-    endAt: iso(9, '18:00'),
-    location: 'Masjid Madina, main entrance',
-    capacity: 200,
-    slotsFilled: 41,
-    imageUrl:
-      'https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=800&h=420&fit=crop&auto=format',
+    _id: 'post_030',
+    mosqueId: TORONTO_ID,
+    type: 'volunteer',
+    title: 'Friday parking and welcome team',
+    description: 'Four people to direct parking and greet at the door for jummah.',
+    category: 'Volunteering',
+    startAt: nextWeekday(5, '12:30'),
+    endAt: nextWeekday(5, '14:30'),
+    location: 'Front entrance',
+    slotsNeeded: 4,
+    slotsFilled: 1,
     createdBy: MADINA_ADMIN_ID,
-    createdAt: iso(-7, '12:00'),
+    createdAt: iso(-1, '09:00'),
   },
 ];
 

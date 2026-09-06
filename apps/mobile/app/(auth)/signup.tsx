@@ -1,4 +1,4 @@
-/** Create an account. Same gradient cover as sign-in, one card, three fields. */
+/** Create an account. Same gradient cover as sign-in, the mark above one card. */
 
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -7,7 +7,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } fr
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTopInset } from '@/hooks/useTopInset';
 import { ApiRequestError } from '@/api/client';
-import { Button, Field } from '@/components';
+import { Button, Field, Logo } from '@/components';
 import { useLang } from '@/i18n';
 import { warn } from '@/lib/haptics';
 import { useAuth } from '@/store/auth';
@@ -65,6 +65,7 @@ export default function SignupScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.brand}>
+            <Logo variant="mark" tone="onDark" height={72} label={t.welcome} />
             <Text style={[font(styles.title), align]}>{t.signUpTitle}</Text>
             <Text style={[font(styles.tagline), align]}>{t.followAMosqueSub}</Text>
           </View>
@@ -116,9 +117,16 @@ export default function SignupScreen() {
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   scroll: { flexGrow: 1, paddingHorizontal: screenPadding, justifyContent: 'center' },
-  brand: { gap: spacing.xs, marginBottom: spacing.xxl },
-  title: { ...type.display, fontSize: 32, lineHeight: 38, color: colors.inkInverse },
-  tagline: { ...type.body, color: colors.inkOnDark },
+  brand: { alignItems: 'center', gap: spacing.xs, marginBottom: spacing.xxl },
+  title: {
+    ...type.display,
+    fontSize: 32,
+    lineHeight: 38,
+    color: colors.inkInverse,
+    textAlign: 'center',
+    marginTop: spacing.md,
+  },
+  tagline: { ...type.body, color: colors.inkOnDark, textAlign: 'center' },
   card: {
     gap: spacing.lg,
     padding: spacing.xl,

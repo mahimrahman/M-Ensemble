@@ -196,6 +196,14 @@ const fr = {
   noMosques: 'Aucune mosquée',
   couldNotUpdate: 'Mise à jour impossible',
 
+  // ── mosque profile ──
+  about: 'À propos',
+  ourHistory: 'Notre histoire',
+  whatWeOffer: 'Ce que nous offrons',
+  visitWebsite: 'Site web',
+  callMosque: 'Appeler',
+  reviews: 'avis',
+
   // ── auth ──
   welcome: 'M’Ensemble',
   welcomeSub: 'au service de votre mosquée',
@@ -494,6 +502,13 @@ const en: Strings = {
   noMosques: 'No mosques yet',
   couldNotUpdate: 'Could not update',
 
+  about: 'About',
+  ourHistory: 'Our history',
+  whatWeOffer: 'What we offer',
+  visitWebsite: 'Website',
+  callMosque: 'Call',
+  reviews: 'reviews',
+
   welcome: 'M’Ensemble',
   welcomeSub: 'in service of your mosque',
   email: 'Email',
@@ -781,6 +796,13 @@ const ar: Strings = {
   of: 'من',
   noMosques: 'لا توجد مساجد',
   couldNotUpdate: 'تعذّر التحديث',
+
+  about: 'نبذة',
+  ourHistory: 'تاريخنا',
+  whatWeOffer: 'ما نقدّمه',
+  visitWebsite: 'الموقع',
+  callMosque: 'اتصال',
+  reviews: 'تقييم',
 
   welcome: 'مع بعض',
   welcomeSub: 'في خدمة مسجدك',
