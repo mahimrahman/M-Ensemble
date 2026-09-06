@@ -68,17 +68,13 @@ export function PrayerCard({ mosque }: PrayerCardProps) {
       accessibilityRole="summary"
     >
       {/*
-        Header row: the prayer on the left, the bell and the countdown stacked
-        against the trailing edge on the right.
+        Header row, one line across: the prayer, then the countdown, then the
+        bell hard against the trailing edge. All three hang from the top, so
+        "NEXT PRAYER", the countdown's "IN" and the bell share a line.
 
-        The bell used to have a line of its own above this row, where it read
-        as a floating afterthought. Here it starts level with "NEXT PRAYER" and
-        shares an edge with the countdown, so the right side is one column
-        rather than two loose objects — and the masthead is no taller for it,
-        since the bell and the countdown were already stacked either way.
-
-        Not a third column beside the countdown: on a 320pt screen that leaves
-        the prayer name about 80pt and "Maghrib" starts truncating.
+        Three things in a row is tight, and the countdown is the widest of them
+        at 22px DM Mono, so it gives up some of its own padding below rather
+        than squeezing the prayer name. `headText` takes whatever is left.
       */}
       <View style={[styles.head, row]}>
         <View style={styles.headText}>
@@ -96,17 +92,23 @@ export function PrayerCard({ mosque }: PrayerCardProps) {
           ) : null}
         </View>
 
-        <View style={[styles.headRight, isAr && styles.headRightAr]}>
-          <NotificationBell />
-
-          <View style={styles.countdown}>
-            <Text style={font(styles.countdownLabel)}>{t.in.toUpperCase()}</Text>
-            <Text style={styles.countdownValue}>{clock(next.at.getTime() - now.getTime())}</Text>
-          </View>
+        <View style={styles.countdown}>
+          <Text style={font(styles.countdownLabel)}>{t.in.toUpperCase()}</Text>
+          <Text style={styles.countdownValue}>{clock(next.at.getTime() - now.getTime())}</Text>
         </View>
+
+        <NotificationBell />
       </View>
 
-      {/* The day as a strip. The next prayer is lifted, past ones fade out. */}
+      {/*
+        The day as a strip. The next prayer is lifted, past ones fade out.
+
+        The five pips share the width evenly and the strip spans the panel's
+        full content box, so its edges line up with the header above it and the
+        month link below. They used to be content-sized, which made "Maghrib"
+        visibly wider than "Asr" and left the row ending short of everything
+        else. Still a ScrollView: below about 360pt they stop fitting.
+      */}
       {today ? (
         <ScrollView
           horizontal
@@ -199,20 +201,17 @@ const styles = StyleSheet.create({
   head: {
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    gap: spacing.md,
+    gap: spacing.sm,
     marginBottom: 18,
   },
   // The loading placeholder has only the bell in this row, and `space-between`
   // would park it at the leading edge. `flex-end` on a row that mirrors in
   // Arabic puts it against the trailing edge in both directions.
   headLoading: { justifyContent: 'flex-end' },
-  // The bell is narrower than the countdown, so which edge of this column it
-  // hugs is a real choice: it has to be the screen's, not the one facing the
-  // prayer name. The parent row flips for Arabic but `alignItems` is a
-  // cross-axis property and doesn't come with it, hence the explicit pair.
-  headRight: { alignItems: 'flex-end', gap: spacing.sm },
-  headRightAr: { alignItems: 'flex-start' },
-  headText: { flex: 1, gap: 2 },
+  // `minWidth: 0` so this can actually give way. A flex child's floor is its
+  // content, and without it a long prayer name pushes the countdown off the
+  // trailing edge instead of wrapping inside its own column.
+  headText: { flex: 1, minWidth: 0, gap: 2 },
   eyebrow: { ...type.tiny, color: 'rgba(255,255,255,0.5)', letterSpacing: 1.1 },
   prayerName: { ...type.display, color: colors.inkInverse, lineHeight: 30 },
   times: { ...type.mono, ...numeric, color: 'rgba(255,255,255,0.55)', marginTop: 3 },
@@ -223,9 +222,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.12)',
     borderRadius: radius.xl,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    // Tighter than the rest of the app's padding scale, and deliberately so:
+    // sharing the line with the bell costs about 46pt, and the badge can spare
+    // it far more cheaply than the prayer name can.
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
     alignItems: 'center',
+    // The countdown is a fixed eight characters — it never needs to shrink,
+    // and letting it would make the digits reflow every second.
+    flexShrink: 0,
   },
   countdownLabel: {
     ...type.overline,
@@ -235,7 +240,11 @@ const styles = StyleSheet.create({
   },
   countdownValue: { ...type.monoLarge, ...numeric, color: colors.inkInverse },
 
-  strip: { gap: 4, paddingRight: screenPadding },
+  // `flexGrow` so the row fills the panel when the pips have room to spare;
+  // the ScrollView still scrolls when they don't. It carried a `paddingRight`
+  // on top of the panel's own padding, which ended the strip 20pt shy of the
+  // trailing edge — and on the wrong side in Arabic.
+  strip: { gap: spacing.xs, flexGrow: 1 },
   monthRow: { marginTop: spacing.md, justifyContent: 'flex-end' },
   monthLink: {
     flexDirection: 'row',
@@ -253,6 +262,10 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.7 },
   stripAr: { flexDirection: 'row-reverse' },
   pip: {
+    // Equal shares of whatever the strip has, but never below what a time
+    // needs — that floor is what makes the row scroll on a narrow phone
+    // rather than clipping "05:12".
+    flex: 1,
     minWidth: 58,
     paddingHorizontal: 10,
     paddingVertical: spacing.sm,
