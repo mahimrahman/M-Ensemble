@@ -21,6 +21,12 @@ interface MosqueMapProps {
    * panning away — a flag that is already `true` fires nothing the second time.
    */
   focusMe?: number;
+  /**
+   * Open centred on `me` rather than fitting every pin. Unlike `focusMe` this
+   * is baked into the page, so it survives the reload that changing the mosque
+   * list causes — see the note in `buildMapHtml`.
+   */
+  centreOnMe?: boolean;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -42,6 +48,7 @@ export function MosqueMap({
   me = null,
   meLabel,
   focusMe = 0,
+  centreOnMe = false,
   style,
 }: MosqueMapProps) {
   const webRef = useRef<WebView>(null);
@@ -49,8 +56,8 @@ export function MosqueMap({
   // Rebuilding the HTML would reload the map, so the selected pin is styled by
   // an injected call instead of a re-render.
   const html = useMemo(
-    () => buildMapHtml(mosques, interactive, me, meLabel),
-    [mosques, interactive, me, meLabel],
+    () => buildMapHtml(mosques, interactive, me, meLabel, centreOnMe),
+    [mosques, interactive, me, meLabel, centreOnMe],
   );
   const selectScript = `window.__select && window.__select(${JSON.stringify(selectedId)}); true;`;
 

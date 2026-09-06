@@ -198,6 +198,7 @@ export default function MosquesScreen() {
           me={coords}
           meLabel={t.youAreHere}
           focusMe={focusMe}
+          centreOnMe={nearMe && !!coords}
           height={220}
           style={styles.map}
         />

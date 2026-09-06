@@ -2,24 +2,29 @@
  * Profile — the prototype's settings page: an avatar over the gradient, then
  * white cards for interests, notifications and language.
  *
- * The push panel and the mosque list are ours, not the prototype's, and take
- * the same card shape so they don't read as bolted on.
+ * The mosque list is ours, not the prototype's, and takes the same card shape
+ * so it doesn't read as bolted on.
+ *
+ * **There is no push panel.** One used to sit here showing the registration
+ * status, the raw Expo token and a test button. Delivery is not working, and a
+ * card that says REGISTERED next to notifications that never arrive is worse
+ * than no card at all — it makes the user think the failure is theirs. The
+ * toggles below still matter: they gate what lands in the bell inbox, which
+ * does work. Registration itself still happens silently in `usePushSetup` at
+ * the root, so the moment delivery works there is nothing to re-wire.
  */
 
-import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
-import { BellRing, ChevronRight, Copy, LogOut } from 'lucide-react-native';
+import { ChevronRight, LogOut } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { Alert } from '@/lib/alert';
 import { api } from '@/api/client';
 import { Button, Card, Chip, GradientHeader, LangSwitcher, Loading, Screen } from '@/components';
 import { useApi } from '@/hooks/useApi';
-import { usePushToken } from '@/hooks/usePushToken';
 import { useLang } from '@/i18n';
 import { INTEREST_OPTIONS, interestLabel } from '@/lib/interests';
 import { tap } from '@/lib/haptics';
-import { sendLocalTestNotification } from '@/push/notifications';
 import { useAuth } from '@/store/auth';
 import { colors, icon as iconSize, radius, rule, screenPadding, spacing, type } from '@/theme';
 import type { NotificationPrefs } from '@/types';
@@ -28,8 +33,6 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { user, adminMosqueIds, setUser, signOut } = useAuth();
   const { t, lang, align, row, font } = useLang();
-  const { registration, busy, register } = usePushToken(!!user);
-  const [copied, setCopied] = useState(false);
   const [savingInterest, setSavingInterest] = useState<string | null>(null);
 
   const followed = useApi(() => api.getFollowedMosques(), []);
@@ -76,22 +79,6 @@ export default function ProfileScreen() {
       Alert.alert(t.couldNotSave, t.tryAgain);
     }
   }
-
-  async function copyToken() {
-    if (registration?.status !== 'granted') return;
-    await Clipboard.setStringAsync(registration.token);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
-
-  const pushStatus =
-    registration?.status === 'granted'
-      ? t.pushRegistered.toUpperCase()
-      : registration?.status === 'denied'
-        ? t.pushDenied.toUpperCase()
-        : registration
-          ? t.pushUnavailable.toUpperCase()
-          : '…';
 
   function confirmSignOut() {
     Alert.alert(t.signOut, '', [
@@ -227,53 +214,6 @@ export default function ProfileScreen() {
           )}
         </Card>
 
-        {/* ── Push ── */}
-        <Card>
-          <View style={[styles.cardHead, row]}>
-            <Text style={[font(styles.cardTitle), align]}>{t.pushDelivery}</Text>
-            <Text style={styles.status}>{pushStatus}</Text>
-          </View>
-          {registration?.status === 'granted' ? (
-            <>
-              <Text style={styles.token} selectable numberOfLines={2}>
-                {registration.token}
-              </Text>
-              <View style={[styles.pushActions, row]}>
-                <Button
-                  label={copied ? t.copied : t.copyToken}
-                  icon={Copy}
-                  variant="secondary"
-                  size="sm"
-                  fullWidth={false}
-                  onPress={() => void copyToken()}
-                />
-                <Button
-                  label={t.testNotification}
-                  icon={BellRing}
-                  variant="secondary"
-                  size="sm"
-                  fullWidth={false}
-                  onPress={() => void sendLocalTestNotification()}
-                />
-              </View>
-            </>
-          ) : (
-            <>
-              <Text style={[font(styles.hint), align]}>
-                {registration && 'reason' in registration ? registration.reason : t.loading}
-              </Text>
-              <Button
-                label={t.retry}
-                variant="secondary"
-                size="sm"
-                fullWidth={false}
-                loading={busy}
-                onPress={() => void register()}
-              />
-            </>
-          )}
-        </Card>
-
         {/* ── Sign out ── */}
         {/* Same label and same confirmation as the coordinator shell. */}
         <Button label={t.signOut} icon={LogOut} variant="danger" onPress={confirmSignOut} />
@@ -306,7 +246,6 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxxl,
     gap: 14,
   },
-  cardHead: { alignItems: 'center', justifyContent: 'space-between' },
   cardTitle: { ...type.captionStrong, color: colors.ink },
   hint: { ...type.caption, color: colors.inkMuted },
   chips: { flexWrap: 'wrap', gap: spacing.sm },
@@ -326,8 +265,5 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.6 },
   link: { ...type.small, color: colors.accent },
 
-  status: { ...type.overline, fontSize: 9, color: colors.inkFaint },
-  token: { ...type.monoSmall, fontSize: 11, color: colors.inkMuted },
-  pushActions: { gap: spacing.sm, flexWrap: 'wrap' },
   footnote: { ...type.caption, fontSize: 11, color: colors.inkFaint, textAlign: 'center' },
 });

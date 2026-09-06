@@ -14,6 +14,8 @@ interface MosqueMapProps {
   meLabel?: string;
   /** Bump to re-centre on `me` — see the native file for why it's a counter. */
   focusMe?: number;
+  /** Open centred on `me` instead of fitting every pin. See the native file. */
+  centreOnMe?: boolean;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -31,12 +33,13 @@ export function MosqueMap({
   me = null,
   meLabel,
   focusMe = 0,
+  centreOnMe = false,
   style,
 }: MosqueMapProps) {
   const frameRef = useRef<HTMLIFrameElement>(null);
   const html = useMemo(
-    () => buildMapHtml(mosques, interactive, me, meLabel),
-    [mosques, interactive, me, meLabel],
+    () => buildMapHtml(mosques, interactive, me, meLabel, centreOnMe),
+    [mosques, interactive, me, meLabel, centreOnMe],
   );
 
   // Pin taps arrive from the iframe as window messages.

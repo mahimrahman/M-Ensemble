@@ -84,15 +84,3 @@ export async function registerForPushNotifications(): Promise<PushRegistration> 
     return { status: 'error', reason };
   }
 }
-
-/** Fires a local notification so you can prove delivery without a server. */
-export async function sendLocalTestNotification(): Promise<void> {
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: 'Centre Islamique Khadija',
-      body: 'Iftar setup — 3 slots left for Saturday.',
-      data: { postId: 'post_001' },
-    },
-    trigger: null,
-  });
-}

@@ -209,10 +209,6 @@ const fr = {
   language: 'Langue',
   followedMosques: 'Mosquées suivies',
   notFollowingAny: 'Aucune pour l’instant - en trouver une',
-  pushDelivery: 'Notifications push',
-  copyToken: 'Copier le jeton',
-  copied: 'Copié',
-  testNotification: 'Test de notification',
   member: 'Membre',
   couldNotSave: 'Enregistrement impossible',
 
@@ -435,9 +431,6 @@ const fr = {
     'Les jours précédents gardent leurs horaires actuels ; à partir de cette date, les horaires ci-dessus s’appliquent.',
 
   // ── status and empty states ──
-  pushRegistered: 'Enregistré',
-  pushDenied: 'Refusé',
-  pushUnavailable: 'Indisponible',
   notSignedUpYet: 'Pas encore inscrit',
   checkInAll: 'Tout pointer',
   todayShort: 'Auj.',
@@ -659,10 +652,6 @@ const en: Strings = {
   language: 'Language',
   followedMosques: 'Mosques you follow',
   notFollowingAny: 'Not following any yet - find one',
-  pushDelivery: 'Push delivery',
-  copyToken: 'Copy token',
-  copied: 'Copied',
-  testNotification: 'Test notification',
   member: 'Member',
   couldNotSave: 'Could not save',
 
@@ -873,9 +862,6 @@ const en: Strings = {
     'Earlier days keep their current times; from this date on, the times above apply.',
 
   // ── status and empty states ──
-  pushRegistered: 'Registered',
-  pushDenied: 'Denied',
-  pushUnavailable: 'Unavailable',
   notSignedUpYet: 'Not signed up yet',
   checkInAll: 'Check in all',
   todayShort: 'Today',
@@ -1091,10 +1077,6 @@ const ar: Strings = {
   language: 'اللغة',
   followedMosques: 'المساجد التي تتابعها',
   notFollowingAny: 'لا شيء بعد - ابحث عن مسجد',
-  pushDelivery: 'الإشعارات',
-  copyToken: 'نسخ الرمز',
-  copied: 'تم النسخ',
-  testNotification: 'إشعار تجريبي',
   member: 'عضو',
   couldNotSave: 'تعذّر الحفظ',
 
@@ -1305,9 +1287,6 @@ const ar: Strings = {
     'تحتفظ الأيام السابقة بأوقاتها الحالية، ومن هذا التاريخ تُطبَّق الأوقات أعلاه.',
 
   // ── status and empty states ──
-  pushRegistered: 'مسجّل',
-  pushDenied: 'مرفوض',
-  pushUnavailable: 'غير متاح',
   notSignedUpYet: 'غير مسجّل بعد',
   checkInAll: 'تسجيل الكل',
   todayShort: 'اليوم',

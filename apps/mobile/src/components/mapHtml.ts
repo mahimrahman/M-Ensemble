@@ -21,14 +21,33 @@ export function buildMapHtml(
   me: Coordinates | null = null,
   /** Label for that dot, in the reader's language. */
   meLabel = 'You are here',
+  /**
+   * Open centred on the reader instead of fitting every pin.
+   *
+   * This is a build-time input rather than something injected afterwards
+   * because "near me" re-sorts the list, which changes this HTML, which
+   * reloads the page — and a reloaded page ran its own fit-to-all-pins before
+   * any injected re-centre could land. The reader tapped locate and watched
+   * the map settle on the whole city. Baking the intent into the page it
+   * rebuilds means the first frame is already right.
+   */
+  centreOnMe = false,
 ): string {
-  const points = mosques.map((m) => ({
-    id: m._id,
-    name: m.name,
-    address: m.address,
-    lat: m.coordinates.lat,
-    lng: m.coordinates.lng,
-  }));
+  /*
+   * Sorted by id, deliberately. `points` is serialised into the page, so any
+   * change to this array is a different HTML string and therefore a full map
+   * reload. The mosque list gets re-sorted by distance whenever "near me" is
+   * on, and re-ordering the same pins is not a reason to reload a map.
+   */
+  const points = [...mosques]
+    .sort((a, b) => (a._id < b._id ? -1 : a._id > b._id ? 1 : 0))
+    .map((m) => ({
+      id: m._id,
+      name: m.name,
+      address: m.address,
+      lat: m.coordinates.lat,
+      lng: m.coordinates.lng,
+    }));
 
   return `<!DOCTYPE html>
 <html>
@@ -94,6 +113,10 @@ export function buildMapHtml(
   var interactive = ${interactive};
   var me = ${JSON.stringify(me)};
   var meLabel = ${JSON.stringify(meLabel)};
+  var centreOnMe = ${JSON.stringify(centreOnMe)};
+
+  /** How close "show me where I am" gets. Street level, not district level. */
+  var ME_ZOOM = 16;
 
   var map = L.map('map', {
     zoomControl: false,
@@ -150,7 +173,11 @@ export function buildMapHtml(
     meMarker.bindPopup('<b>' + meLabel + '</b>');
   }
 
-  if (points.length === 1) {
+  if (centreOnMe && me) {
+    // The reader asked where they are. That answer is not "here is the city".
+    map.setView([me.lat, me.lng], ME_ZOOM);
+    if (meMarker) meMarker.openPopup();
+  } else if (points.length === 1) {
     map.setView([points[0].lat, points[0].lng], 15);
   } else if (points.length > 1) {
     map.fitBounds(points.map(function (p) { return [p.lat, p.lng]; }), { padding: [36, 36] });
@@ -172,7 +199,7 @@ export function buildMapHtml(
   /** Centre on the reader. No-op without a fix, so the button can be honest. */
   window.__focusMe = function () {
     if (!me) return;
-    map.flyTo([me.lat, me.lng], 13, { duration: 0.9 });
+    map.flyTo([me.lat, me.lng], ME_ZOOM, { duration: 0.9 });
     if (meMarker) meMarker.openPopup();
   };
 

@@ -68,6 +68,8 @@ Sign in to the app as **yusuf@example.com / mensemble**; the demo coordinator is
 **khadija.mosque@gmail.com / 123456**. The console is
 **admin@mensemble.app / mensemble-admin** unless you changed `SUPERADMIN_*` in
 `apps/server/.env`.
+Every demo account — members, the six mosque coordinators and the console —
+is in [CREDENTIALS.md](CREDENTIALS.md), with which mosque each one runs.
 
 On a physical device, set `EXPO_PUBLIC_API_URL` to your machine's LAN IP —
 `localhost` points at the phone itself.

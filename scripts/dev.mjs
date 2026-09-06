@@ -5,10 +5,14 @@
  *   Dashboard  http://localhost:5173       the super-admin console
  *   Mobile     http://localhost:8081       Expo, with the QR code for a phone
  *
- * Three processes, one prefixed stream of output, one Ctrl-C to stop them all.
- * Written by hand rather than pulling in `concurrently` because the useful part
- * is not the parallelism — it is the ordering, the banner and the shutdown, none
- * of which a generic runner does the way this repo needs.
+ * Three processes and one Ctrl-C to stop them all. Written by hand rather than
+ * pulling in `concurrently` because the useful part is not the parallelism — it
+ * is the ordering, the banner and the shutdown, none of which a generic runner
+ * does the way this repo needs.
+ *
+ * The API and the dashboard are piped so their lines can be prefixed. Expo is
+ * not: it is started last and given the terminal directly, because its QR code
+ * and its `r` / `j` keys only appear when its stdout is a real TTY.
  *
  * **The API starts first and the others wait for it.** Expo and the dashboard
  * both make requests within a second of booting, and against a server that is
@@ -71,20 +75,31 @@ function prefixed(name, stream) {
 
 const children = [];
 
-function start(name, command, extraArgs, env = {}) {
+/**
+ * `interactive` hands the child our real terminal instead of a pipe.
+ *
+ * Only Expo needs it, and it needs it for a reason worth the inconsistency:
+ * the QR code and the `r` / `j` key menu are drawn only when its stdout is a
+ * TTY. Behind a pipe it decides it is running unattended and prints neither,
+ * so the one command that is supposed to get a phone connected is the one
+ * command that cannot. Prefixing that stream is not worth losing the QR.
+ */
+function start(name, command, extraArgs, env = {}, interactive = false) {
   const child = spawn(command, extraArgs, {
     cwd: ROOT,
     env: { ...process.env, ...env, FORCE_COLOR: tty ? '1' : '0' },
-    // Piped rather than inherited so every line can be prefixed. The cost is
-    // that Expo's interactive key commands (`r`, `j`) do not reach it — press
-    // them in a separate `npm run dev:mobile` when you need them.
-    stdio: ['ignore', 'pipe', 'pipe'],
+    // Piped rather than inherited so every line can be prefixed — except for
+    // an interactive child, which is given the terminal directly.
+    stdio: interactive ? 'inherit' : ['ignore', 'pipe', 'pipe'],
     // npm on Windows is a .cmd, which cannot be exec'd without a shell.
     shell: process.platform === 'win32',
   });
 
-  prefixed(name, child.stdout);
-  prefixed(name, child.stderr);
+  // Nothing to prefix when the streams went straight to the terminal.
+  if (!interactive) {
+    prefixed(name, child.stdout);
+    prefixed(name, child.stderr);
+  }
 
   child.on('exit', (code, signal) => {
     if (shuttingDown) return;
@@ -175,19 +190,10 @@ if (!ready && !shuttingDown) {
 
 if (withAdmin) start('admin', 'npm', ['run', 'dev', '--workspace', '@m-ensemble/admin']);
 
-if (withMobile) {
-  start(
-    'mobile',
-    'npm',
-    ['run', 'start', '--workspace', '@m-ensemble/mobile', '--', ...(tunnel ? ['--tunnel'] : [])],
-    // The app ships on mocks by default; running it from here means running it
-    // against the API that just started, which is the whole point of one
-    // command. An explicit value in apps/mobile/.env still wins — this only
-    // fills in a default for the processes started here.
-    { EXPO_PUBLIC_USE_MOCKS: process.env.EXPO_PUBLIC_USE_MOCKS ?? 'false' },
-  );
-}
-
+// The banner goes up *before* Expo starts. Expo owns the terminal from the
+// moment it boots and ends on its QR code, so anything printed after this
+// point is either scrolled away by Metro or lands underneath the thing the
+// banner is telling you to scan.
 if (!shuttingDown) {
   const banner = [
     '',
@@ -212,4 +218,20 @@ if (!shuttingDown) {
     await sleep(2500);
     if (!shuttingDown) open(ADMIN_URL);
   }
+}
+
+// Expo goes last and gets the terminal itself, so its QR code is the last
+// thing on screen and `r` / `j` still reach it.
+if (withMobile && !shuttingDown) {
+  start(
+    'mobile',
+    'npm',
+    ['run', 'start', '--workspace', '@m-ensemble/mobile', '--', ...(tunnel ? ['--tunnel'] : [])],
+    // The app ships on mocks by default; running it from here means running it
+    // against the API that just started, which is the whole point of one
+    // command. An explicit value in apps/mobile/.env still wins — this only
+    // fills in a default for the processes started here.
+    { EXPO_PUBLIC_USE_MOCKS: process.env.EXPO_PUBLIC_USE_MOCKS ?? 'false' },
+    true,
+  );
 }

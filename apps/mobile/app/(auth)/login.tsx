@@ -35,9 +35,11 @@ export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const top = useTopInset();
   const { t, align, row, font } = useLang();
-  // Prefilled with the coordinator, which is the account handed out.
-  const [email, setEmail] = useState(DEMO_COORDINATOR_EMAIL);
-  const [password, setPassword] = useState(DEMO_COORDINATOR_PASSWORD);
+  // Empty on purpose. The demo accounts are one tap away at the bottom of the
+  // screen, so prefilling the fields only meant clearing them to type a real
+  // address — and left a password on screen for anyone signing in as themself.
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
