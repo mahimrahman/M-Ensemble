@@ -6,6 +6,7 @@ import { MosqueModel } from '../models/Mosque.js';
 import { PostModel } from '../models/Post.js';
 import { SignupModel } from '../models/Signup.js';
 import { currentUser } from '../middleware/requireAuth.js';
+import { buildFeed, markAllRead } from '../services/notification.service.js';
 import { buildReliability } from '../services/reliability.service.js';
 import { postMinutes } from '../utils/time.js';
 import { ok, okNull } from '../utils/respond.js';
@@ -101,6 +102,21 @@ export async function putNotificationPrefs(req: Request, res: Response): Promise
   user.notificationPrefs = req.body as NotificationPrefs;
   await user.save();
   ok(res, user.notificationPrefs);
+}
+
+/**
+ * The bell's whole payload: the list and the badge in one round trip.
+ *
+ * Polled every time the home screen gains focus, so it stays two indexed
+ * queries and nothing more.
+ */
+export async function getMyNotifications(req: Request, res: Response): Promise<void> {
+  ok(res, await buildFeed(currentUser(req)._id));
+}
+
+/** Opening the inbox is the read receipt. Idempotent — re-reading is a no-op. */
+export async function postNotificationsRead(req: Request, res: Response): Promise<void> {
+  ok(res, await markAllRead(currentUser(req)._id));
 }
 
 /** Called on every launch, so it has to be idempotent. */

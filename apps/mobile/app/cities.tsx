@@ -13,6 +13,7 @@ import {
   BackBar,
   Badge,
   Button,
+  ErrorState,
   GradientHeader,
   Loading,
   Screen,
@@ -83,6 +84,18 @@ export default function CitiesScreen() {
         <SectionTitle title={t.cities} />
 
         {mosques.loading ? <Loading variant="inline" label={t.loading} /> : null}
+
+        {/*
+          The cities themselves are a constant, so the list still renders — but
+          every count would read "0 mosques" with nothing to say why.
+        */}
+        {!mosques.data && mosques.error ? (
+          <ErrorState
+            variant="inline"
+            message={mosques.error}
+            onRetry={() => void mosques.reload()}
+          />
+        ) : null}
 
         {CITIES.map((city) => {
           const isHere = detectedCity?.id === city.id;

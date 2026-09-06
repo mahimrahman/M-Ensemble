@@ -12,6 +12,7 @@ import {
   Button,
   Card,
   EmptyState,
+  ErrorState,
   GradientHeader,
   Loading,
   Screen,
@@ -65,6 +66,17 @@ export default function ManagePostsScreen() {
       <Screen padded={false} edges={['left', 'right']}>
         <GradientHeader back={<BackBar />} title={t.managePosts} />
         <Loading label={t.loading} />
+      </Screen>
+    );
+  }
+
+  if (!posts.data && posts.error) {
+    return (
+      <Screen padded={false} edges={['left', 'right']}>
+        <GradientHeader back={<BackBar />} title={t.managePosts} />
+        <View style={styles.guard}>
+          <ErrorState message={posts.error} onRetry={() => void posts.reload()} />
+        </View>
       </Screen>
     );
   }
@@ -193,6 +205,7 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg,
     paddingBottom: spacing.xxxl,
   },
+  guard: { paddingHorizontal: screenPadding, paddingTop: spacing.xl },
   sectionGap: { marginTop: spacing.xl },
   card: { marginBottom: spacing.md },
   badges: { gap: spacing.sm, flexWrap: 'wrap' },

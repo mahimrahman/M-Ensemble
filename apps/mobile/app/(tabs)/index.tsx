@@ -13,9 +13,11 @@ import { api } from '@/api/client';
 import {
   Chip,
   EmptyState,
+  ErrorState,
   LocationPill,
   LocationPrompt,
   Loading,
+  NotificationBell,
   PostCard,
   hasPosterArt,
   PrayerCard,
@@ -39,7 +41,7 @@ const TEXT_BETWEEN_POSTERS = 2;
 
 export default function FeedScreen() {
   const router = useRouter();
-  const { t, lang } = useLang();
+  const { t, lang, row } = useLang();
   const { browsingCity } = useLocation();
   const [filter, setFilter] = useState<Filter>('all');
   const [refreshing, setRefreshing] = useState(false);
@@ -134,13 +136,26 @@ export default function FeedScreen() {
     );
   }
 
+  // Without the mosque list there is no city, no filter and no feed, so this
+  // failure takes the whole screen rather than showing an empty one.
+  if (!allMosques.data && allMosques.error) {
+    return (
+      <Screen>
+        <ErrorState message={allMosques.error} onRetry={() => void allMosques.reload()} />
+      </Screen>
+    );
+  }
+
   if (allMosques.data && cityMosques.length === 0) {
     return (
       <Screen padded={false} edges={['top', 'left', 'right']}>
         <LocationPrompt />
         <View style={styles.padded}>
-          <View style={styles.pillRow}>
+          {/* No mosques here means no masthead, so the bell — which normally
+              lives on it — comes down to the pill row rather than vanishing. */}
+          <View style={[styles.pillRow, row]}>
             <LocationPill />
+            <NotificationBell tone="onLight" />
           </View>
           <EmptyState
             title={fill(t.noMosquesInCity, { city: cityName(browsingCity, lang) })}
@@ -199,9 +214,12 @@ export default function FeedScreen() {
           <View style={styles.padded}>
             {feed.loading ? (
               <Loading variant="inline" label={t.loading} />
+            ) : feed.error ? (
+              // "Nothing coming up" would be a lie when the request failed.
+              <ErrorState message={feed.error} onRetry={() => void feed.reload()} />
             ) : (
               <EmptyState
-                title={filter === 'all' ? t.nothingComingUp : t.nothingComingUp}
+                title={t.nothingComingUp}
                 message={filter === 'all' ? t.nothingComingUpBody : t.tryAnotherFilter}
               />
             )}
@@ -231,5 +249,5 @@ const styles = StyleSheet.create({
   },
   chips: { gap: spacing.sm, paddingHorizontal: 14, alignItems: 'center' },
   chipDivider: { width: rule, height: 20, backgroundColor: colors.rule, marginHorizontal: 2 },
-  pillRow: { paddingTop: spacing.lg },
+  pillRow: { paddingTop: spacing.lg, alignItems: 'center', justifyContent: 'space-between' },
 });

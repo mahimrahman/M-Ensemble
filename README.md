@@ -61,14 +61,15 @@ the map falls back to a list (`MosqueMap.web.tsx`).
 
 ## Scripts
 
-| Command              | What it does                       |
-| -------------------- | ---------------------------------- |
-| `npm run dev:server` | Express API in watch mode          |
-| `npm run dev:mobile` | Expo dev server                    |
-| `npm run build`      | Compile shared + server to `dist/` |
-| `npm run typecheck`  | Type-check every workspace         |
-| `npm test`           | Run workspace tests                |
-| `npm run format`     | Prettier across the repo           |
+| Command                           | What it does                           |
+| --------------------------------- | -------------------------------------- |
+| `npm run dev:server`              | Express API in watch mode              |
+| `npm run dev:mobile`              | Expo dev server                        |
+| `npm run build`                   | Compile shared + server to `dist/`     |
+| `npm run typecheck`               | Type-check every workspace             |
+| `npm test`                        | Run workspace tests                    |
+| `npm run format`                  | Prettier across the repo               |
+| `node scripts/build-app-icons.js` | Launcher, splash and web-install icons |
 
 ## API
 
@@ -100,6 +101,31 @@ Two things about the server workspace worth knowing before you edit it:
 Every response uses the `ApiResponse<T>` envelope from `@m-ensemble/shared`:
 `{ ok: true, data }` or `{ ok: false, error: { code, message } }`. Error codes
 are the uppercase constants in `API_ERROR`.
+
+## Icons and splash screens
+
+`splash_screens/` is the export from a PWA asset generator: the 512px app icon
+and one startup image per device. `node scripts/build-app-icons.js` turns it
+into everything the app actually ships —
+
+- `apps/mobile/assets/` — the 1024² launcher icon (RGB, no alpha, which is what
+  the App Store requires), the Android adaptive-icon foreground, the splash
+  image, a white notification silhouette for the Android tray, and a favicon.
+- `apps/mobile/public/` — `manifest.json`, the touch icon, the PWA icons and
+  the 22 portrait startup images. The landscape ones are dropped: the app is
+  portrait-only, so they could never match.
+- `apps/mobile/src/web/appleStartupImages.ts` — generated, and read by
+  [app/+html.tsx](apps/mobile/app/+html.tsx). Do not edit it by hand.
+
+One ground colour throughout — the cream the icon was drawn on, `#F7F7EF`, for
+the launcher, the Android background and the splash. Keeping the artwork on the
+colour it was flattened onto is what avoids a pale fringe on every
+anti-aliased edge.
+
+**The web build is statically rendered** (`web.output` is `static` in
+app.json), which is what lets `+html.tsx` set the install tags at all. Every
+route exports its own HTML file; the dynamic ones (`/post/[id]`) still need the
+host to fall back to `index.html`, so set that up wherever it is deployed.
 
 ## License
 

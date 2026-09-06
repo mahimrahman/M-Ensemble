@@ -7,7 +7,7 @@
  */
 
 import { useRouter } from 'expo-router';
-import { Clock, ListPlus, LogOut, MapPin, Pencil, QrCode } from 'lucide-react-native';
+import { Clock, ListPlus, LogOut, MapPin, Pencil, QrCode, Send } from 'lucide-react-native';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Alert } from '@/lib/alert';
 import { Button, Card, GradientHeader, LangSwitcher, Screen, SectionTitle } from '@/components';
@@ -102,6 +102,15 @@ export default function AdminSettingsScreen() {
           onPress={() => {
             tap();
             router.push({ pathname: '/manage/posts', params: { mosqueId: mosqueId ?? '' } });
+          }}
+        />
+        <Button
+          label={t.sendNotification}
+          icon={Send}
+          variant="secondary"
+          onPress={() => {
+            tap();
+            router.push('/manage/notify');
           }}
         />
         <Button

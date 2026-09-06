@@ -1,4 +1,5 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
+import Head from 'expo-router/head';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect } from 'react';
@@ -95,9 +96,11 @@ function RootNavigator() {
       <Stack.Screen name="checkin/[postId]" options={{ animation: 'slide_from_bottom' }} />
       {/* The camera scanner: both sides of the check-in handshake open it. */}
       <Stack.Screen name="scan" options={{ animation: 'slide_from_bottom' }} />
+      <Stack.Screen name="notifications" />
       {/* coordinator - every screen re-checks the role through the API */}
       <Stack.Screen name="manage/create" options={{ animation: 'slide_from_bottom' }} />
       <Stack.Screen name="manage/posts" />
+      <Stack.Screen name="manage/notify" options={{ animation: 'slide_from_bottom' }} />
       <Stack.Screen name="manage/iqamah" />
       <Stack.Screen name="manage/profile" />
       <Stack.Screen name="manage/coverage/[id]" />
@@ -118,6 +121,15 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
+      {/*
+        The browser tab, and the name an installed web app is saved under.
+        expo-router always emits a <title> on web and it lands ahead of
+        anything `+html.tsx` writes, so this is the only place that can fill
+        it. On native the component renders nothing.
+      */}
+      <Head>
+        <title>M’Ensemble</title>
+      </Head>
       <View style={{ flex: 1, backgroundColor: colors.background }} onLayout={onLayout}>
         {/* The masthead runs under the status bar, so its text is light. */}
         <StatusBar style="light" />

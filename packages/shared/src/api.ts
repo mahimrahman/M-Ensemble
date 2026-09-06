@@ -1,6 +1,7 @@
 /** Transport envelope + the client interface. Locked in PHASE 0. */
 
 import type {
+  AppNotification,
   AuthResult,
   CreatePostInput,
   DateString,
@@ -122,6 +123,37 @@ export type UpdateMosqueInput = Partial<
 >;
 
 /**
+ * The inbox, as one round trip.
+ *
+ * `unread` is counted over everything the user has rather than over the page
+ * returned, so the bell's badge stays right once the list outgrows one page.
+ */
+export interface NotificationFeed {
+  items: AppNotification[];
+  unread: number;
+}
+
+/** What a coordinator writes when they message their followers. */
+export interface BroadcastInput {
+  title: string;
+  body: string;
+}
+
+/**
+ * What the send actually did.
+ *
+ * Two numbers, because they answer different questions: `recipients` is how
+ * many inboxes it landed in, `pushed` how many devices it reached. The second
+ * is always the smaller — a follower with no push token still gets the inbox
+ * line — and telling the coordinator only the first would claim forty phones
+ * buzzed when twelve did.
+ */
+export interface BroadcastResult {
+  recipients: number;
+  pushed: number;
+}
+
+/**
  * The single surface every screen talks to.
  *
  * PHASE 1–3 this is fulfilled by the mock client; PHASE 5 by the HTTP client.
@@ -194,6 +226,13 @@ export interface MEnsembleApi {
 
   getNotificationPrefs(): Promise<NotificationPrefs>;
   updateNotificationPrefs(prefs: NotificationPrefs): Promise<NotificationPrefs>;
+
+  /** The signed-in user's inbox, newest first, with the unread count. */
+  getNotifications(): Promise<NotificationFeed>;
+  /** Marks everything unread as read. Resolves to the feed as it now stands. */
+  markNotificationsRead(): Promise<NotificationFeed>;
+  /** Admin only — write to everyone who follows this mosque. */
+  broadcast(mosqueId: ID, input: BroadcastInput): Promise<BroadcastResult>;
 
   registerPushToken(token: string): Promise<void>;
 }

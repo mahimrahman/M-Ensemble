@@ -6,8 +6,10 @@ import {
   getMyReliability,
   getMyMemberships,
   getMyMosques,
+  getMyNotifications,
   getNotificationPrefs,
   patchMe,
+  postNotificationsRead,
   putNotificationPrefs,
   putPushToken,
 } from '../controllers/me.controller.js';
@@ -32,5 +34,8 @@ meRouter.put(
   validate(notificationPrefsSchema),
   asyncHandler(putNotificationPrefs),
 );
+
+meRouter.get('/notifications', asyncHandler(getMyNotifications));
+meRouter.post('/notifications/read', asyncHandler(postNotificationsRead));
 
 meRouter.post('/push-token', validate(pushTokenSchema), asyncHandler(putPushToken));

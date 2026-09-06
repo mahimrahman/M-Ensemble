@@ -8,16 +8,22 @@ import { colors, radius } from '@/theme';
  * a key indirects to one instead of building the path from data. These are the
  * ten programme posters designed with the mosques; a mosque that uploads its
  * own gets an `imageUrl` and never comes through here.
+ *
+ * **Two formats on purpose.** The seven flat, few-colour designs stay PNG,
+ * which encodes them smaller than JPEG can and without ringing around their
+ * hard-edged text. The three photographs are JPEG: as PNG they were 2.6MB of
+ * the bundle between them and are 262KB as JPEG, with nothing visible lost at
+ * the size they render. Sort by what the artwork is, not by tidiness.
  */
 const POSTER_ART = {
   'arabic-school': require('../../assets/posters/arabic-school.png'),
   'friday-dinner': require('../../assets/posters/friday-dinner.png'),
   'halaqat-dars': require('../../assets/posters/halaqat-dars.png'),
-  'quran-classes': require('../../assets/posters/quran-classes.png'),
+  'quran-classes': require('../../assets/posters/quran-classes.jpg'),
   'ramadan-iftar': require('../../assets/posters/ramadan-iftar.png'),
-  'self-defence': require('../../assets/posters/self-defence.png'),
+  'self-defence': require('../../assets/posters/self-defence.jpg'),
   'sisters-brunch': require('../../assets/posters/sisters-brunch.png'),
-  soccer: require('../../assets/posters/soccer.png'),
+  soccer: require('../../assets/posters/soccer.jpg'),
   'summer-camp': require('../../assets/posters/summer-camp.png'),
   'zikr-madih': require('../../assets/posters/zikr-madih.png'),
 } as const;

@@ -18,6 +18,7 @@ import {
   Badge,
   Button,
   EmptyState,
+  ErrorState,
   GradientHeader,
   Loading,
   Meter,
@@ -246,6 +247,8 @@ export default function EventsScreen() {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {posts.loading && !posts.data ? (
           <Loading variant="inline" />
+        ) : posts.error && !posts.data ? (
+          <ErrorState message={posts.error} onRetry={() => void posts.reload()} />
         ) : view === 'upcoming' ? (
           upcoming.length === 0 ? (
             <EmptyState

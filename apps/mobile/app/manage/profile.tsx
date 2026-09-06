@@ -16,7 +16,16 @@ import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Alert } from '@/lib/alert';
 import { api } from '@/api/client';
-import { BackBar, Button, Field, GradientHeader, Loading, Screen, SectionTitle } from '@/components';
+import {
+  BackBar,
+  Button,
+  ErrorState,
+  Field,
+  GradientHeader,
+  Loading,
+  Screen,
+  SectionTitle,
+} from '@/components';
 import { useLang } from '@/i18n';
 import { success, warn } from '@/lib/haptics';
 import { useAdminMosque } from '@/store/adminMosque';
@@ -25,7 +34,7 @@ import { colors, screenPadding, spacing, type } from '@/theme';
 export default function MosqueProfileScreen() {
   const router = useRouter();
   const { t, align, font } = useLang();
-  const { mosqueId, mosque, reload } = useAdminMosque();
+  const { mosqueId, mosque, loading, reload } = useAdminMosque();
 
   const [bio, setBio] = useState('');
   const [history, setHistory] = useState('');
@@ -72,7 +81,19 @@ export default function MosqueProfileScreen() {
     return (
       <Screen padded={false} edges={['left', 'right']}>
         <GradientHeader back={<BackBar />} title={t.editMosqueProfile} />
-        <Loading label={t.loading} />
+        {/*
+          The mosque comes from the admin context, which does not surface an
+          error - so a failed load is indistinguishable from a slow one until
+          it stops loading. Once it has, offer the retry rather than spinning
+          for ever.
+        */}
+        {loading ? (
+          <Loading label={t.loading} />
+        ) : (
+          <View style={styles.guard}>
+            <ErrorState onRetry={() => void reload()} />
+          </View>
+        )}
       </Screen>
     );
   }
@@ -142,6 +163,7 @@ export default function MosqueProfileScreen() {
 }
 
 const styles = StyleSheet.create({
+  guard: { paddingHorizontal: screenPadding, paddingTop: spacing.xl },
   scroll: {
     paddingHorizontal: screenPadding,
     paddingTop: spacing.lg,

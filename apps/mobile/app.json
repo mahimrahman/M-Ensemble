@@ -1,32 +1,56 @@
 {
   "expo": {
-    "name": "M-Ensemble",
+    "name": "M’Ensemble",
     "slug": "m-ensemble",
     "version": "0.1.0",
     "orientation": "portrait",
     "scheme": "mensemble",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "icon": "./assets/icon.png",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mahimrahman.mensemble",
       "infoPlist": {
         "UIBackgroundModes": [
           "remote-notification"
-        ]
+        ],
+        "CFBundleDisplayName": "M’Ensemble"
       }
     },
     "android": {
       "package": "com.mahimrahman.mensemble",
       "adaptiveIcon": {
-        "backgroundColor": "#061E1B"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F7F7EF"
       }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/favicon.png",
+      "name": "M’Ensemble",
+      "shortName": "M’Ensemble",
+      "themeColor": "#061E1B",
+      "backgroundColor": "#F7F7EF",
+      "display": "standalone",
+      "orientation": "portrait"
     },
     "plugins": [
       "expo-router",
       [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 180,
+          "resizeMode": "contain",
+          "backgroundColor": "#F7F7EF"
+        }
+      ],
+      [
         "expo-notifications",
         {
+          "icon": "./assets/notification-icon.png",
           "color": "#0A5247",
           "defaultChannel": "default"
         }
@@ -51,10 +75,6 @@
     "extra": {
       "eas": {}
     },
-    "backgroundColor": "#F2F7F6",
-    "splash": {
-      "backgroundColor": "#061E1B",
-      "resizeMode": "contain"
-    }
+    "backgroundColor": "#F2F7F6"
   }
 }

@@ -8,7 +8,9 @@
 
 import {
   API_ERROR,
+  type AppNotification,
   type AuthResult,
+  type BroadcastInput,
   type CreatePostInput,
   type EventOutcome,
   type FeedFilter,
@@ -23,6 +25,7 @@ import {
   type Mosque,
   type MosqueDashboard,
   type MosqueMember,
+  type NotificationFeed,
   type NotificationPrefs,
   type Post,
   type PublicUser,
@@ -83,6 +86,8 @@ interface MockState {
   iqamah: Iqamah[];
   jummah: JummahSession[];
   prefs: NotificationPrefs;
+  /** One row per recipient, exactly as the server stores them. */
+  notifications: AppNotification[];
   currentUserId: ID | null;
 }
 
@@ -97,6 +102,10 @@ function fresh(): MockState {
     iqamah: clone(mockIqamah),
     jummah: clone(mockJummah),
     prefs: clone(defaultNotificationPrefs),
+    // Nothing is seeded: an inbox is a log of what happened while you were
+    // using the app, and pre-filling it with fixture rows would show a badge
+    // for messages nobody sent.
+    notifications: [],
     // Signed in by default so the app is walkable before auth screens exist.
     currentUserId: CURRENT_USER_ID,
   };
@@ -164,6 +173,32 @@ function requireAdmin(mosqueId: ID): User {
     );
   }
   return user;
+}
+
+/**
+ * The server's `deliver`: one inbox row per recipient.
+ *
+ * The mock keeps a single global `prefs` object rather than one per user, so
+ * the preference gate is applied once here rather than per recipient. That is
+ * the one place this drifts from the server, and it drifts in the direction
+ * that matters — the signed-in user's own prefs are the ones being honoured.
+ */
+function deliverMock(
+  recipientIds: ID[],
+  fields: Omit<AppNotification, '_id' | 'userId' | 'createdAt'>,
+): number {
+  const createdAt = new Date().toISOString();
+  for (const userId of recipientIds) {
+    state.notifications.push({ ...fields, _id: makeId('notif'), userId, createdAt });
+  }
+  return recipientIds.length;
+}
+
+/** Everyone who follows this mosque, minus whoever is sending. */
+function followerIds(mosqueId: ID, exceptUserId: ID): ID[] {
+  return state.follows
+    .filter((f) => f.mosqueId === mosqueId && f.userId !== exceptUserId)
+    .map((f) => f.userId);
 }
 
 function isLive(post: Post, now: number): boolean {
@@ -455,8 +490,20 @@ export const mockApi: MEnsembleApi = {
       createdAt: new Date().toISOString(),
     };
     state.posts.push(post);
-    // PHASE 4 fans a push out to followers whose interests include
-    // `input.category` right here.
+
+    // The fan-out: followers who list this category among their interests get
+    // an inbox row, and a push if their device is registered for one.
+    const audience = followerIds(input.mosqueId, user._id).filter((id) =>
+      state.users.find((u) => u._id === id)?.interests.includes(input.category),
+    );
+    deliverMock(audience, {
+      mosqueId: input.mosqueId,
+      kind: 'post',
+      title: post.title,
+      body: post.description,
+      postId: post._id,
+    });
+
     return delay(clone(post));
   },
 
@@ -892,6 +939,47 @@ export const mockApi: MEnsembleApi = {
   async updateNotificationPrefs(prefs) {
     state.prefs = clone(prefs);
     return delay(clone(state.prefs));
+  },
+
+  // -------------------------------------------------------- notifications ---
+
+  async getNotifications(): Promise<NotificationFeed> {
+    const user = requireUser();
+    const mine = state.notifications
+      .filter((n) => n.userId === user._id)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return delay({
+      items: clone(mine),
+      unread: mine.filter((n) => !n.readAt).length,
+    });
+  },
+
+  async markNotificationsRead(): Promise<NotificationFeed> {
+    const user = requireUser();
+    const at = new Date().toISOString();
+    for (const n of state.notifications) {
+      if (n.userId === user._id && !n.readAt) n.readAt = at;
+    }
+    return this.getNotifications();
+  },
+
+  async broadcast(mosqueId: ID, input: BroadcastInput) {
+    const user = requireAdmin(mosqueId);
+    requireMosque(mosqueId);
+
+    // `announcements` gates this the same way it gates an announcement post —
+    // from the reader's side the two are the same thing.
+    const audience = state.prefs.announcements ? followerIds(mosqueId, user._id) : [];
+    const recipients = deliverMock(audience, {
+      mosqueId,
+      kind: 'mosque',
+      title: input.title.trim(),
+      body: input.body.trim(),
+    });
+
+    // Nothing here talks to Expo, so nothing is ever pushed. Saying 0 rather
+    // than guessing keeps the send screen honest in a mock run.
+    return delay({ recipients, pushed: 0 });
   },
 
   async registerPushToken(token) {

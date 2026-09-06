@@ -50,3 +50,18 @@ export const updateMosqueSchema = z
     services: z.array(z.string().max(200)).max(20).optional(),
   })
   .strict();
+
+/**
+ * A coordinator's message to their followers.
+ *
+ * The caps are the shape of the surface it lands on, not arbitrary: the title
+ * is one line on a notification card and in a push banner, the body a short
+ * paragraph. Longer than this and the reader sees an ellipsis, so the limit
+ * belongs where the writer can still do something about it.
+ */
+export const broadcastSchema = z
+  .object({
+    title: z.string().trim().min(1).max(120),
+    body: z.string().trim().min(1).max(600),
+  })
+  .strict();

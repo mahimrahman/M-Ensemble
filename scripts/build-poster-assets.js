@@ -10,6 +10,14 @@
  *
  * Idempotent only in the sense that re-running on already-shrunk files is a
  * no-op resize; re-copy the masters first if you need to redo it.
+ *
+ * **Three posters ship as JPEG and this script does not produce them.**
+ * `quran-classes`, `self-defence` and `soccer` are photographs: as PNG they
+ * were 2.6MB between them and are 262KB as JPEG, indistinguishable at the size
+ * they render. This only reads `*.png`, so it leaves them alone - but if you
+ * re-copy the masters it will write PNGs beside the JPEGs, while `Poster.tsx`
+ * goes on requiring the JPEGs. After a full rebuild, re-convert those three
+ * with any encoder at quality ~88 and delete the PNGs it made.
  */
 const fs=require('fs'),zlib=require('zlib'),path=require('path');
 function readPNG(p){const b=fs.readFileSync(p);let q=8,w=0,h=0,bd=0,ct=0,pal=null,trns=null,idat=[];

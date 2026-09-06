@@ -9,6 +9,7 @@ import { tap } from '@/lib/haptics';
 import { prayerLabel } from '@/lib/prayer';
 import { colors, gradients, icon, numeric, radius, screenPadding, spacing, type } from '@/theme';
 import type { Mosque, Prayer } from '@/types';
+import { NotificationBell } from './NotificationBell';
 
 interface PrayerCardProps {
   mosque: Mosque;
@@ -43,7 +44,14 @@ export function PrayerCard({ mosque }: PrayerCardProps) {
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.panel, { paddingTop: padTop, height: 210 }]}
-      />
+      >
+        {/* The bell is not waiting on prayer times, so it shows straight away
+            rather than popping in a second later — and in the same place it
+            will occupy once they arrive, so it doesn't jump. */}
+        <View style={[styles.head, styles.headLoading, row]}>
+          <NotificationBell />
+        </View>
+      </LinearGradient>
     );
   }
   if (!next) return null;
@@ -59,7 +67,19 @@ export function PrayerCard({ mosque }: PrayerCardProps) {
       style={[styles.panel, { paddingTop: padTop }]}
       accessibilityRole="summary"
     >
-      {/* Header row: prayer name + adhan→iqamah on the left, countdown right */}
+      {/*
+        Header row: the prayer on the left, the bell and the countdown stacked
+        against the trailing edge on the right.
+
+        The bell used to have a line of its own above this row, where it read
+        as a floating afterthought. Here it starts level with "NEXT PRAYER" and
+        shares an edge with the countdown, so the right side is one column
+        rather than two loose objects — and the masthead is no taller for it,
+        since the bell and the countdown were already stacked either way.
+
+        Not a third column beside the countdown: on a 320pt screen that leaves
+        the prayer name about 80pt and "Maghrib" starts truncating.
+      */}
       <View style={[styles.head, row]}>
         <View style={styles.headText}>
           <Text style={[styles.eyebrow, align, font(styles.eyebrow)]}>
@@ -76,9 +96,13 @@ export function PrayerCard({ mosque }: PrayerCardProps) {
           ) : null}
         </View>
 
-        <View style={styles.countdown}>
-          <Text style={font(styles.countdownLabel)}>{t.in.toUpperCase()}</Text>
-          <Text style={styles.countdownValue}>{clock(next.at.getTime() - now.getTime())}</Text>
+        <View style={[styles.headRight, isAr && styles.headRightAr]}>
+          <NotificationBell />
+
+          <View style={styles.countdown}>
+            <Text style={font(styles.countdownLabel)}>{t.in.toUpperCase()}</Text>
+            <Text style={styles.countdownValue}>{clock(next.at.getTime() - now.getTime())}</Text>
+          </View>
         </View>
       </View>
 
@@ -172,7 +196,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: screenPadding,
     paddingBottom: spacing.lg,
   },
-  head: { justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 },
+  head: {
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+    marginBottom: 18,
+  },
+  // The loading placeholder has only the bell in this row, and `space-between`
+  // would park it at the leading edge. `flex-end` on a row that mirrors in
+  // Arabic puts it against the trailing edge in both directions.
+  headLoading: { justifyContent: 'flex-end' },
+  // The bell is narrower than the countdown, so which edge of this column it
+  // hugs is a real choice: it has to be the screen's, not the one facing the
+  // prayer name. The parent row flips for Arabic but `alignItems` is a
+  // cross-axis property and doesn't come with it, hence the explicit pair.
+  headRight: { alignItems: 'flex-end', gap: spacing.sm },
+  headRightAr: { alignItems: 'flex-start' },
   headText: { flex: 1, gap: 2 },
   eyebrow: { ...type.tiny, color: 'rgba(255,255,255,0.5)', letterSpacing: 1.1 },
   prayerName: { ...type.display, color: colors.inkInverse, lineHeight: 30 },

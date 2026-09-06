@@ -11,12 +11,14 @@ import {
   getRoster,
   listMosquePosts,
   listMosques,
+  postBroadcast,
   putIqamah,
   putMemberRole,
   unfollowMosque,
   updateMosque,
 } from '../controllers/mosque.controller.js';
 import {
+  broadcastSchema,
   iqamahConfigSchema,
   memberRoleSchema,
   updateMosqueSchema,
@@ -83,3 +85,12 @@ mosqueRouter.put(
   asyncHandler(putMemberRole),
 );
 mosqueRouter.get('/:id/outcomes', admin, asyncHandler(getOutcomes));
+
+// Write to every follower. Admin-gated on the mosque in the path — the sender
+// is whoever holds the token, never a body field.
+mosqueRouter.post(
+  '/:id/notifications',
+  admin,
+  validate(broadcastSchema),
+  asyncHandler(postBroadcast),
+);

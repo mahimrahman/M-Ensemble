@@ -13,6 +13,7 @@ import { api } from '@/api/client';
 import {
   Button,
   EmptyState,
+  ErrorState,
   PostCard,
   GradientHeader,
   Loading,
@@ -178,7 +179,9 @@ export default function MyStuffScreen() {
 
         <SectionTitle title={t.next} />
 
-        {upcoming.length === 0 ? (
+        {upcoming.length === 0 && commitments.error ? (
+          <ErrorState message={commitments.error} onRetry={() => void commitments.reload()} />
+        ) : upcoming.length === 0 ? (
           <EmptyState
             title={t.nothingBooked}
             message={t.nothingBookedBody}

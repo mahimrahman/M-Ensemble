@@ -7,6 +7,8 @@
 
 import type {
   AuthResult,
+  BroadcastInput,
+  BroadcastResult,
   CreatePostInput,
   DateString,
   EventOutcome,
@@ -21,6 +23,7 @@ import type {
   MosqueIqamahConfig,
   MosqueMember,
   Mosque,
+  NotificationFeed,
   NotificationPrefs,
   Post,
   PrayerTable,
@@ -215,6 +218,11 @@ export const httpApi: MEnsembleApi = {
   getNotificationPrefs: () => get<NotificationPrefs>('/me/notification-prefs'),
   updateNotificationPrefs: (prefs: NotificationPrefs) =>
     put<NotificationPrefs>('/me/notification-prefs', prefs),
+
+  getNotifications: () => get<NotificationFeed>('/me/notifications'),
+  markNotificationsRead: () => post<NotificationFeed>('/me/notifications/read'),
+  broadcast: (mosqueId: ID, input: BroadcastInput) =>
+    post<BroadcastResult>(`/mosques/${mosqueId}/notifications`, input),
 
   registerPushToken: (token: string) => post<void>('/me/push-token', { token }),
 };

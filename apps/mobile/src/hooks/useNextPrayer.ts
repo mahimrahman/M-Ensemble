@@ -27,5 +27,14 @@ export function useNextPrayer(mosqueId: ID | null) {
     [tables.data, now],
   );
 
-  return { next, now, today: tables.data?.[0] ?? null, loading: tables.loading };
+  // `error` and `reload` ride along so a screen can offer a retry rather than
+  // sitting on a spinner that never resolves.
+  return {
+    next,
+    now,
+    today: tables.data?.[0] ?? null,
+    loading: tables.loading,
+    error: tables.error,
+    reload: tables.reload,
+  };
 }

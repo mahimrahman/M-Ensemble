@@ -90,8 +90,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   const tone =
     current?.tone ?? (buttons.some((b) => b.style === 'destructive') ? 'danger' : 'info');
 
-  const accent =
-    tone === 'danger' ? colors.danger : tone === 'warn' ? colors.warn : colors.accent;
+  const accent = tone === 'danger' ? colors.danger : tone === 'warn' ? colors.warn : colors.accent;
 
   return (
     <DialogContext.Provider value={value}>

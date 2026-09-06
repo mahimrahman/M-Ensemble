@@ -24,6 +24,7 @@ import {
   Button,
   Card,
   EmptyState,
+  ErrorState,
   GradientHeader,
   Loading,
   MosqueMap,
@@ -49,7 +50,7 @@ export default function MosqueScreen() {
   const mosque = useApi(() => api.getMosque(id), [id]);
   const followed = useApi(() => api.getFollowedMosques(), []);
   const posts = useApi(() => api.getMosquePosts(id), [id]);
-  const { next, today } = useNextPrayer(id);
+  const { next, today, error: prayerError, reload: reloadPrayer } = useNextPrayer(id);
 
   const isFollowed = followed.data?.some((m) => m._id === id) ?? false;
 
@@ -270,6 +271,14 @@ export default function MosqueScreen() {
           </Pressable>
           {today ? (
             <PrayerTable table={today} highlight={next?.prayer ?? null} />
+          ) : prayerError ? (
+            <Card>
+              <ErrorState
+                variant="inline"
+                message={prayerError}
+                onRetry={() => void reloadPrayer()}
+              />
+            </Card>
           ) : (
             <Card>
               <Loading variant="inline" label={t.loading} />

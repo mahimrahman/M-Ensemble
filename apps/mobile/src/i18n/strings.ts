@@ -420,6 +420,32 @@ const fr = {
   noMosqueAssignedBody: 'Votre compte ne coordonne encore aucune mosquée.',
   noCancelledPosts: 'Rien n’a été annulé.',
   hoursShort: 'h',
+
+  // ── notifications ──
+  openNotifications: 'Ouvrir les notifications',
+  noNotifications: 'Rien de neuf',
+  noNotificationsBody:
+    'Les publications et les messages des mosquées que vous suivez apparaîtront ici.',
+  newNotification: 'Nouveau',
+  sendNotification: 'Envoyer une notification',
+  sendNotificationSub: 'Un message à toutes les personnes qui suivent la mosquée.',
+  messageTitle: 'Titre',
+  messageBody: 'Message',
+  phNotifyTitle: 'La mosquée sera fermée samedi',
+  phNotifyBody:
+    'Des travaux de plomberie ferment la salle de prière samedi toute la journée. Le jumu’ah de vendredi n’est pas touché.',
+  send: 'Envoyer',
+  sending: 'Envoi…',
+  sendToFollowers: 'Envoyer à {count} abonnés',
+  confirmSendTitle: 'Envoyer maintenant ?',
+  confirmSendBody: '{count} personnes recevront ce message. On ne peut pas le reprendre.',
+  notificationSent: 'Message envoyé',
+  sentToCount: 'Reçu par {count} personnes, dont {pushed} sur leur téléphone.',
+  sentToNobody: 'Personne ne suit encore cette mosquée.',
+  couldNotSend: 'Envoi impossible',
+  errMessageTitle: 'Donnez un titre au message.',
+  errMessageBody: 'Écrivez le message.',
+  notifyReach: 'Portée : {count} abonnés',
 };
 
 /** Every language must supply exactly these keys. */
@@ -809,6 +835,30 @@ const en: Strings = {
   noMosqueAssignedBody: 'Your account doesn’t coordinate a mosque yet.',
   noCancelledPosts: 'Nothing has been cancelled.',
   hoursShort: 'h',
+
+  openNotifications: 'Open notifications',
+  noNotifications: 'Nothing new',
+  noNotificationsBody: 'Posts and messages from the mosques you follow show up here.',
+  newNotification: 'New',
+  sendNotification: 'Send a notification',
+  sendNotificationSub: 'One message to everyone who follows the mosque.',
+  messageTitle: 'Title',
+  messageBody: 'Message',
+  phNotifyTitle: 'The mosque is closed on Saturday',
+  phNotifyBody:
+    'Plumbing work closes the prayer hall all day Saturday. Friday jumu’ah is unaffected.',
+  send: 'Send',
+  sending: 'Sending…',
+  sendToFollowers: 'Send to {count} followers',
+  confirmSendTitle: 'Send now?',
+  confirmSendBody: '{count} people will get this message. It can’t be taken back.',
+  notificationSent: 'Message sent',
+  sentToCount: 'Reached {count} people, {pushed} of them on their phones.',
+  sentToNobody: 'Nobody follows this mosque yet.',
+  couldNotSend: 'Could not send',
+  errMessageTitle: 'Give the message a title.',
+  errMessageBody: 'Write the message.',
+  notifyReach: 'Reaches {count} followers',
 };
 
 const ar: Strings = {
@@ -1194,6 +1244,29 @@ const ar: Strings = {
   noMosqueAssignedBody: 'حسابك لا يدير أي مسجد بعد.',
   noCancelledPosts: 'لم يُلغَ أي شيء.',
   hoursShort: 'س',
+
+  openNotifications: 'فتح الإشعارات',
+  noNotifications: 'لا جديد',
+  noNotificationsBody: 'ستظهر هنا منشورات ورسائل المساجد التي تتابعها.',
+  newNotification: 'جديد',
+  sendNotification: 'إرسال إشعار',
+  sendNotificationSub: 'رسالة واحدة إلى كل من يتابع المسجد.',
+  messageTitle: 'العنوان',
+  messageBody: 'الرسالة',
+  phNotifyTitle: 'المسجد مغلق يوم السبت',
+  phNotifyBody: 'أعمال سباكة تغلق قاعة الصلاة طوال يوم السبت. جمعة الجمعة غير متأثرة.',
+  send: 'إرسال',
+  sending: 'جارٍ الإرسال…',
+  sendToFollowers: 'إرسال إلى {count} متابعًا',
+  confirmSendTitle: 'إرسال الآن؟',
+  confirmSendBody: 'سيصل هذا إلى {count} شخصًا، ولا يمكن التراجع عنه.',
+  notificationSent: 'تم إرسال الرسالة',
+  sentToCount: 'وصلت إلى {count} شخصًا، منهم {pushed} على هواتفهم.',
+  sentToNobody: 'لا أحد يتابع هذا المسجد بعد.',
+  couldNotSend: 'تعذّر الإرسال',
+  errMessageTitle: 'اكتب عنوانًا للرسالة.',
+  errMessageBody: 'اكتب نص الرسالة.',
+  notifyReach: 'يصل إلى {count} متابعًا',
 };
 
 export const STRINGS: Record<Lang, Strings> = { fr, en, ar };

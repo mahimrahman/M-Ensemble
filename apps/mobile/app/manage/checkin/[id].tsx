@@ -13,7 +13,16 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Alert } from '@/lib/alert';
 import QRCode from 'react-native-qrcode-svg';
 import { api } from '@/api/client';
-import { BackBar, Badge, Button, Card, GradientHeader, Loading, Screen } from '@/components';
+import {
+  BackBar,
+  Badge,
+  Button,
+  Card,
+  ErrorState,
+  GradientHeader,
+  Loading,
+  Screen,
+} from '@/components';
 import { useApi } from '@/hooks/useApi';
 import { useLang } from '@/i18n';
 import { formatTime } from '@/lib/format';
@@ -144,7 +153,17 @@ export default function CheckInScreen() {
           />
         </View>
 
-        {confirmed.length === 0 ? (
+        {confirmed.length === 0 && signups.error ? (
+          // This list polls every few seconds; if it is failing, the
+          // coordinator needs to know rather than read it as an empty room.
+          <Card>
+            <ErrorState
+              variant="inline"
+              message={signups.error}
+              onRetry={() => void signups.reload()}
+            />
+          </Card>
+        ) : confirmed.length === 0 ? (
           <Card>
             <Text style={font(styles.empty)}>{t.nobodyYet}</Text>
           </Card>

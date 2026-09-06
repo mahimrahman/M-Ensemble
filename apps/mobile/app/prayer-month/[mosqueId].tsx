@@ -10,7 +10,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { api } from '@/api/client';
-import { BackBar, GradientHeader, Loading, Screen, Segmented } from '@/components';
+import { BackBar, ErrorState, GradientHeader, Loading, Screen, Segmented } from '@/components';
 import { useApi } from '@/hooks/useApi';
 import { usePrayerMonth } from '@/hooks/usePrayerMonth';
 import { useLang } from '@/i18n';
@@ -117,6 +117,14 @@ export default function PrayerMonthScreen() {
           {tables.loading && !tables.data ? (
             <View style={styles.loading}>
               <Loading variant="inline" label={t.loading} />
+            </View>
+          ) : tables.error && !tables.data ? (
+            <View style={styles.loading}>
+              <ErrorState
+                variant="inline"
+                message={tables.error}
+                onRetry={() => void tables.reload()}
+              />
             </View>
           ) : (
             (tables.data ?? []).map((table, i, all) => {

@@ -374,3 +374,37 @@ export interface EventOutcome {
   /** Slots or capacity — whatever the post asked for. Null when open-ended. */
   target: number | null;
 }
+
+// ─── Notifications ──────────────────────────────────────────────────────────
+
+/**
+ * Why a notification exists.
+ *
+ * `post` is the automatic fan-out when a mosque publishes something; `mosque`
+ * is a coordinator writing to their followers directly. The app renders the
+ * two differently — an automatic one opens the post it came from, a written
+ * one has nowhere to go but the mosque.
+ */
+export type NotificationKind = 'post' | 'mosque';
+
+/**
+ * One line in a user's inbox.
+ *
+ * Written per recipient, not per send: `readAt` belongs to the person, and a
+ * shared row would make one reader's tap mark it read for everybody. The
+ * mosque's name is deliberately NOT copied in — the app already holds the
+ * mosque list and resolves it the same way the feed resolves a post's mosque.
+ */
+export interface AppNotification {
+  _id: ID;
+  userId: ID;
+  mosqueId: ID;
+  kind: NotificationKind;
+  title: string;
+  body: string;
+  /** Set when the notification came from a post — tapping it opens that post. */
+  postId?: ID;
+  createdAt: Timestamp;
+  /** Absent until the user opens the inbox. */
+  readAt?: Timestamp;
+}

@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import type {
+  BroadcastInput,
   DateString,
   MemberRole,
   MosqueIqamahConfig,
@@ -12,6 +13,7 @@ import { PostModel } from '../models/Post.js';
 import { currentUser } from '../middleware/requireAuth.js';
 import { buildDashboard } from '../services/dashboard.service.js';
 import { buildMemberDetail, buildMembers, setMemberRole } from '../services/members.service.js';
+import { broadcastToFollowers } from '../services/notification.service.js';
 import { buildOutcomes } from '../services/outcomes.service.js';
 import { buildRoster } from '../services/roster.service.js';
 import * as prayer from '../services/prayer.service.js';
@@ -155,4 +157,26 @@ export async function putMemberRole(req: Request, res: Response): Promise<void> 
 
 export async function getOutcomes(req: Request, res: Response): Promise<void> {
   ok(res, await buildOutcomes(String(req.params.id)));
+}
+
+/**
+ * A coordinator writing to their followers.
+ *
+ * Unlike the post fan-out, this one is **awaited before responding**. A post
+ * answers 201 immediately and notifies afterwards because the post is the thing
+ * that had to succeed; here the notification *is* the thing, and the send
+ * screen reports how many people it reached — a number it cannot have if the
+ * response goes out first.
+ */
+export async function postBroadcast(req: Request, res: Response): Promise<void> {
+  const mosque = await MosqueModel.findById(String(req.params.id));
+  if (!mosque) throw new HttpError(404, ERROR.NOT_FOUND, 'Mosque not found.');
+
+  const input = req.body as BroadcastInput;
+  const result = await broadcastToFollowers(mosque, currentUser(req)._id, {
+    title: input.title.trim(),
+    body: input.body.trim(),
+  });
+
+  ok(res, result, 201);
 }

@@ -13,6 +13,7 @@ import { api } from '@/api/client';
 import {
   Button,
   EmptyState,
+  ErrorState,
   GradientHeader,
   Loading,
   LocationPill,
@@ -136,7 +137,9 @@ export default function MosquesScreen() {
             />
           </View>
 
-          {list.length === 0 ? (
+          {list.length === 0 && mosques.error ? (
+            <ErrorState message={mosques.error} onRetry={() => void mosques.reload()} />
+          ) : list.length === 0 ? (
             <EmptyState
               title={scope === 'following' ? t.notFollowingAny : t.noMosques}
               {...(scope === 'following' ? { message: t.nearbyMosques } : {})}

@@ -14,6 +14,7 @@ import { api } from '@/api/client';
 import {
   Badge,
   EmptyState,
+  ErrorState,
   GradientHeader,
   Loading,
   Screen,
@@ -120,6 +121,8 @@ export default function PeopleScreen() {
       >
         {members.loading && !members.data ? (
           <Loading variant="inline" />
+        ) : members.error && !members.data ? (
+          <ErrorState message={members.error} onRetry={() => void members.reload()} />
         ) : shown.length === 0 ? (
           <EmptyState title={t.noPeople} message={t.noPeopleBody} />
         ) : (

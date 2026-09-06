@@ -8,13 +8,14 @@
  */
 
 import { useRouter } from 'expo-router';
-import { ChevronRight, Clock, Plus, QrCode, TriangleAlert, Users } from 'lucide-react-native';
+import { ChevronRight, Clock, Plus, QrCode, Send, TriangleAlert, Users } from 'lucide-react-native';
 import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { api } from '@/api/client';
 import {
   Button,
   EmptyState,
+  ErrorState,
   GradientHeader,
   Loading,
   Meter,
@@ -167,6 +168,38 @@ export default function DashboardScreen() {
             router.push({ pathname: '/manage/create', params: { mosqueId } });
           }}
         />
+        {/* The other thing a coordinator does that reaches everybody: telling
+            the congregation something that isn't an event. */}
+        <Button
+          label={t.sendNotification}
+          icon={Send}
+          variant="secondary"
+          onPress={() => {
+            tap();
+            router.push('/manage/notify');
+          }}
+        />
+
+        {/*
+          One banner for the whole dashboard rather than three.
+          Every section below reads from one of these queries, and when they
+          fail the screen degrades into tiles reading "-" and sections reading
+          "nothing today" - which is indistinguishable from a quiet mosque.
+          The retry refetches all three, since they fail together.
+        */}
+        {(stats.error && !stats.data) ||
+        (posts.error && !posts.data) ||
+        (roster.error && !roster.data) ? (
+          <ErrorState
+            variant="inline"
+            message={stats.error ?? posts.error ?? roster.error}
+            onRetry={() => {
+              void stats.reload();
+              void posts.reload();
+              void roster.reload();
+            }}
+          />
+        ) : null}
 
         {/*
           ── Anything that needs a decision today ──
