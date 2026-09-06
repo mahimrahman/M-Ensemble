@@ -1,11 +1,8 @@
 /**
- * The real transport. Dormant until PHASE 5 — written now so that switching off
- * the mocks is a flag change, not a rewrite.
+ * The transport. Every request the app makes goes through here.
  *
- * Routes match the PHASE 4 plan. Some the plan doesn't list explicitly
- * (`/me/mosques`, `/me/memberships`, `/mosques/:id/posts[?all=true]`,
- * `/me/notification-prefs`, `/me/push-token`, `/users?ids=`, `GET /mosques/:id/iqamah`,
- * `POST /posts/:id/cancel`) — the server owner adds them or we adjust here.
+ * There is no other implementation any more - the mock client is gone, so if
+ * this cannot reach the server, the app cannot do anything.
  */
 
 import type {
@@ -40,9 +37,54 @@ import type {
   WithdrawResult,
   ApiResponse,
 } from '@/types';
+import Constants from 'expo-constants';
 import { ApiRequestError } from './errors';
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:4000/api';
+/**
+ * Where the API lives.
+ *
+ * `EXPO_PUBLIC_API_URL` wins when it is set. It is read from
+ * `apps/mobile/.env`, which Expo only loads when it is started **from that
+ * directory** - run `npx expo start` from the repo root and the variable is
+ * silently absent. That failure is nasty: the app falls back to a URL, every
+ * request fails, and because login is the first request the user is told their
+ * password is wrong. It cost an afternoon once; hence the fallback below.
+ *
+ * With no variable set, derive the host from the dev server the bundle was
+ * downloaded from. A phone that could reach Metro on 172.20.10.11:8081 can
+ * reach the API on 172.20.10.11:4000, so this is right far more often than
+ * `localhost` - which on a phone means the phone itself, and can never work.
+ */
+const API_PORT = 4000;
+
+function resolveBaseUrl(): string {
+  const fromEnv = process.env.EXPO_PUBLIC_API_URL;
+  if (fromEnv) return fromEnv;
+
+  // `expo-constants` knows the host:port Metro is served from, in every form
+  // Expo has used for it across SDKs.
+  const hostUri =
+    Constants.expoConfig?.hostUri ??
+    (Constants.expoGoConfig as { debuggerHost?: string } | undefined)?.debuggerHost ??
+    (Constants.manifest2 as { extra?: { expoGo?: { debuggerHost?: string } } } | undefined)?.extra
+      ?.expoGo?.debuggerHost;
+
+  const host = hostUri?.split(':')[0];
+  if (host) return `http://${host}:${API_PORT}/api`;
+
+  // Web preview served from a browser: same host, API port.
+  if (typeof window !== 'undefined' && window.location?.hostname) {
+    return `http://${window.location.hostname}:${API_PORT}/api`;
+  }
+
+  return `http://localhost:${API_PORT}/api`;
+}
+
+const BASE_URL = resolveBaseUrl();
+
+// Printed once at startup: when the app cannot reach the server, this line is
+// the first thing worth checking.
+console.log(`[api] ${BASE_URL}`);
 
 let authToken: string | null = null;
 
@@ -52,14 +94,28 @@ export function setAuthToken(token: string | null): void {
 }
 
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-      ...init?.headers,
-    },
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}${path}`, {
+      ...init,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        ...init?.headers,
+      },
+    });
+  } catch {
+    // `fetch` rejects when the host is unreachable - wrong IP, server down,
+    // phone on another network. Say that, rather than letting the login screen
+    // render its default "email or password is incorrect": being told your
+    // password is wrong when the server is simply absent sends people looking
+    // in exactly the wrong place.
+    throw new ApiRequestError(
+      'NETWORK_ERROR',
+      `Can't reach the server at ${BASE_URL}. Check it is running and that the phone is on the same network.`,
+      0,
+    );
+  }
 
   const body = (await res.json()) as ApiResponse<T>;
 

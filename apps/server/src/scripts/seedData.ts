@@ -8,11 +8,21 @@
  *
  * Every fixture date is computed when that module is imported, so a seed is
  * only correct for the day it ran. Re-seed on the morning of the demo.
+ *
+ * **Seeding deletes nothing.** It used to `deleteMany` all eight collections
+ * first, which also wiped every account a real person had signed up with -
+ * somebody onboarded, the seed ran, and their login started answering "email
+ * or password incorrect". Every write is now an upsert keyed by `_id`, so
+ * re-seeding refreshes the demo content and leaves real data untouched.
+ *
+ * `clearAll` still exists for the test harness and for `npm run seed:reset`,
+ * which is the only route to the destructive behaviour and says so on the tin.
  */
 
+import type { Model } from 'mongoose';
 import bcrypt from 'bcryptjs';
 import {
-  MOCK_PASSWORD,
+  passwordFor,
   allMosques,
   defaultNotificationPrefs,
   mockFollows,
@@ -74,34 +84,75 @@ export async function syncAllIndexes(): Promise<void> {
   }
 }
 
-export async function seedAll(options: SeedOptions = {}): Promise<SeedCounts> {
-  const rounds = options.bcryptRounds ?? 10;
-  await clearAll();
-
-  // One hash for everybody — every fixture user signs in with MOCK_PASSWORD.
-  const passwordHash = await bcrypt.hash(MOCK_PASSWORD, rounds);
-
-  await UserModel.insertMany(
-    mockUsers.map((user) => ({
-      ...user,
-      passwordHash,
-      notificationPrefs: { ...defaultNotificationPrefs },
+/**
+ * Upsert fixture rows by `_id`.
+ *
+ * `insertMany` would throw on the second run; `replaceOne` with `upsert` makes
+ * seeding idempotent and, more importantly, *additive* - a row nobody seeded (a
+ * real account, a shift someone claimed) matches no filter here and is left
+ * exactly as it was.
+ */
+async function upsertAll<T extends { _id: string }>(
+  // `Model<any>` on purpose: mongoose types `bulkWrite` per model with
+  // overloads that no single structural signature satisfies, and pinning it
+  // would mean a generic parameter per collection for no safety gain — the rows
+  // are already checked against the fixture types by `T`.
+  model: Model<any>,
+  rows: T[],
+): Promise<void> {
+  if (rows.length === 0) return;
+  await model.bulkWrite(
+    rows.map((row) => ({
+      replaceOne: { filter: { _id: row._id }, replacement: row, upsert: true },
     })),
   );
+}
 
-  await MosqueModel.insertMany(allMosques.map((mosque) => ({ ...mosque })));
+export async function seedAll(options: SeedOptions = {}): Promise<SeedCounts> {
+  const rounds = options.bcryptRounds ?? 10;
 
-  await FollowModel.insertMany(
+  // Most seeded accounts share one password and only the demo coordinator has
+  // its own, so hash per distinct password rather than per row: twenty bcrypts
+  // at cost 10 is minutes of wall clock.
+  const cache = new Map<string, string>();
+  const hashFor = async (plain: string): Promise<string> => {
+    const cached = cache.get(plain);
+    if (cached) return cached;
+    const hash = await bcrypt.hash(plain, rounds);
+    cache.set(plain, hash);
+    return hash;
+  };
+
+  await upsertAll(
+    UserModel,
+    await Promise.all(
+      mockUsers.map(async (user) => ({
+        ...user,
+        passwordHash: await hashFor(passwordFor(user.email)),
+        notificationPrefs: { ...defaultNotificationPrefs },
+      })),
+    ),
+  );
+
+  await upsertAll(
+    MosqueModel,
+    allMosques.map((mosque) => ({ ...mosque })),
+  );
+
+  await upsertAll(
+    FollowModel,
     mockFollows.map((follow) => ({ ...follow, createdAt: new Date(follow.createdAt) })),
   );
 
-  await MembershipModel.insertMany(
+  await upsertAll(
+    MembershipModel,
     mockMemberships.map((m) => ({ ...m, createdAt: new Date(m.createdAt) })),
   );
 
-  // slotsFilled is inserted as given, never recomputed from signups — an event
+  // slotsFilled is written as given, never recomputed from signups - an event
   // can legitimately be 84/200 with no rows behind it.
-  await PostModel.insertMany(
+  await upsertAll(
+    PostModel,
     [...mockPosts, ...mockPastPosts].map((post) => ({
       ...post,
       startAt: new Date(post.startAt),
@@ -111,10 +162,11 @@ export async function seedAll(options: SeedOptions = {}): Promise<SeedCounts> {
     })),
   );
 
-  await SignupModel.insertMany(
+  await upsertAll(
+    SignupModel,
     mockSignups.map((signup) => ({
       ...signup,
-      // Both of these stay absent when the fixture omits them: two rows have no
+      // Both stay absent when the fixture omits them: two rows have no
       // createdAt on purpose, and the admin home branches on its presence.
       ...(signup.createdAt ? { createdAt: new Date(signup.createdAt) } : {}),
       ...(signup.checkedInAt ? { checkedInAt: new Date(signup.checkedInAt) } : {}),
@@ -122,11 +174,13 @@ export async function seedAll(options: SeedOptions = {}): Promise<SeedCounts> {
   );
 
   // Neither shape carries an _id in the contract, so mint one per row.
-  await IqamahConfigModel.insertMany(
+  await upsertAll(
+    IqamahConfigModel,
     mockIqamah.map((row, i) => ({ ...row, _id: `iqamah_${String(i + 1).padStart(3, '0')}` })),
   );
 
-  await JummahSessionModel.insertMany(
+  await upsertAll(
+    JummahSessionModel,
     mockJummah.map((row, i) => ({ ...row, _id: `jummah_${String(i + 1).padStart(3, '0')}` })),
   );
 

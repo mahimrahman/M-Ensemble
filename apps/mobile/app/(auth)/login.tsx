@@ -10,6 +10,11 @@ import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTopInset } from '@/hooks/useTopInset';
+import {
+  DEMO_COORDINATOR_EMAIL,
+  DEMO_COORDINATOR_PASSWORD,
+  MOCK_PASSWORD,
+} from '@m-ensemble/shared';
 import { ApiRequestError } from '@/api/client';
 import { Button, Field, LangSwitcher, Logo } from '@/components';
 import { useLang } from '@/i18n';
@@ -17,17 +22,22 @@ import { warn } from '@/lib/haptics';
 import { useAuth } from '@/store/auth';
 import { colors, gradients, radius, screenPadding, spacing, type } from '@/theme';
 
-const DEMO_EMAIL = 'yusuf@example.com';
-const COORDINATOR_EMAIL = 'amina@example.com';
-const DEMO_PASSWORD = 'mensemble';
+/**
+ * The two accounts the demo signs in as, taken from the shared fixtures so the
+ * buttons cannot drift from what the seed actually wrote. The coordinator is a
+ * real address on the allowlist; the member is one of the seeded volunteers.
+ */
+const MEMBER_EMAIL = 'yusuf@example.com';
+const MEMBER_PASSWORD = MOCK_PASSWORD;
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
   const insets = useSafeAreaInsets();
   const top = useTopInset();
   const { t, align, row, font } = useLang();
-  const [email, setEmail] = useState(DEMO_EMAIL);
-  const [password, setPassword] = useState(DEMO_PASSWORD);
+  // Prefilled with the coordinator, which is the account handed out.
+  const [email, setEmail] = useState(DEMO_COORDINATOR_EMAIL);
+  const [password, setPassword] = useState(DEMO_COORDINATOR_PASSWORD);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -111,7 +121,7 @@ export default function LoginScreen() {
                 variant="inverse"
                 fullWidth={false}
                 disabled={busy}
-                onPress={() => void submit(DEMO_EMAIL, DEMO_PASSWORD)}
+                onPress={() => void submit(MEMBER_EMAIL, MEMBER_PASSWORD)}
                 style={styles.demoButton}
               />
               <Button
@@ -119,7 +129,7 @@ export default function LoginScreen() {
                 variant="inverse"
                 fullWidth={false}
                 disabled={busy}
-                onPress={() => void submit(COORDINATOR_EMAIL, DEMO_PASSWORD)}
+                onPress={() => void submit(DEMO_COORDINATOR_EMAIL, DEMO_COORDINATOR_PASSWORD)}
                 style={styles.demoButton}
               />
             </View>

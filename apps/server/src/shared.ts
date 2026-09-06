@@ -47,6 +47,9 @@ export const {
   buildPrayerTable,
   // fixtures — the seed and the test harness
   MOCK_PASSWORD,
+  DEMO_COORDINATOR_EMAIL,
+  DEMO_COORDINATOR_PASSWORD,
+  passwordFor,
   CURRENT_USER_ID,
   KHADIJA_ADMIN_ID,
   KHADIJA_ID,

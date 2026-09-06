@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { afterAll, beforeAll, beforeEach, inject } from 'vitest';
-import { seedAll, syncAllIndexes } from '../src/scripts/seedData.js';
+import { clearAll, seedAll, syncAllIndexes } from '../src/scripts/seedData.js';
 
 beforeAll(async () => {
   await mongoose.connect(inject('mongoUri'), { dbName: 'mensemble_test' });
@@ -19,6 +19,13 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
+  // Wipe first. `seedAll` deliberately no longer does this — it upserts, so
+  // that re-seeding a live database can never delete a real account — but a
+  // test needs a clean slate, or rows the previous test created (a signup, a
+  // check-in) leak into the next one and it passes or fails for the wrong
+  // reason.
+  await clearAll();
+
   // Cost 4, not 10. Twenty bcrypt hashes at cost 10 before every test is
   // minutes of wall clock; nothing here is checking bcrypt's work factor.
   await seedAll({ bcryptRounds: 4 });

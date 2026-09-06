@@ -12,7 +12,7 @@ import { BellRing, ChevronRight, Copy, LogOut } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { Alert } from '@/lib/alert';
-import { USING_MOCKS, api } from '@/api/client';
+import { api } from '@/api/client';
 import { Button, Card, Chip, GradientHeader, LangSwitcher, Loading, Screen } from '@/components';
 import { useApi } from '@/hooks/useApi';
 import { usePushToken } from '@/hooks/usePushToken';
@@ -258,9 +258,6 @@ export default function ProfileScreen() {
         {/* ── Sign out ── */}
         <Button label={t.signout} icon={LogOut} variant="danger" onPress={() => void signOut()} />
 
-        <Text style={styles.footnote}>
-          {t.dataSource} · {USING_MOCKS ? t.mockClient : t.liveServer}
-        </Text>
       </ScrollView>
     </Screen>
   );

@@ -213,9 +213,6 @@ const fr = {
   copyToken: 'Copier le jeton',
   copied: 'Copié',
   testNotification: 'Test de notification',
-  dataSource: 'Source des données',
-  mockClient: 'client simulé',
-  liveServer: 'serveur en direct',
   member: 'Membre',
   couldNotSave: 'Enregistrement impossible',
 
@@ -562,9 +559,6 @@ const en: Strings = {
   copyToken: 'Copy token',
   copied: 'Copied',
   testNotification: 'Test notification',
-  dataSource: 'Data source',
-  mockClient: 'mock client',
-  liveServer: 'live server',
   member: 'Member',
   couldNotSave: 'Could not save',
 
@@ -898,9 +892,6 @@ const ar: Strings = {
   copyToken: 'نسخ الرمز',
   copied: 'تم النسخ',
   testNotification: 'إشعار تجريبي',
-  dataSource: 'مصدر البيانات',
-  mockClient: 'بيانات تجريبية',
-  liveServer: 'خادم مباشر',
   member: 'عضو',
   couldNotSave: 'تعذّر الحفظ',
 

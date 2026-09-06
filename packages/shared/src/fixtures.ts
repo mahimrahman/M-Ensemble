@@ -282,6 +282,34 @@ export const CIIC_ADMIN_ID: ID = 'user_008';
 export const VERDUN_ADMIN_ID: ID = 'user_012';
 export const FATIMA_ADMIN_ID: ID = 'user_016';
 
+/** Every seeded account signs in with this, except the ones in `PASSWORDS`. */
+export const MOCK_PASSWORD = 'mensemble';
+
+/**
+ * The account handed out for demos, and the one the login screen offers.
+ *
+ * Its password is deliberately short and memorable because it gets typed on a
+ * borrowed phone in front of an audience. That is a demo trade-off, not a
+ * standard: it clears the app's six-character floor and nothing more, and it
+ * should be rotated before this reaches anyone real.
+ */
+export const DEMO_COORDINATOR_EMAIL = 'khadija.mosque@gmail.com';
+export const DEMO_COORDINATOR_PASSWORD = '123456';
+
+/**
+ * Per-account passwords. Anything absent here uses `MOCK_PASSWORD`, so the
+ * twenty seeded volunteers keep one shared password and only the accounts
+ * someone actually types get their own.
+ */
+export const PASSWORDS: Readonly<Record<string, string>> = {
+  [DEMO_COORDINATOR_EMAIL]: DEMO_COORDINATOR_PASSWORD,
+};
+
+/** The password a seeded account signs in with. */
+export function passwordFor(email: string): string {
+  return PASSWORDS[email.trim().toLowerCase()] ?? MOCK_PASSWORD;
+}
+
 export const mockUsers: User[] = [
   {
     _id: 'user_001',
@@ -290,9 +318,12 @@ export const mockUsers: User[] = [
     interests: ['Volunteering', 'Community meals', 'Youth'],
   },
   {
+    // The Khadijah coordinator, and the account the demo signs in as. A real
+    // address rather than @example.com: it is handed out, typed on a phone,
+    // and has to survive being a genuine mailbox.
     _id: 'user_002',
-    name: 'Amina Cherkaoui',
-    email: 'amina@example.com',
+    name: 'Khadijah Islamic Center',
+    email: DEMO_COORDINATOR_EMAIL,
     interests: ['Volunteering', 'Facilities', 'Fundraising'],
   },
   {
@@ -405,8 +436,6 @@ export const mockUsers: User[] = [
   },
 ];
 
-/** Any mock account signs in with this. */
-export const MOCK_PASSWORD = 'mensemble';
 
 // ------------------------------------------------- coordinator allowlist ---
 
@@ -431,7 +460,7 @@ export interface CoordinatorGrant {
 }
 
 export const COORDINATOR_EMAILS: CoordinatorGrant[] = [
-  { email: 'amina@example.com', mosqueId: KHADIJA_ID },
+  { email: DEMO_COORDINATOR_EMAIL, mosqueId: KHADIJA_ID },
   { email: 'bilal@example.com', mosqueId: MADINA_ID },
   { email: 'fatima@example.com', mosqueId: SALAHOUDDINE_ID },
   { email: 'sumaya@example.com', mosqueId: CIIC_ID },
