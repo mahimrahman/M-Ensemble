@@ -19,15 +19,15 @@ import {
   type Column,
 } from '@/ui';
 import { CredentialSlip } from '@/pages/CredentialSlip';
-import { PLAN_LABELS, count, moneyShort, percent, relative } from '@/lib/format';
+import { count, moneyShort, percent, priceLabel, relative } from '@/lib/format';
 
 /**
  * Every mosque on the platform, operated or merely listed.
  *
  * The `operated` column is the one that matters: a directory row is public data
  * we hold about a real mosque nobody has claimed, and it has no coordinator, no
- * posts and no plan. Sorting and filtering on it is how you find the mosques
- * worth calling.
+ * posts and nothing agreed to pay. Sorting and filtering on it is how you find
+ * the mosques worth calling.
  */
 
 const columns = (): Column<MosqueSummary>[] => [
@@ -53,12 +53,14 @@ const columns = (): Column<MosqueSummary>[] => [
       ),
   },
   {
-    key: 'plan',
-    header: 'Plan',
+    key: 'priceCents',
+    header: 'Billing',
     sortable: true,
     render: (row) => (
       <>
-        <Badge tone={row.plan === 'free' ? 'neutral' : 'brand'}>{PLAN_LABELS[row.plan]}</Badge>
+        <Badge tone={row.priceCents === 0 ? 'neutral' : 'brand'}>
+          {priceLabel(row.priceCents)}
+        </Badge>
         {row.subscriptionStatus === 'past_due' && (
           <div style={{ marginTop: 3 }}>
             <Badge tone="critical">Past due</Badge>
@@ -122,7 +124,7 @@ const columns = (): Column<MosqueSummary>[] => [
 
 export function Mosques(): React.JSX.Element {
   const navigate = useNavigate();
-  const list = useListState({ operated: '', plan: '' }, 'signupCount');
+  const list = useListState({ operated: '', billing: '' }, 'signupCount');
   const state = useAsync(() => api.mosques(list.query), [JSON.stringify(list.query)]);
   const [creating, setCreating] = useState(false);
   const [credential, setCredential] = useState<IssuedCredential>();
@@ -163,13 +165,14 @@ export function Mosques(): React.JSX.Element {
             ]}
           />
           <FilterSelect
-            label="Plan"
-            value={list.filters.plan}
-            onChange={(value) => list.setFilter('plan', value)}
+            label="Billing"
+            value={list.filters.billing}
+            onChange={(value) => list.setFilter('billing', value)}
             options={[
-              { value: 'free', label: 'Free' },
-              { value: 'standard', label: 'Standard' },
-              { value: 'pro', label: 'Pro' },
+              { value: 'active', label: 'Active' },
+              { value: 'trialing', label: 'Trialing' },
+              { value: 'past_due', label: 'Past due' },
+              { value: 'cancelled', label: 'Cancelled' },
             ]}
           />
         </div>
@@ -235,7 +238,7 @@ function CreateMosqueDialog({
     phone: '',
     website: '',
     bio: '',
-    plan: 'free',
+    priceDollars: '0',
     joinCode: '',
     withCoordinator: true,
     coordinatorName: '',
@@ -255,7 +258,7 @@ function CreateMosqueDialog({
         website: form.website || undefined,
         bio: form.bio || undefined,
         joinCode: form.joinCode || undefined,
-        plan: form.plan as 'free' | 'standard' | 'pro',
+        priceCents: Math.round(Number(form.priceDollars) * 100),
         coordinator:
           form.withCoordinator && form.coordinatorEmail
             ? { name: form.coordinatorName, email: form.coordinatorEmail }
@@ -335,12 +338,17 @@ function CreateMosqueDialog({
       </div>
 
       <div className="grid cols-2">
-        <Field label="Plan">
-          <select value={form.plan} onChange={(e) => set('plan', e.target.value)}>
-            <option value="free">Free</option>
-            <option value="standard">Standard — $49/mo</option>
-            <option value="pro">Pro — $129/mo</option>
-          </select>
+        <Field
+          label="Price per month"
+          hint="In dollars. Leave at 0 — a mosque onboarded just now has agreed to nothing yet."
+        >
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={form.priceDollars}
+            onChange={(e) => set('priceDollars', e.target.value)}
+          />
         </Field>
         <Field label="Join code" hint="Leave blank and the server mints one.">
           <input

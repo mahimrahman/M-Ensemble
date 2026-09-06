@@ -166,7 +166,7 @@ describe('mosque provisioning', () => {
         name: 'Masjid An-Nour',
         address: '4000 Rue Jean-Talon, Montréal',
         coordinates: { lat: 45.5401, lng: -73.6203 },
-        plan: 'standard',
+        priceCents: 4900,
         coordinator: { name: 'Idris Karim', email: 'idris@annour.test' },
       })
       .expect(201);
@@ -197,8 +197,30 @@ describe('mosque provisioning', () => {
       .get(`/api/admin/mosques/${mosque._id}`)
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
-    expect(detail.body.data.subscription.plan).toBe('standard');
+    expect(detail.body.data.subscription.priceCents).toBe(4900);
     expect(detail.body.data.summary.operated).toBe(true);
+  });
+
+  it('starts a mosque at zero when no price was agreed', async () => {
+    const token = await superAdminToken();
+    const res = await api
+      .post('/api/admin/mosques')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'Masjid As-Salam',
+        address: '77 Rue Sherbrooke, Montréal',
+        coordinates: { lat: 45.51, lng: -73.57 },
+      })
+      .expect(201);
+
+    // A billing row exists — the console never branches on null — but it bills
+    // nothing. A mosque onboarded a minute ago has agreed to nothing, and a
+    // console that quietly starts charging on creation is one nobody can trust.
+    const detail = await api
+      .get(`/api/admin/mosques/${res.body.data.mosque._id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(detail.body.data.subscription.priceCents).toBe(0);
   });
 
   it('never stores or logs the issued password', async () => {

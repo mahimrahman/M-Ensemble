@@ -19,7 +19,7 @@ import {
   type Tone,
 } from '@/ui';
 import { RampBars, StackedBars, StatTile, type Series } from '@/ui/charts';
-import { PLAN_LABELS, date, money, monthLabel, relative } from '@/lib/format';
+import { date, humanise, money, monthLabel, relative } from '@/lib/format';
 
 /**
  * The money screen — all three flows in one place.
@@ -129,14 +129,20 @@ export function Billing(): React.JSX.Element {
                   />
                 </Card>
 
-                <Card title="Mosques by plan">
+                <Card title="Mosques by billing status">
                   <RampBars
-                    rows={data.byPlan.map((row) => ({
-                      label: PLAN_LABELS[row.plan],
+                    rows={data.byStatus.map((row) => ({
+                      label: humanise(row.status),
                       value: row.mosques,
                       caption: money(row.mrrCents),
                     }))}
                   />
+                  {data.notBilledCount > 0 && (
+                    <p className="muted" style={{ fontSize: 12.5, marginTop: 10 }}>
+                      {data.notBilledCount} of them on a zero price — waived, sponsored, or not yet
+                      agreed. They carry no MRR.
+                    </p>
+                  )}
                 </Card>
               </div>
             </>
@@ -314,15 +320,6 @@ function SubscriptionsTable(): React.JSX.Element {
                   <Link to={`/mosques/${row.mosqueId}`} className="cell-main">
                     {names.get(row.mosqueId) ?? row.mosqueId}
                   </Link>
-                ),
-              },
-              {
-                key: 'plan',
-                header: 'Plan',
-                render: (row) => (
-                  <Badge tone={row.plan === 'free' ? 'neutral' : 'brand'}>
-                    {PLAN_LABELS[row.plan]}
-                  </Badge>
                 ),
               },
               {

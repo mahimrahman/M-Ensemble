@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { api } from '@/api';
 import { Async, Badge, Card, PageHeader, useAsync, type Tone } from '@/ui';
 import { LineChart, RampBars, StatTile, type Series } from '@/ui/charts';
-import { count, dateTime, money, moneyShort, percent, relative } from '@/lib/format';
+import { count, dateTime, money, moneyShort, percent, priceLabel, relative } from '@/lib/format';
 
 /**
  * The platform at a glance.
@@ -159,7 +159,7 @@ export function Overview(): React.JSX.Element {
                   <thead>
                     <tr>
                       <th>Mosque</th>
-                      <th>Plan</th>
+                      <th>Billing</th>
                       <th className="num">Followers</th>
                       <th className="num">Live posts</th>
                       <th className="num">Attendance</th>
@@ -177,12 +177,8 @@ export function Overview(): React.JSX.Element {
                           <div className="cell-sub">{mosque.city}</div>
                         </td>
                         <td>
-                          <Badge tone={mosque.plan === 'free' ? 'neutral' : 'brand'}>
-                            {mosque.plan === 'free'
-                              ? 'Free'
-                              : mosque.plan === 'pro'
-                                ? 'Pro'
-                                : 'Standard'}
+                          <Badge tone={mosque.priceCents === 0 ? 'neutral' : 'brand'}>
+                            {priceLabel(mosque.priceCents)}
                           </Badge>
                         </td>
                         <td className="num">{count(mosque.followerCount)}</td>

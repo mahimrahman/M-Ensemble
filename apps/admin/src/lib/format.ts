@@ -1,4 +1,4 @@
-import type { PlanId } from '@m-ensemble/shared';
+import type { BillingInterval } from '@m-ensemble/shared';
 
 /**
  * Formatting and the handful of constants the console needs at runtime.
@@ -90,16 +90,19 @@ export function dayLabel(day: string): string {
   return d.toLocaleDateString('en-CA', { day: 'numeric', month: 'short' });
 }
 
-export const PLAN_LABELS: Record<PlanId, string> = {
-  free: 'Free',
-  standard: 'Standard',
-  pro: 'Pro',
-};
-
-/** List price per month, in cents. Mirrors `PLANS` in the contract. */
-export const PLAN_PRICES: Record<PlanId, number> = { free: 0, standard: 4900, pro: 12900 };
-
-export const PLAN_IDS: PlanId[] = ['free', 'standard', 'pro'];
+/**
+ * What a mosque pays, as a label: `$49.00/mo`, or `Not billed` at zero.
+ *
+ * There are no tiers — every mosque gets the whole product, and only the price
+ * varies — so the only distinction worth a badge is whether a price has been
+ * agreed at all. Zero is the honest default for a mosque onboarded five minutes
+ * ago, and stays zero for the waived and the sponsored ones; the reason is in
+ * the subscription's `note`.
+ */
+export function priceLabel(priceCents: number, interval: BillingInterval = 'monthly'): string {
+  if (priceCents === 0) return 'Not billed';
+  return `${money(priceCents)}/${interval === 'yearly' ? 'yr' : 'mo'}`;
+}
 
 /** Turns any label into something readable: `past_due` → `Past due`. */
 export function humanise(value: string): string {

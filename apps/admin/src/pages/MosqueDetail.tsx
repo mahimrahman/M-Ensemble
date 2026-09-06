@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import type { IssuedCredential, PlanId } from '@m-ensemble/shared';
+import type { BillingInterval, IssuedCredential, Subscription } from '@m-ensemble/shared';
 import { api } from '@/api';
 import { useWriteGuard } from '@/auth';
 import {
@@ -17,7 +17,7 @@ import {
 } from '@/ui';
 import { LineChart, StatTile, type Series } from '@/ui/charts';
 import { CredentialSlip } from '@/pages/CredentialSlip';
-import { PLAN_LABELS, count, date, dayLabel, money, percent, relative } from '@/lib/format';
+import { count, date, dayLabel, money, percent, priceLabel, relative } from '@/lib/format';
 
 /**
  * One mosque, in full: how it is doing, who runs it, what it owes, what it has
@@ -66,7 +66,7 @@ export function MosqueDetail(): React.JSX.Element {
                   title={reason}
                   onClick={() => setPlanOpen(true)}
                 >
-                  Change plan
+                  Change price
                 </button>
                 <button
                   className="btn primary"
@@ -109,7 +109,7 @@ export function MosqueDetail(): React.JSX.Element {
                 tone="down-good"
                 deltaLabel={
                   data.subscription
-                    ? `${PLAN_LABELS[data.subscription.plan]} · ${money(data.subscription.priceCents)}/mo`
+                    ? priceLabel(data.subscription.priceCents, data.subscription.interval)
                     : 'No subscription'
                 }
               />
@@ -131,12 +131,6 @@ export function MosqueDetail(): React.JSX.Element {
                 <Card title="Subscription">
                   {data.subscription ? (
                     <dl className="kv">
-                      <dt>Plan</dt>
-                      <dd>
-                        <Badge tone={data.subscription.plan === 'free' ? 'neutral' : 'brand'}>
-                          {PLAN_LABELS[data.subscription.plan]}
-                        </Badge>
-                      </dd>
                       <dt>Status</dt>
                       <dd>
                         <Badge tone={SUB_TONE[data.subscription.status] ?? 'neutral'}>
@@ -371,10 +365,10 @@ export function MosqueDetail(): React.JSX.Element {
             />
           )}
 
-          {planOpen && data.subscription && (
-            <PlanDialog
+          {planOpen && (
+            <PriceDialog
               mosqueId={id}
-              current={data.subscription.plan}
+              current={data.subscription}
               onClose={() => setPlanOpen(false)}
               onSaved={() => {
                 setPlanOpen(false);
@@ -453,24 +447,41 @@ function IssueDialog({
   );
 }
 
-function PlanDialog({
+/**
+ * Set what this mosque is charged.
+ *
+ * There is no tier to pick — every mosque gets the whole product — so the only
+ * decisions are the number, how often, and why. The **why** is the field that
+ * matters: a price that disagrees with the standard one is a promise somebody
+ * made, and six months later `note` is the only record of who and on what
+ * terms.
+ *
+ * The price is typed in dollars and stored in cents, because a console that
+ * asks a human for cents eventually gets billed 4900 dollars.
+ */
+function PriceDialog({
   mosqueId,
   current,
   onClose,
   onSaved,
 }: {
   mosqueId: string;
-  current: PlanId;
+  /** Null for a mosque nobody has agreed a price with yet. */
+  current: Subscription | null;
   onClose: () => void;
   onSaved: () => void;
 }): React.JSX.Element {
   const { busy, run } = useAction();
-  const [plan, setPlan] = useState<PlanId>(current);
-  const [note, setNote] = useState('');
+  const [dollars, setDollars] = useState(((current?.priceCents ?? 0) / 100).toFixed(2));
+  const [interval, setInterval] = useState<BillingInterval>(current?.interval ?? 'monthly');
+  const [note, setNote] = useState(current?.note ?? '');
+
+  const amount = Number(dollars);
+  const valid = dollars.trim() !== '' && Number.isFinite(amount) && amount >= 0;
 
   return (
     <Modal
-      title="Change plan"
+      title={current ? 'Change price' : 'Start billing'}
       onClose={onClose}
       footer={
         <>
@@ -479,12 +490,17 @@ function PlanDialog({
           </button>
           <button
             className="btn primary"
-            disabled={busy}
+            disabled={busy || !valid}
             onClick={() =>
               run(async () => {
-                await api.upsertSubscription({ mosqueId, plan, note: note || undefined });
+                await api.upsertSubscription({
+                  mosqueId,
+                  priceCents: Math.round(amount * 100),
+                  interval,
+                  note: note.trim() || undefined,
+                });
                 onSaved();
-              }, 'Plan updated.')
+              }, 'Price updated.')
             }
           >
             Save
@@ -492,16 +508,27 @@ function PlanDialog({
         </>
       }
     >
-      <Field label="Plan">
-        <select value={plan} onChange={(e) => setPlan(e.target.value as PlanId)}>
-          <option value="free">Free — $0</option>
-          <option value="standard">Standard — $49/mo</option>
-          <option value="pro">Pro — $129/mo</option>
+      <Field
+        label="Price"
+        hint="In dollars. Zero for a waived, sponsored or not-yet-agreed mosque."
+      >
+        <input
+          type="number"
+          min="0"
+          step="0.01"
+          value={dollars}
+          onChange={(e) => setDollars(e.target.value)}
+        />
+      </Field>
+      <Field label="Billed">
+        <select value={interval} onChange={(e) => setInterval(e.target.value as BillingInterval)}>
+          <option value="monthly">Monthly</option>
+          <option value="yearly">Yearly</option>
         </select>
       </Field>
       <Field
         label="Note"
-        hint="Why this mosque is on this plan — a discount, a sponsor, a pilot. Shows on their record."
+        hint="Why this mosque pays this — a discount, a sponsor, a pilot. Shows on their record."
       >
         <textarea value={note} onChange={(e) => setNote(e.target.value)} />
       </Field>
