@@ -123,6 +123,25 @@ export function ToastProvider({ children }: { children: ReactNode }): React.JSX.
 export const useToast = (): ((message: string, tone?: Toast['tone']) => void) =>
   useContext(ToastContext);
 
+/**
+ * What to show when a write is rejected.
+ *
+ * A rejected write is usually one bad field, and the server already says which
+ * — `validate` sends Zod's flattened errors as `details`. Dropping them leaves
+ * the toast reading "Invalid request", which says nothing about the form the
+ * person is looking at, so the field errors are appended when there are any.
+ */
+function actionMessage(err: ApiError): string {
+  const details = err.details as
+    { formErrors?: string[]; fieldErrors?: Record<string, string[] | undefined> } | undefined;
+  if (!details || typeof details !== 'object') return err.message;
+  const fields = Object.entries(details.fieldErrors ?? {}).map(([field, messages]) =>
+    messages?.[0] ? `${field}: ${messages[0]}` : field,
+  );
+  const parts = [...fields, ...(details.formErrors ?? [])].filter(Boolean);
+  return parts.length ? `${err.message} — ${parts.join('; ')}` : err.message;
+}
+
 /** Runs a write, toasts the outcome, and hands back a pending flag for buttons. */
 export function useAction(): {
   busy: boolean;
@@ -142,7 +161,7 @@ export function useAction(): {
         // The server writes these messages for people, so show the server's
         // sentence rather than a generic one — "That is the last super admin"
         // is far more use than "Something went wrong".
-        toast(err instanceof ApiError ? err.message : 'Something went wrong.', 'critical');
+        toast(err instanceof ApiError ? actionMessage(err) : 'Something went wrong.', 'critical');
         return false;
       } finally {
         setBusy(false);

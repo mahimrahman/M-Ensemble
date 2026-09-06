@@ -429,7 +429,7 @@ const styles = StyleSheet.create({
     borderColor: colors.rule,
     borderRadius: radius.lg,
   },
-  searchInput: { ...type.small, color: colors.ink, flex: 1, padding: 0 },
+  searchInput: { ...type.small, lineHeight: undefined, color: colors.ink, flex: 1, padding: 0 },
   nearBtn: {
     width: 44,
     height: 44,

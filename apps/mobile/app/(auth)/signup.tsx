@@ -3,8 +3,9 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useKeyboardReveal } from '@/hooks/useKeyboardReveal';
 import { useTopInset } from '@/hooks/useTopInset';
 import { ApiRequestError } from '@/api/client';
 import { Button, Field, Logo } from '@/components';
@@ -18,6 +19,7 @@ export default function SignupScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const top = useTopInset();
+  const { scrollRef, keyboardPad, onScroll } = useKeyboardReveal();
   const { t, align, font } = useLang();
 
   const [name, setName] = useState('');
@@ -52,64 +54,63 @@ export default function SignupScreen() {
       end={{ x: 1, y: 1 }}
       style={styles.fill}
     >
-      <KeyboardAvoidingView
-        style={styles.fill}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      {/* No KeyboardAvoidingView: it only ever padded on iOS, and left the
+          keyboard sitting over these fields on Android. useKeyboardReveal
+          measures what the keyboard covers and scrolls the focused field clear. */}
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={[
+          styles.scroll,
+          {
+            paddingTop: top + spacing.xl,
+            paddingBottom: insets.bottom + spacing.xl + keyboardPad,
+          },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
       >
-        <ScrollView
-          contentContainerStyle={[
-            styles.scroll,
-            { paddingTop: top + spacing.xl, paddingBottom: insets.bottom + spacing.xl },
-          ]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.brand}>
-            <Logo variant="mark" tone="onDark" height={72} label={t.welcome} />
-            <Text style={[font(styles.title), align]}>{t.signUpTitle}</Text>
-            <Text style={[font(styles.tagline), align]}>{t.followAMosqueSub}</Text>
-          </View>
+        <View style={styles.brand}>
+          <Logo variant="mark" tone="onDark" height={72} label={t.welcome} />
+          <Text style={[font(styles.title), align]}>{t.signUpTitle}</Text>
+          <Text style={[font(styles.tagline), align]}>{t.followAMosqueSub}</Text>
+        </View>
 
-          <View style={styles.card}>
-            <Field
-              label={t.name}
-              value={name}
-              onChangeText={setName}
-              placeholder={t.name}
-              autoComplete="name"
-            />
-            <Field
-              label={t.email}
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              placeholder="you@example.com"
-            />
-            <Field
-              label={t.password}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              placeholder="••••••••"
-              error={error ?? undefined}
-            />
+        <View style={styles.card}>
+          <Field
+            label={t.name}
+            value={name}
+            onChangeText={setName}
+            placeholder={t.name}
+            autoComplete="name"
+          />
+          <Field
+            label={t.email}
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            placeholder="you@example.com"
+          />
+          <Field
+            label={t.password}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            placeholder="••••••••"
+            error={error ?? undefined}
+          />
 
-            <Button
-              label={t.createAccount}
-              size="lg"
-              loading={busy}
-              onPress={() => void submit()}
-            />
-            <Button
-              label={t.haveAccount}
-              variant="ghost"
-              disabled={busy}
-              onPress={() => router.back()}
-            />
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+          <Button label={t.createAccount} size="lg" loading={busy} onPress={() => void submit()} />
+          <Button
+            label={t.haveAccount}
+            variant="ghost"
+            disabled={busy}
+            onPress={() => router.back()}
+          />
+        </View>
+      </ScrollView>
     </LinearGradient>
   );
 }

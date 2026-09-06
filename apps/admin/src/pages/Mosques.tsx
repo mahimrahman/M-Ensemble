@@ -30,6 +30,12 @@ import { count, moneyShort, percent, priceLabel, relative } from '@/lib/format';
  * the mosques worth calling.
  */
 
+/**
+ * The same shape the server accepts. A looser check here — anything with an
+ * @ in it — lets `admin@localhost` through the button and back as a 400.
+ */
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
 const columns = (): Column<MosqueSummary>[] => [
   {
     key: 'name',
@@ -269,6 +275,8 @@ function CreateMosqueDialog({
     if (!ok) return;
   };
 
+  // Mirrors `createMosqueSchema`. Anything looser here is a round trip that
+  // comes back as a rejection the form could have caught itself.
   const valid =
     form.name.trim().length > 1 &&
     form.address.trim().length > 3 &&
@@ -276,8 +284,11 @@ function CreateMosqueDialog({
     form.lng !== '' &&
     Number.isFinite(Number(form.lat)) &&
     Number.isFinite(Number(form.lng)) &&
+    Number.isFinite(Number(form.priceDollars)) &&
+    Number(form.priceDollars) >= 0 &&
+    (form.joinCode === '' || /^[A-Za-z0-9]{4,12}$/.test(form.joinCode.trim())) &&
     (!form.withCoordinator ||
-      (form.coordinatorName.trim().length > 1 && form.coordinatorEmail.includes('@')));
+      (form.coordinatorName.trim().length > 1 && EMAIL.test(form.coordinatorEmail.trim())));
 
   return (
     <Modal

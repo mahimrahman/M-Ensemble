@@ -7,8 +7,9 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useKeyboardReveal } from '@/hooks/useKeyboardReveal';
 import { useTopInset } from '@/hooks/useTopInset';
 import {
   DEMO_COORDINATOR_EMAIL,
@@ -34,6 +35,7 @@ export default function LoginScreen() {
   const { signIn } = useAuth();
   const insets = useSafeAreaInsets();
   const top = useTopInset();
+  const { scrollRef, keyboardPad, onScroll } = useKeyboardReveal();
   const { t, align, row, font } = useLang();
   // Empty on purpose. The demo accounts are one tap away at the bottom of the
   // screen, so prefilling the fields only meant clearing them to type a real
@@ -78,90 +80,94 @@ export default function LoginScreen() {
       end={{ x: 1, y: 1 }}
       style={styles.fill}
     >
-      <KeyboardAvoidingView
-        style={styles.fill}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      {/* No KeyboardAvoidingView: it only ever padded on iOS, and left the
+          keyboard sitting over these fields on Android. useKeyboardReveal
+          measures what the keyboard covers and scrolls the focused field clear. */}
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={[
+          styles.scroll,
+          {
+            paddingTop: top + spacing.xl,
+            paddingBottom: insets.bottom + spacing.xl + keyboardPad,
+          },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
       >
-        <ScrollView
-          contentContainerStyle={[
-            styles.scroll,
-            { paddingTop: top + spacing.xl, paddingBottom: insets.bottom + spacing.xl },
-          ]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={[styles.langRow, row]}>
-            <LangSwitcher />
-          </View>
+        <View style={[styles.langRow, row]}>
+          <LangSwitcher />
+        </View>
 
-          {/* Logo only. The lockup already carries "Répondre présent" as
-              artwork; a second tagline underneath said the same thing twice. */}
-          <View style={styles.brand}>
-            <Logo tone="onDark" height={64} label={t.welcome} />
-          </View>
+        {/* Logo only. The lockup already carries "Répondre présent" as
+            artwork; a second tagline underneath said the same thing twice. */}
+        <View style={styles.brand}>
+          <Logo tone="onDark" height={64} label={t.welcome} />
+        </View>
 
-          <View style={styles.card}>
-            <Field
-              label={t.email}
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              autoComplete="email"
-              keyboardType="email-address"
-              placeholder="you@example.com"
-            />
-            <Field
-              label={t.password}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoComplete="current-password"
-              placeholder="••••••••"
-              error={error ?? undefined}
-            />
+        <View style={styles.card}>
+          <Field
+            label={t.email}
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            autoComplete="email"
+            keyboardType="email-address"
+            placeholder="you@example.com"
+          />
+          <Field
+            label={t.password}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            autoComplete="current-password"
+            placeholder="••••••••"
+            error={error ?? undefined}
+          />
 
-            {/* Held until both fields have something. An empty form used to
-                reach the server and come back as a validation error, which
-                reads as a failure rather than as nothing typed yet. */}
+          {/* Held until both fields have something. An empty form used to
+              reach the server and come back as a validation error, which
+              reads as a failure rather than as nothing typed yet. */}
+          <Button
+            label={t.login}
+            size="lg"
+            loading={busy}
+            disabled={!email.trim() || !password}
+            onPress={() => void submit()}
+          />
+
+          <Link href="/signup" style={styles.link}>
+            <Text style={font(styles.linkText)}>
+              {t.noAccount} {t.createAccount}
+            </Text>
+          </Link>
+        </View>
+
+        {/* The demo doors — how the walkthrough gets two phones signed in fast. */}
+        <View style={styles.demo}>
+          <Text style={font(styles.demoLabel)}>{t.signIn.toUpperCase()}</Text>
+          <View style={[styles.demoRow, row]}>
             <Button
-              label={t.login}
-              size="lg"
-              loading={busy}
-              disabled={!email.trim() || !password}
-              onPress={() => void submit()}
+              label={t.member}
+              variant="inverse"
+              fullWidth={false}
+              disabled={busy}
+              onPress={() => signInAs(MEMBER_EMAIL, MEMBER_PASSWORD)}
+              style={styles.demoButton}
             />
-
-            <Link href="/signup" style={styles.link}>
-              <Text style={font(styles.linkText)}>
-                {t.noAccount} {t.createAccount}
-              </Text>
-            </Link>
+            <Button
+              label={t.coordinator}
+              variant="inverse"
+              fullWidth={false}
+              disabled={busy}
+              onPress={() => signInAs(DEMO_COORDINATOR_EMAIL, DEMO_COORDINATOR_PASSWORD)}
+              style={styles.demoButton}
+            />
           </View>
-
-          {/* The demo doors — how the walkthrough gets two phones signed in fast. */}
-          <View style={styles.demo}>
-            <Text style={font(styles.demoLabel)}>{t.signIn.toUpperCase()}</Text>
-            <View style={[styles.demoRow, row]}>
-              <Button
-                label={t.member}
-                variant="inverse"
-                fullWidth={false}
-                disabled={busy}
-                onPress={() => signInAs(MEMBER_EMAIL, MEMBER_PASSWORD)}
-                style={styles.demoButton}
-              />
-              <Button
-                label={t.coordinator}
-                variant="inverse"
-                fullWidth={false}
-                disabled={busy}
-                onPress={() => signInAs(DEMO_COORDINATOR_EMAIL, DEMO_COORDINATOR_PASSWORD)}
-                style={styles.demoButton}
-              />
-            </View>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </View>
+      </ScrollView>
     </LinearGradient>
   );
 }
