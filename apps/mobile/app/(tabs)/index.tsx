@@ -9,7 +9,9 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { FlatList, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import type { ServedAd } from '@m-ensemble/shared';
 import { api } from '@/api/client';
+import { getAds } from '@/api/ads';
 import {
   Chip,
   EmptyState,
@@ -21,6 +23,7 @@ import {
   PostCard,
   hasPosterArt,
   PrayerCard,
+  PromoCard,
   Screen,
   postTypeLabel,
 } from '@/components';
@@ -30,7 +33,7 @@ import { cityName, mosqueCity } from '@/lib/cities';
 import { useLocation } from '@/store/location';
 import { useStarred } from '@/store/starred';
 import { colors, feedPadding, rule, spacing } from '@/theme';
-import type { PostType } from '@/types';
+import type { Post, PostType } from '@/types';
 
 type Filter = 'all' | PostType;
 
@@ -38,6 +41,18 @@ const FILTERS: Filter[] = ['all', 'volunteer', 'event', 'class', 'announcement']
 
 /** Text posts between one poster and the next. */
 const TEXT_BETWEEN_POSTERS = 2;
+
+/**
+ * Where a partner card may appear, counted in posts from the top.
+ *
+ * Never first: the mosque's own noticeboard opens the feed, and an advert in
+ * that position reads as the mosque endorsing it. Three posts in is far enough
+ * down that the reader has already had what they came for.
+ */
+const AD_SLOTS = [3, 11];
+
+/** One row of the feed. A post, or a partner card between two of them. */
+type FeedRow = { kind: 'post'; post: Post } | { kind: 'ad'; ad: ServedAd };
 
 export default function FeedScreen() {
   const router = useRouter();
@@ -128,6 +143,42 @@ export default function FeedScreen() {
     return woven;
   }, [feed.data]);
 
+  /**
+   * Partner cards for this city.
+   *
+   * Fetched separately from the feed and never awaited alongside it: an advert
+   * is the least important thing on this screen, and the posts must not wait on
+   * one. `getAds` swallows its own failures, so there is no error state here
+   * either — no ads simply means no ad rows.
+   */
+  const ads = useApi(
+    () => getAds({ placement: 'feed', city: browsingCity.id, limit: AD_SLOTS.length }),
+    [browsingCity.id],
+  );
+
+  /**
+   * The posts with partner cards woven in at fixed depths.
+   *
+   * A slot past the end of the feed is dropped rather than pushed to the
+   * bottom: an advert below the last post, with nothing after it, is the most
+   * prominent thing on the screen — the opposite of what the slot positions are
+   * for.
+   */
+  const rows = useMemo<FeedRow[]>(() => {
+    const out: FeedRow[] = posts.map((post) => ({ kind: 'post', post }));
+    const available = ads.data ?? [];
+
+    // Inserted back to front so an earlier insertion does not shift the index
+    // of a later one.
+    for (let slot = AD_SLOTS.length - 1; slot >= 0; slot -= 1) {
+      const ad = available[slot];
+      const at = AD_SLOTS[slot]!;
+      if (!ad || at >= posts.length) continue;
+      out.splice(at, 0, { kind: 'ad', ad });
+    }
+    return out;
+  }, [posts, ads.data]);
+
   if (allMosques.loading) {
     return (
       <Screen>
@@ -172,8 +223,8 @@ export default function FeedScreen() {
     <Screen padded={false} edges={['left', 'right']}>
       <LocationPrompt />
       <FlatList
-        data={posts}
-        keyExtractor={(post) => post._id}
+        data={rows}
+        keyExtractor={(item) => (item.kind === 'post' ? item.post._id : `ad_${item.ad.campaignId}`)}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -225,14 +276,18 @@ export default function FeedScreen() {
             )}
           </View>
         }
-        renderItem={({ item }) => (
-          <PostCard
-            post={item}
-            mosqueName={mosqueName(item.mosqueId)}
-            committed={committedIds.has(item._id)}
-            onPress={() => router.push({ pathname: '/post/[id]', params: { id: item._id } })}
-          />
-        )}
+        renderItem={({ item }) =>
+          item.kind === 'ad' ? (
+            <PromoCard ad={item.ad} />
+          ) : (
+            <PostCard
+              post={item.post}
+              mosqueName={mosqueName(item.post.mosqueId)}
+              committed={committedIds.has(item.post._id)}
+              onPress={() => router.push({ pathname: '/post/[id]', params: { id: item.post._id } })}
+            />
+          )
+        }
       />
     </Screen>
   );

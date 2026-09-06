@@ -10,6 +10,8 @@ import { contractJson } from '../utils/serialize.js';
  */
 export interface MosqueRecord extends Mosque {
   timezone: string;
+  /** Set by super-admin provisioning; absent on seeded and directory rows. */
+  createdAt?: Date;
 }
 
 const mosqueSchema = new Schema<MosqueRecord>(
@@ -39,8 +41,11 @@ const mosqueSchema = new Schema<MosqueRecord>(
     },
     services: { type: [String], default: undefined },
     timezone: { type: String, default: 'America/Toronto' },
+    // When we onboarded them. Server-only like `timezone`, and absent on the
+    // directory rows, which we never onboarded at all.
+    createdAt: { type: Date },
   },
-  contractJson(['timezone']),
+  contractJson(['timezone', 'createdAt']),
 );
 
 export type MosqueDocument = HydratedDocument<MosqueRecord>;

@@ -12,12 +12,16 @@
     "node": ">=20"
   },
   "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:api-only": "node scripts/dev.mjs --no-mobile --no-admin",
     "dev:server": "npm run dev --workspace @m-ensemble/server",
     "dev:mobile": "npm run start --workspace @m-ensemble/mobile",
-    "build": "npm run build --workspace @m-ensemble/shared && npm run build --workspace @m-ensemble/server",
+    "dev:admin": "npm run dev --workspace @m-ensemble/admin",
+    "build": "npm run build --workspace @m-ensemble/shared && npm run build --workspace @m-ensemble/server && npm run build --workspace @m-ensemble/admin",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
+    "seed": "npm run seed --workspace @m-ensemble/server",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\""
   },
   "devDependencies": {

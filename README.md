@@ -1,6 +1,15 @@
 # M-Ensemble
 
-React Native (Expo) mobile app with an Express + MongoDB API, all TypeScript.
+React Native (Expo) mobile app, a super-admin web console, and an
+Express + MongoDB API behind both. All TypeScript.
+
+Three audiences, three surfaces, one database:
+
+| Who              | Where                     | What they can do                                        |
+| ---------------- | ------------------------- | ------------------------------------------------------- |
+| **Members**      | the phone app             | follow mosques, sign up for events, check in            |
+| **Coordinators** | the app's `(admin)` shell | run _their_ mosque — posts, roster, iqamah              |
+| **Us**           | the web console at :5173  | run the _platform_ — mosques, money, campaigns, support |
 
 ## Layout
 
@@ -10,6 +19,8 @@ M-Ensemble/
 │   ├── mobile/            Expo + expo-router app (lucide-react-native icons)
 │   │   ├── app/           File-based routes: (auth) · (tabs) member shell · (admin) coordinator shell · manage/* · post/ mosque/ checkin/ …
 │   │   └── src/           api (+ mock client), components, hooks, i18n (EN/FR/AR), lib, push, store, theme, types
+│   ├── admin/             The super-admin console — Vite + React, plain CSS
+│   │   └── src/           api, auth, ui (primitives + inline-SVG charts), pages
 │   └── server/            Express + Mongoose API
 │       ├── src/           config, models, routes, controllers, middleware, services, utils
 │       └── tests/
@@ -29,14 +40,34 @@ npm install                      # installs all workspaces
 cp apps/server/.env.example apps/server/.env
 cp apps/mobile/.env.example apps/mobile/.env
 
-npm run dev:server               # API on http://localhost:4000
-npm run dev:mobile               # Expo dev server
+npm run seed                     # writes the fixtures + the platform tier
+npm run dev                      # all three, one terminal
 ```
 
-The app ships on mocks: `EXPO_PUBLIC_USE_MOCKS=true` makes every screen read
-in-memory fixtures for Khadija and Madina, so the mobile app needs neither the
-server nor Mongo. Sign in as **yusuf@example.com / mensemble**. Set the flag to
-`false` to point the same screens at the API — see [docs/phase-1.md](docs/phase-1.md).
+`npm run dev` starts the API, waits for `/api/health` to answer, then brings up
+the mobile bundler and the console and opens the console in a browser:
+
+|             |                                                   |
+| ----------- | ------------------------------------------------- |
+| API         | <http://localhost:4000>                           |
+| **Console** | <http://localhost:5173> — opens automatically     |
+| Mobile      | <http://localhost:8081> — scan the QR for a phone |
+
+The wait is not politeness. Expo and the console both make requests within a
+second of booting, and against a server still connecting to Mongo those come
+back refused — which looks like an empty dashboard and a "Network request
+failed" toast rather than the race it is. Ctrl-C stops all three.
+
+Flags: `--no-mobile` (skip the slow, loud one), `--no-admin`, `--no-open`,
+`--tunnel` (Expo over a tunnel, for a phone on another network). The individual
+`dev:server`, `dev:mobile` and `dev:admin` scripts still exist — reach for
+`dev:mobile` when you need Expo's interactive keys, which the combined runner
+cannot forward.
+
+Sign in to the app as **yusuf@example.com / mensemble**; the demo coordinator is
+**khadija.mosque@gmail.com / 123456**. The console is
+**admin@mensemble.app / mensemble-admin** unless you changed `SUPERADMIN_*` in
+`apps/server/.env`.
 
 On a physical device, set `EXPO_PUBLIC_API_URL` to your machine's LAN IP —
 `localhost` points at the phone itself.
@@ -59,17 +90,120 @@ in Expo Go on both platforms and in a standalone build. Tiles come from OSM's
 public servers, so the map needs network (nothing else in the app does). On web
 the map falls back to a list (`MosqueMap.web.tsx`).
 
+## The super-admin console
+
+`apps/admin` — a separate Vite + React app on :5173, sharing the contract in
+`packages/shared` as **types only**. Separate from the mobile app on purpose:
+the console is dense tables and money on a wide screen, the app is a phone, and
+one bundle would mean either react-native-web rendering data grids badly or
+shipping every invoice screen to phones that will never open one.
+
+### Two roles above the mosque
+
+`Membership.role` says what you can do at _one mosque_. `User.platformRole` is a
+tier above it and is not mosque-scoped:
+
+| `platformRole` | Can                                                                             |
+| -------------- | ------------------------------------------------------------------------------- |
+| `none`         | nothing here — the default for every account                                    |
+| `support`      | read every screen, and answer the support inbox                                 |
+| `superadmin`   | everything: mint mosque credentials, move money, approve campaigns, grant roles |
+
+**A coordinator is not a platform admin.** Someone holding `admin` at six
+mosques still gets a 403 from every `/api/admin` route; the split is the point,
+and [`tests/admin-platform.test.ts`](apps/server/tests/admin-platform.test.ts)
+asserts it directly. `requirePlatform` guards the whole router and
+`requireSuperAdmin` is added per-route, so reading
+[`admin.routes.ts`](apps/server/src/routes/admin.routes.ts) tells you exactly
+what a support account can and cannot do.
+
+Every write goes through `audit.service`, which is append-only — there is no
+update or delete path to that collection, and the log is readable by `support`
+as well, since a log only the people it records can read is not much of a check
+on them.
+
+### What it does
+
+- **Mosques** — onboard one, and mint its coordinator account in the same call.
+  This replaces `COORDINATOR_EMAILS`, the literal in the fixtures that used to
+  mean onboarding a mosque required editing source and shipping. The allowlist
+  still works for the demo accounts; it is just no longer the only door.
+  The issued password is shown **once** and never stored in readable form.
+- **People** — search, inspect, suspend (never delete — that would orphan
+  signups and silently change six mosques' attendance), reset a password, grant
+  a mosque role or a platform role.
+- **Billing** — subscriptions, invoices with payments, and donation passthrough
+  with our fee split out. See the honesty note below.
+- **Partners & campaigns** — advertisers, their flights, approval, and the
+  delivery counters. We are the ad server; nothing talks to Meta or Google.
+- **Support** — a ticket inbox with replies and internal notes.
+- **Events** — publish or cancel on a mosque's behalf. The post shows as the
+  mosque's; `createdBy` and the audit log keep who actually typed it honest.
+- **Audit** — every platform write, newest first.
+
+### The money is modelled, not processed
+
+**No payment processor is connected.** Invoices are issued, payments are
+recorded by hand, and every status moves because a person moved it. The shapes
+are the ones a processor would write into — `externalRef` on a subscription,
+`reference` and `method` on a payment — so connecting Stripe later is new code
+at the edges rather than a migration through the middle. The billing screen says
+so on the screen, not only in the source, because a page that looks automated
+and is not is how a mosque ends up thinking it has paid.
+
+Amounts are integer cents everywhere. A payment entered in error is corrected
+with a **negative row**, never an edit — cash reconciled once and then quietly
+changed is exactly what an audit trail exists to catch.
+
+### Partner ads in the feed
+
+A campaign carries a creative, a flight, a budget and targeting on city, mosque
+and declared interests. `GET /api/ads/slot` serves it to the app and
+`POST /api/ads/:id/events` counts an impression or a click; a campaign stops
+serving the moment its spend crosses its budget, rather than waiting for a job.
+
+Three things worth not undoing:
+
+- **The card is unlike a post on purpose.** `PromoCard` has no avatar, no mosque
+  name, a sunken ground rather than a white card, and a disclosure line _above_
+  the headline. If a reader has to look twice to tell whether the mosque is
+  recommending a restaurant, the card has failed however well it performs.
+- **Never the first row.** `AD_SLOTS` puts it three posts down. An advert at the
+  top of a mosque's noticeboard reads as the mosque endorsing it.
+- **Interests come off the token, never the query string.** A client that could
+  name its own targeting could enumerate every campaign on the platform. And
+  `ServedAd` carries no budget, rate or targeting — those are facts about a deal
+  the reader is not party to.
+
+### The charts
+
+Inline SVG, no chart library. The palette is not a taste call: it was run
+through the data-viz validator against this app's own light and dark surfaces
+and clears the lightness band, chroma floor, CVD separation and normal-vision
+separation on the adjacent pairlist in both modes. Slots 1 and 2 are the brand's
+teal and orange, stepped until they cleared the chroma floor — `#0C6358` reads
+as grey to the validator at chart size.
+
+In light mode two hues sit below 3:1 against the surface. That is a WARN with an
+obligation attached, which is why **every chart ships a table view** — the
+"Table" toggle is part of the chart frame, not a per-chart choice. Two other
+rules the file holds to: never a dual axis (impressions and clicks are two
+charts, not two scales), and colour follows the entity rather than its rank.
+
 ## Scripts
 
-| Command                           | What it does                           |
-| --------------------------------- | -------------------------------------- |
-| `npm run dev:server`              | Express API in watch mode              |
-| `npm run dev:mobile`              | Expo dev server                        |
-| `npm run build`                   | Compile shared + server to `dist/`     |
-| `npm run typecheck`               | Type-check every workspace             |
-| `npm test`                        | Run workspace tests                    |
-| `npm run format`                  | Prettier across the repo               |
-| `node scripts/build-app-icons.js` | Launcher, splash and web-install icons |
+| Command                           | What it does                                  |
+| --------------------------------- | --------------------------------------------- |
+| `npm run dev`                     | **API + console + mobile, one terminal**      |
+| `npm run dev:server`              | Express API in watch mode                     |
+| `npm run dev:mobile`              | Expo dev server                               |
+| `npm run dev:admin`               | The console alone (needs the API running)     |
+| `npm run seed`                    | Fixtures + the platform tier, as upserts      |
+| `npm run build`                   | Type-gate shared + server, bundle the console |
+| `npm run typecheck`               | Type-check every workspace                    |
+| `npm test`                        | Run workspace tests                           |
+| `npm run format`                  | Prettier across the repo                      |
+| `node scripts/build-app-icons.js` | Launcher, splash and web-install icons        |
 
 ## API
 
@@ -79,10 +213,18 @@ views, prayer times and iqamah, and the Expo push fan-out.
 [apps/server/requests.http](apps/server/requests.http) walks all of them in
 order and captures its own tokens.
 
+The console adds `/api/admin/*` (behind a platform role) and `/api/ads/*` (the
+two endpoints the app calls) on top of that.
+
 ```bash
-npm run seed --workspace @m-ensemble/server   # wipes and rewrites the 8 collections
-npm run dev:server                            # http://localhost:4000
+npm run seed        # upserts the fixtures and the platform tier
+npm run dev:server  # http://localhost:4000
 ```
+
+Seeding **deletes nothing** — every write is an upsert keyed by `_id`, so a
+re-seed refreshes the demo content and leaves real accounts alone.
+`npm run seed:reset --workspace @m-ensemble/server` is the destructive one and
+asks before doing it.
 
 Every seeded volunteer signs in with `mensemble` — `yusuf@example.com` is a
 member; the demo coordinator is `khadija.mosque@gmail.com` / `123456` and

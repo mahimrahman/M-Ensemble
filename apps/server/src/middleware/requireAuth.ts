@@ -26,6 +26,15 @@ export const requireAuth = asyncHandler(async (req, _res, next) => {
     throw new HttpError(401, ERROR.UNAUTHORIZED, 'Sign in to continue.');
   }
 
+  // A suspended account is signed out on its very next request, not just
+  // blocked at the login screen — otherwise someone already holding a valid
+  // token keeps full access until it expires, which makes suspension useless
+  // for the case it exists for. 401 rather than 403 on purpose: the app's
+  // cold-start check signs out on 401 and nothing else.
+  if (user.status === 'suspended') {
+    throw new HttpError(401, ERROR.ACCOUNT_SUSPENDED, 'This account has been suspended.');
+  }
+
   req.user = user;
   next();
 });

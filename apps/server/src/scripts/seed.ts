@@ -18,6 +18,7 @@
 
 import mongoose from 'mongoose';
 import { connectDatabase, disconnectDatabase } from '../config/db.js';
+import { env } from '../config/env.js';
 import { clearAll, seedAll, syncAllIndexes } from './seedData.js';
 import { UserModel } from '../models/index.js';
 import { mockUsers } from '../shared.js';
@@ -69,6 +70,11 @@ async function main(): Promise<void> {
   for (const [collection, rows] of Object.entries(counts)) {
     console.log(`[seed] ${collection.padEnd(15)} ${rows}`);
   }
+
+  // The console's own login. Printed rather than assumed, because the email is
+  // configurable and the first thing anyone does after seeding is try to sign
+  // in to the dashboard.
+  console.log(`[seed] ${'super admin'.padEnd(15)} ${env.SUPERADMIN_EMAIL}`);
 
   if (!reset) {
     const real = await countRealAccounts();

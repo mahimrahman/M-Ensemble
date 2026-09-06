@@ -1,0 +1,23 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "types": ["vite/client"],
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "paths": { "@/*": ["./src/*"] }
+  },
+  "//include": [
+    "`vite.config.ts` is deliberately not type-checked here. npm hoists vitest's",
+    "older vite to the repo root while this workspace resolves its own vite 7, so",
+    "`@vitejs/plugin-react` is typed against one copy and `defineConfig` against",
+    "the other - a structural mismatch between two versions of the same package,",
+    "not a mistake in the file. Vite loads the config through esbuild without",
+    "type-checking it, so nothing is lost; `npm run build` still proves it works."
+  ],
+  "include": ["src"]
+}

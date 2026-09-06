@@ -13,6 +13,11 @@ export const ERROR = {
   UNAUTHORIZED: 'UNAUTHORIZED',
   VALIDATION_ERROR: 'VALIDATION_ERROR',
   INTERNAL_ERROR: 'INTERNAL_ERROR',
+  /** A real account that a super admin has switched off. Distinct from
+   *  BAD_CREDENTIALS so the sign-in screen can say why rather than implying
+   *  the person mistyped their own password. */
+  ACCOUNT_SUSPENDED: 'ACCOUNT_SUSPENDED',
+  CONFLICT: 'CONFLICT',
 } as const;
 
 /** Mongo's duplicate-key error, the second guard on the slot race. */

@@ -48,6 +48,7 @@ import {
   SignupModel,
   UserModel,
 } from '../models/index.js';
+import { seedPlatform } from './platformSeed.js';
 
 export interface SeedCounts {
   mosques: number;
@@ -198,6 +199,11 @@ export async function seedAll(options: SeedOptions = {}): Promise<SeedCounts> {
     JummahSessionModel,
     mockJummah.map((row, i) => ({ ...row, _id: `jummah_${String(i + 1).padStart(3, '0')}` })),
   );
+
+  // The platform tier: the super admin, subscriptions, invoices, partners and
+  // the support inbox. Last, because it backdates the users written above and
+  // reads their follows and signups to work out when each of them arrived.
+  await seedPlatform(rounds);
 
   return countAll();
 }

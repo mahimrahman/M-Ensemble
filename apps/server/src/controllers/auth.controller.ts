@@ -62,6 +62,20 @@ export async function login(req: Request, res: Response): Promise<void> {
   if (!user) throw bad();
   if (!(await verifyPassword(password, user.passwordHash))) throw bad();
 
+  // Checked *after* the password, not before. Answering "suspended" to a wrong
+  // password would confirm the email exists, which is the one thing the shared
+  // `bad()` message above exists to avoid.
+  if (user.status === 'suspended') {
+    throw new HttpError(
+      403,
+      ERROR.ACCOUNT_SUSPENDED,
+      'This account has been suspended. Contact support if you think that is a mistake.',
+    );
+  }
+
+  user.lastLoginAt = new Date();
+  await user.save();
+
   const result: AuthResult = { token: signToken(user._id), user: user.toJSON() };
   ok(res, result);
 }

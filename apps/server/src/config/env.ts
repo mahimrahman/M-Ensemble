@@ -17,6 +17,17 @@ const schema = z.object({
    * filesystem does not survive a redeploy and the posters would go with it.
    */
   UPLOAD_DIR: z.string().default('./uploads'),
+  /**
+   * The super-admin account the seed creates or promotes.
+   *
+   * In an env var rather than a literal in the seed so the credential for the
+   * console that can move money and mint mosque logins is not committed to the
+   * repository. The defaults exist so a fresh clone comes up working; change
+   * them anywhere the database is not a laptop's.
+   */
+  SUPERADMIN_EMAIL: z.string().email().default('admin@mensemble.app'),
+  SUPERADMIN_PASSWORD: z.string().min(6).default('mensemble-admin'),
+  SUPERADMIN_NAME: z.string().default('Platform Admin'),
 });
 
 const parsed = schema.safeParse(process.env);
