@@ -72,9 +72,29 @@ the map falls back to a list (`MosqueMap.web.tsx`).
 
 ## API
 
-Base path `/api`. Today the server exposes `GET /health` plus a scaffold; the
-full route list the app already calls, and the rules behind each, is in
-[docs/phase-4.md](docs/phase-4.md).
+Base path `/api`. Every route in [docs/phase-4.md](docs/phase-4.md) is built:
+auth, `/me`, mosques, feed, posts, signups and check-in, the four admin derived
+views, prayer times and iqamah, and the Expo push fan-out.
+[apps/server/requests.http](apps/server/requests.http) walks all of them in
+order and captures its own tokens.
+
+```bash
+npm run seed --workspace @m-ensemble/server   # wipes and rewrites the 8 collections
+npm run dev:server                            # http://localhost:4000
+```
+
+Everyone in the seed signs in with `mensemble` — `yusuf@example.com` is a
+member, `amina@example.com` coordinates Khadija. Fixture dates are computed when
+the module is imported, so **re-seed on the morning of the demo**.
+
+Two things about the server workspace worth knowing before you edit it:
+
+- It runs from `tsx`, not from an emitted `dist/`. `@m-ensemble/shared` is
+  consumed as TypeScript source, which `tsc` cannot emit through, so `build` is
+  a type gate and `start` runs the sources.
+- Runtime values from the shared package come through
+  [apps/server/src/shared.ts](apps/server/src/shared.ts); `import type` from
+  `@m-ensemble/shared` directly. That file explains why.
 
 Every response uses the `ApiResponse<T>` envelope from `@m-ensemble/shared`:
 `{ ok: true, data }` or `{ ok: false, error: { code, message } }`. Error codes

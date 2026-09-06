@@ -16,7 +16,7 @@ export class HttpError extends Error {
 export function notFound(_req: Request, res: Response): void {
   const body: ApiError = {
     ok: false,
-    error: { code: 'not_found', message: 'Route not found' },
+    error: { code: 'NOT_FOUND', message: 'Route not found' },
   };
   res.status(404).json(body);
 }
@@ -39,7 +39,7 @@ export function errorHandler(
   console.error('[error]', err);
   const body: ApiError = {
     ok: false,
-    error: { code: 'internal_error', message: 'Something went wrong' },
+    error: { code: 'INTERNAL_ERROR', message: 'Something went wrong' },
   };
   res.status(500).json(body);
 }

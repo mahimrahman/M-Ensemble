@@ -7,13 +7,18 @@ const schema = z.object({
   MONGODB_URI: z.string().min(1, 'MONGODB_URI is required'),
   CORS_ORIGIN: z.string().default('*'),
   LOG_LEVEL: z.string().default('dev'),
+  JWT_SECRET: z.string().min(1, 'JWT_SECRET is required'),
+  /** Only needed if Expo's push API starts rate-limiting us. */
+  EXPO_ACCESS_TOKEN: z.string().optional(),
 });
 
 const parsed = schema.safeParse(process.env);
 
 if (!parsed.success) {
-  console.error('Invalid environment configuration:', parsed.error.flatten().fieldErrors);
-  process.exit(1);
+  // Throw rather than `process.exit` — an exit inside a vitest worker surfaces
+  // as an unattributable "worker terminated". `index.ts` catches and exits 1.
+  const fields = JSON.stringify(parsed.error.flatten().fieldErrors);
+  throw new Error(`Invalid environment configuration: ${fields}`);
 }
 
 export const env = parsed.data;
