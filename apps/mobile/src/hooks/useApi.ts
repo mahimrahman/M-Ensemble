@@ -5,7 +5,12 @@ import { useLang } from '@/i18n';
 
 export interface ApiState<T> {
   data: T | null;
-  /** True only until the first result — later reloads keep the old data up. */
+  /**
+   * True while a request is in flight *and there is nothing to show yet* —
+   * the first load, and any retry after one failed. A reload that happens
+   * with data already on screen leaves this false, so a background refresh
+   * never replaces content with a spinner.
+   */
   loading: boolean;
   error: string | null;
   reload: () => Promise<void>;
@@ -23,13 +28,23 @@ export function useApi<T>(fetcher: () => Promise<T>, deps: DependencyList): ApiS
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const requestId = useRef(0);
+  // Mirrors `data` so `load` can ask whether the screen is empty without
+  // listing it as a dependency and re-running itself on every result.
+  const dataRef = useRef<T | null>(null);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const load = useCallback(async () => {
     const id = ++requestId.current;
+    // Retrying from an error state used to look like a dead button: `loading`
+    // had already gone false, so the screen sat on the old message for the
+    // whole request — up to the transport's ten-second timeout — with nothing
+    // to say it was trying. Going back to the spinner is the honest answer,
+    // and it costs nothing, because there is no content to hide behind it.
+    if (dataRef.current === null) setLoading(true);
     try {
       const result = await fetcher();
       if (id !== requestId.current) return;
+      dataRef.current = result;
       setData(result);
       setError(null);
     } catch (err) {

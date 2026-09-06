@@ -46,22 +46,32 @@ import { ApiRequestError } from './errors';
 /**
  * Where the API lives.
  *
- * `EXPO_PUBLIC_API_URL` wins when it is set. It is read from
- * `apps/mobile/.env`, which Expo only loads when it is started **from that
- * directory** - run `npx expo start` from the repo root and the variable is
- * silently absent. That failure is nasty: the app falls back to a URL, every
- * request fails, and because login is the first request the user is told their
- * password is wrong. It cost an afternoon once; hence the fallback below.
+ * **Derived by default, pinned only on purpose.**
  *
- * With no variable set, derive the host from the dev server the bundle was
- * downloaded from. A phone that could reach Metro on 172.20.10.11:8081 can
- * reach the API on 172.20.10.11:4000, so this is right far more often than
- * `localhost` - which on a phone means the phone itself, and can never work.
+ * The dev server the bundle was downloaded from is the one piece of routing
+ * the phone has already proved: it got the JavaScript. A device that reached
+ * Metro on 172.20.10.11:8081 can reach the API on 172.20.10.11:4000, so the
+ * host is taken from there and follows the machine onto a new network - a
+ * hotspot, a different office - without anyone editing a file.
+ *
+ * `EXPO_PUBLIC_API_URL` still overrides it, for a server that genuinely lives
+ * elsewhere. It used to hold a LAN IP for everyday development, and that is a
+ * trap worth spelling out: the address outlives the network that made it
+ * valid, and a stale one does not fail cleanly. Off-subnet, nothing answers
+ * and nothing refuses, so every request hung until `TIMEOUT_MS` existed to
+ * stop it - which is how a one-line `.env` left every screen in the app
+ * spinning at once.
+ *
+ * Note also that Expo loads `apps/mobile/.env` only when started **from that
+ * directory**; `npx expo start` at the repo root drops the variable silently.
+ * One more reason the derived host, not the file, is the path that has to work.
  */
 const API_PORT = 4000;
 
 function resolveBaseUrl(): string {
-  const fromEnv = process.env.EXPO_PUBLIC_API_URL;
+  // An empty or blank value means "not set" - a commented-out line and a
+  // leftover `EXPO_PUBLIC_API_URL=` should behave the same way.
+  const fromEnv = process.env.EXPO_PUBLIC_API_URL?.trim();
   if (fromEnv) return fromEnv;
 
   // `expo-constants` knows the host:port Metro is served from, in every form
@@ -96,31 +106,76 @@ export function setAuthToken(token: string | null): void {
   authToken = token;
 }
 
+/**
+ * How long a single request may take before the app gives up on it.
+ *
+ * `fetch` has no timeout of its own, on React Native or anywhere else, and a
+ * host that is merely *unroutable* never answers at all: the phone gets no
+ * connection refused, no DNS failure, nothing to reject on. It simply waits.
+ *
+ * That is how a wrong `EXPO_PUBLIC_API_URL` used to take down every screen at
+ * once. `useApi` starts at `loading: true` and only leaves it in the
+ * `finally` of the request, so a promise that never settles is a spinner that
+ * never stops - on every screen, forever, with no error anywhere to explain
+ * it. `ErrorState` could not help, because nothing ever threw.
+ *
+ * Ten seconds is far longer than this API needs on a bad mobile connection and
+ * far shorter than a reader will sit in front of a spinner.
+ */
+const TIMEOUT_MS = 10_000;
+
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
   let res: Response;
   try {
     res = await fetch(`${BASE_URL}${path}`, {
       ...init,
+      signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
         ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
         ...init?.headers,
       },
     });
-  } catch {
-    // `fetch` rejects when the host is unreachable - wrong IP, server down,
-    // phone on another network. Say that, rather than letting the login screen
-    // render its default "email or password is incorrect": being told your
-    // password is wrong when the server is simply absent sends people looking
-    // in exactly the wrong place.
+  } catch (err) {
+    // Two different failures arrive here and they send you looking in
+    // different places, so they say different things:
+    //
+    //   aborted  - the host neither accepted nor refused. Almost always the
+    //              wrong address: an IP left over from the last network, or a
+    //              phone that has dropped off this one.
+    //   rejected - the host answered "no". The server is down or the port is
+    //              closed; the address itself is probably right.
+    const timedOut = (err as { name?: string } | undefined)?.name === 'AbortError';
+    // Neither may reach the login screen as its default "email or password is
+    // incorrect" - being told your password is wrong when the server is simply
+    // absent sends people looking in exactly the wrong place.
     throw new ApiRequestError(
       'NETWORK_ERROR',
-      `Can't reach the server at ${BASE_URL}. Check it is running and that the phone is on the same network.`,
+      timedOut
+        ? `No answer from ${BASE_URL} after ${TIMEOUT_MS / 1000}s. Check the phone is on the same network as the server.`
+        : `Can't reach the server at ${BASE_URL}. Check it is running and that the phone is on the same network.`,
       0,
     );
+  } finally {
+    clearTimeout(timer);
   }
 
-  const body = (await res.json()) as ApiResponse<T>;
+  // A reachable host is not necessarily this server. A captive portal, a
+  // proxy, or Metro itself on the wrong port all answer with HTML, and
+  // `res.json()` then throws a bare SyntaxError that no screen knows to catch.
+  let body: ApiResponse<T>;
+  try {
+    body = (await res.json()) as ApiResponse<T>;
+  } catch {
+    throw new ApiRequestError(
+      'NETWORK_ERROR',
+      `${BASE_URL} answered with something that isn't this API (HTTP ${res.status}).`,
+      res.status,
+    );
+  }
 
   if (!body.ok) {
     throw new ApiRequestError(body.error.code, body.error.message, res.status);
