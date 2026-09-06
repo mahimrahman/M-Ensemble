@@ -19,6 +19,7 @@ export { NotificationBell } from './NotificationBell';
 export { People } from './People';
 export { PostCard, isPosterPost, postTypeLabel } from './PostCard';
 export { Poster, hasPosterArt, type PosterKey } from './Poster';
+export { PosterField } from './PosterField';
 export { PrayerCard } from './PrayerCard';
 export { PrayerTable } from './PrayerTable';
 export { GradientHeader, Screen, SectionTitle } from './Screen';

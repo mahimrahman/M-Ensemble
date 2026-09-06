@@ -6,6 +6,7 @@ import { usersRouter } from './users.routes.js';
 import { mosqueRouter } from './mosque.routes.js';
 import { postRouter } from './post.routes.js';
 import { feedRouter } from './feed.routes.js';
+import { uploadRouter } from './upload.routes.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 
 export const apiRouter = Router();
@@ -23,3 +24,6 @@ apiRouter.use('/users', usersRouter);
 apiRouter.use('/mosques', mosqueRouter);
 apiRouter.use('/posts', postRouter);
 apiRouter.use('/feed', feedRouter);
+
+// Multipart, not JSON — the one endpoint that takes a file.
+apiRouter.use('/uploads', uploadRouter);

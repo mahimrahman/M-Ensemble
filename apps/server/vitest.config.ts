@@ -19,6 +19,9 @@ export default defineConfig({
       JWT_SECRET: 'test-secret-not-a-real-one',
       CORS_ORIGIN: '*',
       LOG_LEVEL: 'tiny',
+      // Uploads land in a scratch folder, not the real ./uploads — a test run
+      // must not leave images in the directory the dev server serves.
+      UPLOAD_DIR: './tests/.uploads',
     },
   },
 });

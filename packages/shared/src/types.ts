@@ -131,6 +131,13 @@ export interface Post {
   createdAt: Timestamp;
   /** Set when an admin cancels. Cancelled posts leave the feed but keep history. */
   cancelledAt?: Timestamp;
+  /**
+   * How many people have liked this, denormalised off the `Like` rows so the
+   * feed costs one query rather than one per card. The server always sends it;
+   * it is optional here only because the fixtures declare the likes themselves
+   * and let the seed derive the number — read it as `likeCount ?? 0`.
+   */
+  likeCount?: number;
 }
 
 export interface Signup {
@@ -218,6 +225,21 @@ export interface Follow {
   createdAt: Timestamp;
 }
 
+/**
+ * One person's like on one post. A row rather than a bare counter, because a
+ * counter cannot answer "have I liked this" — and a heart that forgets itself
+ * on the next device is not a like, it's a local highlight.
+ *
+ * Saves stay on the device (see the mobile `saved` store): a bookmark is
+ * private, and nobody is counting them.
+ */
+export interface Like {
+  _id: ID;
+  userId: ID;
+  postId: ID;
+  createdAt: Timestamp;
+}
+
 /** Role-bearing, drives permissions. Never merged into `Follow`. */
 export interface Membership {
   _id: ID;
@@ -268,6 +290,12 @@ export interface CreatePostInput {
   slotsNeeded?: number;
   capacity?: number;
   sessions?: PostSession[];
+  /**
+   * A poster, as the path `uploadPoster` handed back. Server-relative, and
+   * only ever a path this API minted — see `post.schema.ts` for why anything
+   * else is refused.
+   */
+  imageUrl?: string;
 }
 
 export interface SignupInput {

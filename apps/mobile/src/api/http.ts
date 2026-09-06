@@ -15,6 +15,7 @@ import type {
   FeedFilter,
   ID,
   IqamahConfigInput,
+  LikeResult,
   MEnsembleApi,
   MemberDetail,
   MemberRole,
@@ -25,6 +26,7 @@ import type {
   Mosque,
   NotificationFeed,
   NotificationPrefs,
+  PosterUpload,
   Post,
   PrayerTable,
   PublicUser,
@@ -36,11 +38,13 @@ import type {
   SignupInput,
   UpdateMosqueInput,
   UpdatePostInput,
+  UploadedPoster,
   User,
   WithdrawResult,
   ApiResponse,
 } from '@/types';
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 import { ApiRequestError } from './errors';
 
 /**
@@ -193,6 +197,98 @@ const put = <T>(path: string, data: unknown) =>
   request<T>(path, { method: 'PUT', body: JSON.stringify(data) });
 const del = <T>(path: string) => request<T>(path, { method: 'DELETE' });
 
+/**
+ * Turns a stored media path into something an <Image> can load.
+ *
+ * The server hands back and stores `/uploads/<id>.jpg` rather than a full
+ * URL, because this API answers on a different address from every machine
+ * that talks to it — localhost on the dev box, a LAN IP from a phone, 4100
+ * under test. An absolute URL in the database is correct exactly once and
+ * wrong from everywhere else, and it breaks the moment the laptop changes
+ * network, which is the same trap `resolveBaseUrl` exists to avoid.
+ *
+ * So the path is resolved here, against whichever base the app is already
+ * successfully using. `BASE_URL` ends in `/api` and the static mount does
+ * not, hence trimming it. Anything already absolute is passed through — the
+ * fixtures' posters are bundled, not fetched, but a future CDN URL would
+ * arrive that way and must not be mangled.
+ */
+export function resolveMediaUrl(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(url)) return url;
+  return `${BASE_URL.replace(/\/api$/, '')}${url}`;
+}
+
+/**
+ * The one multipart request in the app.
+ *
+ * It cannot go through `request`, for two reasons that both bite silently:
+ *
+ * - `request` sets `Content-Type: application/json` on everything. Multipart
+ *   needs a `boundary` parameter that only the runtime can generate, so the
+ *   header has to be left off entirely and `fetch` filled it in — setting it
+ *   by hand produces a body the server cannot parse.
+ * - The 10-second timeout is sized for JSON. A poster on a slow connection
+ *   legitimately takes longer, and aborting mid-upload would report itself as
+ *   "can't reach the server" for a server that is answering fine.
+ *
+ * React Native's `FormData` takes `{ uri, name, type }` for a file part and
+ * reads the file itself; on web the same shape is not understood, so the blob
+ * is fetched first and appended as a real `Blob`. One `Platform.OS` check
+ * rather than two code paths through everything above it.
+ */
+const UPLOAD_TIMEOUT_MS = 60_000;
+
+async function postPoster(mosqueId: string, file: PosterUpload): Promise<UploadedPoster> {
+  const body = new FormData();
+  body.append('mosqueId', mosqueId);
+
+  if (Platform.OS === 'web') {
+    const blob = await (await fetch(file.uri)).blob();
+    body.append('image', blob, file.name);
+  } else {
+    body.append('image', {
+      uri: file.uri,
+      name: file.name,
+      type: file.mimeType,
+    } as unknown as Blob);
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
+
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}/uploads/poster`, {
+      method: 'POST',
+      body,
+      signal: controller.signal,
+      // No Content-Type: `fetch` writes it, with the boundary.
+      headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+    });
+  } catch {
+    throw new ApiRequestError('NETWORK_ERROR', `Couldn't send the image to ${BASE_URL}.`, 0);
+  } finally {
+    clearTimeout(timer);
+  }
+
+  let payload: ApiResponse<UploadedPoster>;
+  try {
+    payload = (await res.json()) as ApiResponse<UploadedPoster>;
+  } catch {
+    throw new ApiRequestError(
+      'NETWORK_ERROR',
+      `The server rejected the image without saying why (HTTP ${res.status}).`,
+      res.status,
+    );
+  }
+
+  if (!payload.ok) {
+    throw new ApiRequestError(payload.error.code, payload.error.message, res.status);
+  }
+  return payload.data;
+}
+
 function rosterQuery(filter?: RosterFilter): string {
   const params = new URLSearchParams();
   if (filter?.upcoming) params.set('upcoming', 'true');
@@ -237,6 +333,7 @@ export const httpApi: MEnsembleApi = {
   getPost: (id: ID) => get<Post>(`/posts/${id}`),
   getMosquePosts: (mosqueId: ID) => get<Post[]>(`/mosques/${mosqueId}/posts`),
   createPost: (input: CreatePostInput) => post<Post>('/posts', input),
+  uploadPoster: (mosqueId: ID, file: PosterUpload) => postPoster(mosqueId, file),
 
   getMyMemberships: () => get<Membership[]>('/me/memberships'),
   getMosquePostsForAdmin: (mosqueId: ID) => get<Post[]>(`/mosques/${mosqueId}/posts?all=true`),
@@ -257,6 +354,10 @@ export const httpApi: MEnsembleApi = {
   setMemberRole: (mosqueId: ID, userId: ID, role: MemberRole) =>
     put<MosqueMember>(`/mosques/${mosqueId}/members/${userId}/role`, { role }),
   getEventOutcomes: (mosqueId: ID) => get<EventOutcome[]>(`/mosques/${mosqueId}/outcomes`),
+
+  likePost: (postId: ID) => post<LikeResult>(`/posts/${postId}/like`),
+  unlikePost: (postId: ID) => del<LikeResult>(`/posts/${postId}/like`),
+  getMyLikes: () => get<ID[]>('/me/likes'),
 
   signup: (postId: ID) => post<Signup>(`/posts/${postId}/signup`),
   withdraw: (postId: ID) => del<WithdrawResult>(`/posts/${postId}/signup`),

@@ -22,6 +22,7 @@ import {
   type ReactNode,
 } from 'react';
 import { CITIES, DEFAULT_CITY, cityAt, cityById, type City } from '@/lib/cities';
+import type { Coordinates } from '@/types';
 
 const PROMPT_KEY = 'mensemble.location.prompted';
 const BROWSE_KEY = 'mensemble.location.browse';
@@ -40,6 +41,16 @@ interface LocationContextValue {
   /** True once the first-run popup has been answered either way. */
   promptSeen: boolean;
   status: LocationStatus;
+  /**
+   * The last fix, as coordinates rather than a city.
+   *
+   * The city is enough to decide what you may sign up for, but not to answer
+   * "which of these is nearest" or to put a dot on the map — both need the
+   * point itself. Null until a fix lands, and it is never persisted: a
+   * remembered position is a stale position, and the map would draw you where
+   * you were yesterday.
+   */
+  coords: Coordinates | null;
   detectedCity: City | null;
   browsingCity: City;
   /** True when the app is showing somewhere other than where you are. */
@@ -57,6 +68,7 @@ const LocationContext = createContext<LocationContextValue | null>(null);
 export function LocationProvider({ children }: { children: ReactNode }) {
   const [promptSeen, setPromptSeen] = useState(true); // true until storage says otherwise
   const [status, setStatus] = useState<LocationStatus>('idle');
+  const [coords, setCoords] = useState<Coordinates | null>(null);
   const [detectedCity, setDetectedCity] = useState<City | null>(null);
   const [browsingCity, setBrowsingCityState] = useState<City>(DEFAULT_CITY);
 
@@ -66,7 +78,9 @@ export function LocationProvider({ children }: { children: ReactNode }) {
       const pos = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
       });
-      const city = cityAt({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+      const here = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      const city = cityAt(here);
+      setCoords(here);
       setDetectedCity(city);
       setStatus('granted');
       void AsyncStorage.setItem(DETECTED_KEY, city?.id ?? '').catch(() => {});
@@ -140,6 +154,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
     () => ({
       promptSeen,
       status,
+      coords,
       detectedCity,
       browsingCity,
       isBrowsingElsewhere: detectedCity !== null && detectedCity.id !== browsingCity.id,
@@ -151,6 +166,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
     [
       promptSeen,
       status,
+      coords,
       detectedCity,
       browsingCity,
       setBrowsingCity,

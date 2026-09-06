@@ -6,6 +6,7 @@ import { MosqueModel } from '../models/Mosque.js';
 import { PostModel } from '../models/Post.js';
 import { SignupModel } from '../models/Signup.js';
 import { currentUser } from '../middleware/requireAuth.js';
+import { myLikedPostIds } from '../services/like.service.js';
 import { buildFeed, markAllRead } from '../services/notification.service.js';
 import { buildReliability } from '../services/reliability.service.js';
 import { postMinutes } from '../utils/time.js';
@@ -117,6 +118,14 @@ export async function getMyNotifications(req: Request, res: Response): Promise<v
 /** Opening the inbox is the read receipt. Idempotent — re-reading is a no-op. */
 export async function postNotificationsRead(req: Request, res: Response): Promise<void> {
   ok(res, await markAllRead(currentUser(req)._id));
+}
+
+/**
+ * The ids of every post this user has liked — what fills the hearts in on a
+ * cold start, before the first card is drawn.
+ */
+export async function getMyLikes(req: Request, res: Response): Promise<void> {
+  ok(res, await myLikedPostIds(currentUser(req)._id));
 }
 
 /** Called on every launch, so it has to be idempotent. */

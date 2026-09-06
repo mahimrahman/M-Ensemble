@@ -4,6 +4,7 @@ import { PostModel, type PostDocument } from '../models/Post.js';
 import { SignupModel } from '../models/Signup.js';
 import { currentUser } from '../middleware/requireAuth.js';
 import { assertAdmin } from '../services/access.service.js';
+import { likePost, unlikePost } from '../services/like.service.js';
 import { checkInSignup, claimSlot, withdrawSlot } from '../services/signup.service.js';
 import { fanOutNewPost } from '../services/push.service.js';
 import { HttpError } from '../middleware/errorHandler.js';
@@ -70,6 +71,11 @@ export async function updatePost(req: Request, res: Response): Promise<void> {
   post.startAt = nextStart;
   post.endAt = nextEnd;
 
+  // `imageUrl: null` means the admin removed the poster. Assigning null would
+  // store a null and serialise it into a field the contract types as an
+  // optional string; `undefined` is what Mongoose reads as "unset this".
+  if (patch.imageUrl === null) post.set('imageUrl', undefined);
+
   await post.save();
   ok(res, post.toJSON());
 }
@@ -115,6 +121,21 @@ export async function getPostSignups(req: Request, res: Response): Promise<void>
  * member scanning the code is not an admin — but checking anyone else in needs
  * the coordinator role at that post's mosque.
  */
+/**
+ * Like / unlike. No admin check and no follow check on purpose — anyone who
+ * can read a post can heart it, and the count is the only thing anybody sees.
+ * Both are safe to repeat; the service, not the route, is what makes them so.
+ */
+export async function postLike(req: Request, res: Response): Promise<void> {
+  const user = currentUser(req);
+  ok(res, await likePost(String(req.params.id), user._id));
+}
+
+export async function deleteLike(req: Request, res: Response): Promise<void> {
+  const user = currentUser(req);
+  ok(res, await unlikePost(String(req.params.id), user._id));
+}
+
 export async function checkIn(req: Request, res: Response): Promise<void> {
   const actor = currentUser(req);
   const postId = String(req.params.id);

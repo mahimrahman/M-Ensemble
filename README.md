@@ -102,6 +102,54 @@ Every response uses the `ApiResponse<T>` envelope from `@m-ensemble/shared`:
 `{ ok: true, data }` or `{ ok: false, error: { code, message } }`. Error codes
 are the uppercase constants in `API_ERROR`.
 
+## Posters and image uploads
+
+Two different things share one slot on a post, and it is worth keeping them
+apart.
+
+**Bundled posters** are the ten programme designs made with the mosques. The
+masters live in `event posters/` (1200×675 at 2×) and
+`node scripts/build-poster-assets.js` writes the display copies into
+`apps/mobile/assets/posters/`, where they ship inside the app bundle. A post
+names one with `posterKey`, which indexes a literal `require` map in
+[Poster.tsx](apps/mobile/src/components/Poster.tsx) — Metro resolves requires
+at build time, so the path cannot be built from data. The seed uses these, and
+they need no network.
+
+**Uploaded posters** are what a mosque adds from the create/edit form.
+`POST /api/uploads/poster` takes one multipart image, and the coordinator has
+to administer the `mosqueId` in the body. `sharp` re-encodes it to JPEG at up
+to 1200px wide, applying the EXIF rotation and dropping the rest of the
+metadata — including the GPS coordinates a phone writes into a photo. The
+result is written to `UPLOAD_DIR` (`apps/server/uploads/`, gitignored) under a
+UUID and served by `express.static` at `/uploads/<id>.jpg`.
+
+Three decisions in there that are easy to undo by accident:
+
+- **The stored path is server-relative, never absolute.** This API answers on a
+  different address from every machine that reaches it — localhost, a LAN IP
+  from a phone, 4100 under test — so an absolute URL in the database is right
+  exactly once. `resolveMediaUrl` in [http.ts](apps/mobile/src/api/http.ts)
+  resolves it against whichever base the app is already using.
+- **`imageUrl` only accepts a path this server minted.** It is rendered by
+  every client that shows the post, so a free-form URL would let one admin
+  point every reader's app at a host they control. The regex is in
+  [post.schema.ts](apps/server/src/schemas/post.schema.ts).
+- **`/uploads` sets `Cross-Origin-Resource-Policy: cross-origin`.** Helmet
+  defaults it to `same-origin`, and the app is never same-origin with the API.
+  Without the override the fetch succeeds and the browser then refuses to paint
+  the image, which reads as a broken file rather than a header.
+
+The upload happens when the poster is picked, not when the post is published,
+so the slow part is over before anyone presses Publish. The cost is that a
+poster picked for a post nobody goes on to publish leaves an orphan file;
+there is no sweep for those yet.
+
+**Local disk means the files live with the process.** A container with an
+ephemeral filesystem loses them on redeploy — point `UPLOAD_DIR` at a mounted
+volume, or swap `storePoster` for a bucket, which is why every byte goes
+through that one function rather than being written from the route.
+
 ## Icons and splash screens
 
 `splash_screens/` is the export from a PWA asset generator: the 512px app icon

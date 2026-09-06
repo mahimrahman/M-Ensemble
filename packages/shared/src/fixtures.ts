@@ -17,6 +17,7 @@ import type {
   ID,
   Iqamah,
   JummahSession,
+  Like,
   Membership,
   Mosque,
   NotificationPrefs,
@@ -43,6 +44,16 @@ function iso(dayOffset: number, wallClock: string): string {
   const d = new Date(startOfToday().getTime() + dayOffset * DAY_MS);
   d.setHours(Number(h), Number(m), 0, 0);
   return d.toISOString();
+}
+
+/**
+ * `fromNow(-40)` → forty minutes ago. The only fixture clock that is not
+ * pinned to a wall time, and it exists for one row: the shift that has to be
+ * *in progress* whenever the seed runs, so the check-in flow can be walked
+ * through without waiting for a Saturday.
+ */
+function fromNow(minutes: number): string {
+  return new Date(Date.now() + minutes * 60 * 1000).toISOString();
 }
 
 /** Next occurrence of a weekday (0 = Sunday) at `wallClock`; today counts as 0. */
@@ -435,7 +446,6 @@ export const mockUsers: User[] = [
     interests: ['Sisters', 'Fundraising', 'Volunteering'],
   },
 ];
-
 
 // ------------------------------------------------- coordinator allowlist ---
 
@@ -1100,6 +1110,36 @@ export const mockPosts: Post[] = [
     createdBy: MADINA_ADMIN_ID,
     createdAt: iso(-1, '09:00'),
   },
+
+  /*
+   * ── Happening right now ────────────────────────────────────────────────
+   *
+   * Every other fixture hangs off a wall time, which means the check-in flow
+   * is only demonstrable on the day its shift happens to fall. This one is
+   * measured from the seed instead: it started forty minutes ago and runs for
+   * another five hours, so from the moment `npm run seed` finishes there is a
+   * shift in progress, with the signed-in user on it and un-checked-in.
+   *
+   * That is the whole path in one row — the card says "on now", "My QR" opens
+   * a code, the coordinator's coverage screen has four names to mark off, and
+   * one of them (user_005) is already in so the screen isn't empty either.
+   */
+  {
+    _id: 'post_now',
+    mosqueId: KHADIJA_ID,
+    type: 'volunteer',
+    title: 'Community kitchen - service in progress',
+    description:
+      'The kitchen is open and the line is moving. Two on the serving counter, one on drinks, one clearing tables and running dishes back. Check in with the coordinator when you arrive - scan the code by the door or show yours at the counter.',
+    category: 'Community meals',
+    startAt: fromNow(-40),
+    endAt: fromNow(300),
+    location: 'Main hall, basement level',
+    slotsNeeded: 6,
+    slotsFilled: 4,
+    createdBy: KHADIJA_ADMIN_ID,
+    createdAt: fromNow(-2880),
+  },
 ];
 
 /** Finished shifts the signed-in user served — feeds "My Stuff": past + hours. */
@@ -1513,7 +1553,90 @@ export const mockSignups: Signup[] = [
     status: 'confirmed',
     createdAt: iso(-23, '12:30'),
   },
+
+  // post_now — the shift in progress. Four of six claimed, matching
+  // `slotsFilled`. One person is already in; the signed-in user is not, which
+  // is the state the check-in demo starts from.
+  {
+    _id: 'signup_now_1',
+    postId: 'post_now',
+    userId: CURRENT_USER_ID,
+    status: 'confirmed',
+    createdAt: fromNow(-2400),
+  },
+  {
+    _id: 'signup_now_2',
+    postId: 'post_now',
+    userId: 'user_005',
+    status: 'confirmed',
+    createdAt: fromNow(-2600),
+    checkedInAt: fromNow(-35),
+  },
+  {
+    _id: 'signup_now_3',
+    postId: 'post_now',
+    userId: 'user_010',
+    status: 'confirmed',
+    createdAt: fromNow(-1500),
+  },
+  {
+    _id: 'signup_now_4',
+    postId: 'post_now',
+    userId: 'user_014',
+    status: 'confirmed',
+    createdAt: fromNow(-600),
+  },
 ];
+
+// ------------------------------------------------------------------ likes ---
+
+/**
+ * Who liked what.
+ *
+ * Written as a rule rather than three hundred literal rows: every seeded
+ * volunteer likes a post when `(userIndex * 7 + postIndex * 3) % 11` clears a
+ * threshold that varies by post type. The point is only that the counts differ
+ * plausibly across the feed - a poster-led event picks up more hearts than a
+ * parking rota - while staying identical on every machine that seeds, so a
+ * screenshot taken on one laptop matches the app on another.
+ *
+ * The seed derives each post's `likeCount` from these rows, so the number on a
+ * card and the rows behind it can't disagree.
+ */
+function buildLikes(): Like[] {
+  /** Roughly what share of the congregation hearts each kind of post. */
+  const appetite: Record<Post['type'], number> = {
+    event: 8,
+    class: 6,
+    announcement: 4,
+    volunteer: 3,
+  };
+
+  const likes: Like[] = [];
+  const posts = [...mockPosts, ...mockPastPosts];
+
+  posts.forEach((post, postIndex) => {
+    mockUsers.forEach((user, userIndex) => {
+      if ((userIndex * 7 + postIndex * 3) % 11 >= appetite[post.type]) return;
+      likes.push({
+        _id: `like_${post._id}_${user._id}`,
+        userId: user._id,
+        postId: post._id,
+        // Somewhere between the post going up and now, deterministically.
+        createdAt: iso(-((userIndex + postIndex) % 9), '13:00'),
+      });
+    });
+  });
+
+  return likes;
+}
+
+export const mockLikes: Like[] = buildLikes();
+
+/** The likes on one post — what the seed writes into `Post.likeCount`. */
+export function likeCountFor(postId: ID): number {
+  return mockLikes.filter((like) => like.postId === postId).length;
+}
 
 // -------------------------------------------------------- iqamah & jummah ---
 

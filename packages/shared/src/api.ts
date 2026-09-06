@@ -76,7 +76,39 @@ export interface ServiceHours {
 export type PublicUser = Pick<User, '_id' | 'name'>;
 
 /** Type and mosque are fixed at creation; everything else an admin can change. */
-export type UpdatePostInput = Partial<Omit<CreatePostInput, 'mosqueId' | 'type'>>;
+export type UpdatePostInput = Partial<Omit<CreatePostInput, 'mosqueId' | 'type' | 'imageUrl'>> & {
+  /**
+   * Three states, not two. Omitting it leaves the poster alone, a path
+   * replaces it, and `null` takes it off — which a `string | undefined`
+   * cannot express, because "no value" is already what an untouched field
+   * sends on a patch.
+   */
+  imageUrl?: string | null;
+};
+
+/**
+ * One image on its way up, in the shape each platform hands it to us: a
+ * `file://` URI from the native picker, a `blob:` one in the browser. The
+ * transport turns this into the multipart part; nothing above it should know
+ * that a multipart request is involved.
+ */
+export interface PosterUpload {
+  uri: string;
+  name: string;
+  mimeType: string;
+}
+
+/**
+ * What the server stored. `url` is **server-relative** (`/uploads/<id>.jpg`)
+ * so it stays correct from every address this API is reached at; resolve it
+ * against the base URL the client is already using before rendering it.
+ */
+export interface UploadedPoster {
+  url: string;
+  width: number;
+  height: number;
+  bytes: number;
+}
 
 export interface MosqueIqamahConfig {
   iqamah: Iqamah[];
@@ -153,6 +185,14 @@ export interface BroadcastResult {
   pushed: number;
 }
 
+/** What a like or unlike settled on. */
+export interface LikeResult {
+  postId: ID;
+  likeCount: number;
+  /** Where the heart ends up — true after a like, false after an unlike. */
+  liked: boolean;
+}
+
 /**
  * The single surface every screen talks to.
  *
@@ -177,6 +217,17 @@ export interface MEnsembleApi {
   getPost(id: ID): Promise<Post>;
   getMosquePosts(mosqueId: ID): Promise<Post[]>;
   createPost(input: CreatePostInput): Promise<Post>;
+
+  /**
+   * Uploads one poster and returns where it landed, without attaching it to
+   * anything. Admin of `mosqueId` only.
+   *
+   * Separate from `createPost` so the slow part happens while the form is
+   * still being filled in, and so editing a post's poster doesn't mean
+   * resending every other field. The cost is that an upload nobody goes on to
+   * publish leaves an orphan file on the server.
+   */
+  uploadPoster(mosqueId: ID, file: PosterUpload): Promise<UploadedPoster>;
 
   // --- admin (requireAdmin(mosqueId) on the server) ---
   /** Every mosque this user holds a role at. Empty for a plain member. */
@@ -206,6 +257,19 @@ export interface MEnsembleApi {
   setMemberRole(mosqueId: ID, userId: ID, role: MemberRole): Promise<MosqueMember>;
   /** Posts that have already ended, newest first — how turnout actually went. */
   getEventOutcomes(mosqueId: ID): Promise<EventOutcome[]>;
+
+  /**
+   * Like / unlike, and the ids of everything you've liked.
+   *
+   * Both writes are idempotent and resolve to the post's new count, so the
+   * card can settle on the server's number instead of trusting its own
+   * optimistic arithmetic. `getMyLikes` is one round trip on launch — the
+   * hearts have to be filled in before the first card renders, and asking per
+   * post would be one request per row.
+   */
+  likePost(postId: ID): Promise<LikeResult>;
+  unlikePost(postId: ID): Promise<LikeResult>;
+  getMyLikes(): Promise<ID[]>;
 
   signup(postId: ID): Promise<Signup>;
   /**

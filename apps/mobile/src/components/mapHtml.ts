@@ -8,13 +8,20 @@
  */
 
 import { colors, teal } from '@/theme';
-import type { Mosque } from '@/types';
+import type { Coordinates, Mosque } from '@/types';
 
 /** Marker amber — chosen against OSM's tile palette, not the app's. */
 const PIN_FILL = '#E3A03A';
 const PIN_STROKE = '#9C6A14';
 
-export function buildMapHtml(mosques: Mosque[], interactive: boolean): string {
+export function buildMapHtml(
+  mosques: Mosque[],
+  interactive: boolean,
+  /** Where the phone says the reader is. Draws the "you are here" dot. */
+  me: Coordinates | null = null,
+  /** Label for that dot, in the reader's language. */
+  meLabel = 'You are here',
+): string {
   const points = mosques.map((m) => ({
     id: m._id,
     name: m.name,
@@ -60,6 +67,19 @@ export function buildMapHtml(mosques: Mosque[], interactive: boolean): string {
     0%   { transform: scale(.5); opacity: .9; }
     100% { transform: scale(2.6); opacity: 0; }
   }
+  /*
+   * You. Deliberately not a pin: a pin is a place someone chose to put on the
+   * map, and this is just where the phone thinks you are. A blue dot with a
+   * white collar and a soft accuracy halo is the convention every map app has
+   * taught people to read, so it needs no legend.
+   */
+  .me {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: #1E7BE0;
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 6px rgba(30,123,224,.22), 0 2px 6px rgba(0,0,0,.3);
+  }
   .leaflet-popup-content-wrapper { border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,.15); }
   .leaflet-popup-tip { display: none; }
   .leaflet-popup-content { margin: 10px 12px; font-size: 12px; color: ${colors.inkMuted}; }
@@ -72,6 +92,8 @@ export function buildMapHtml(mosques: Mosque[], interactive: boolean): string {
 <script>
   var points = ${JSON.stringify(points)};
   var interactive = ${interactive};
+  var me = ${JSON.stringify(me)};
+  var meLabel = ${JSON.stringify(meLabel)};
 
   var map = L.map('map', {
     zoomControl: false,
@@ -117,6 +139,17 @@ export function buildMapHtml(mosques: Mosque[], interactive: boolean): string {
     });
   });
 
+  var meMarker = null;
+  if (me) {
+    meMarker = L.marker([me.lat, me.lng], {
+      icon: L.divIcon({ className: '', html: '<div class="me"></div>', iconSize: [18, 18], iconAnchor: [9, 9] }),
+      keyboard: false,
+      // Under the mosque pins: it is context, not an answer.
+      zIndexOffset: -500
+    }).addTo(map);
+    meMarker.bindPopup('<b>' + meLabel + '</b>');
+  }
+
   if (points.length === 1) {
     map.setView([points[0].lat, points[0].lng], 15);
   } else if (points.length > 1) {
@@ -136,9 +169,18 @@ export function buildMapHtml(mosques: Mosque[], interactive: boolean): string {
     if (target) map.flyTo([target.lat, target.lng], 14, { duration: 0.9 });
   };
 
+  /** Centre on the reader. No-op without a fix, so the button can be honest. */
+  window.__focusMe = function () {
+    if (!me) return;
+    map.flyTo([me.lat, me.lng], 13, { duration: 0.9 });
+    if (meMarker) meMarker.openPopup();
+  };
+
   // The iframe host can't inject script, so it selects by message instead.
   window.addEventListener('message', function (e) {
-    if (e.data && e.data.type === 'mosque-select') window.__select(e.data.id);
+    if (!e.data) return;
+    if (e.data.type === 'mosque-select') window.__select(e.data.id);
+    if (e.data.type === 'focus-me') window.__focusMe();
   });
 </script>
 </body>

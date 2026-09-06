@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { colors, radius, rule } from '@/theme';
-import type { Mosque } from '@/types';
+import type { Coordinates, Mosque } from '@/types';
 import { buildMapHtml } from './mapHtml';
 
 interface MosqueMapProps {
@@ -10,6 +10,10 @@ interface MosqueMapProps {
   onSelect?: (id: string) => void;
   height?: number;
   interactive?: boolean;
+  me?: Coordinates | null;
+  meLabel?: string;
+  /** Bump to re-centre on `me` — see the native file for why it's a counter. */
+  focusMe?: number;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -24,10 +28,16 @@ export function MosqueMap({
   onSelect,
   height = 220,
   interactive = true,
+  me = null,
+  meLabel,
+  focusMe = 0,
   style,
 }: MosqueMapProps) {
   const frameRef = useRef<HTMLIFrameElement>(null);
-  const html = useMemo(() => buildMapHtml(mosques, interactive), [mosques, interactive]);
+  const html = useMemo(
+    () => buildMapHtml(mosques, interactive, me, meLabel),
+    [mosques, interactive, me, meLabel],
+  );
 
   // Pin taps arrive from the iframe as window messages.
   useEffect(() => {
@@ -50,6 +60,14 @@ export function MosqueMap({
   useEffect(() => {
     frameRef.current?.contentWindow?.postMessage({ type: 'mosque-select', id: selectedId }, '*');
   }, [selectedId, html]);
+
+  // Skips the first render: mounting is not a request to centre on anybody.
+  const focused = useRef(focusMe);
+  useEffect(() => {
+    if (focusMe === focused.current) return;
+    focused.current = focusMe;
+    frameRef.current?.contentWindow?.postMessage({ type: 'focus-me' }, '*');
+  }, [focusMe]);
 
   return (
     <View style={[styles.frame, { height }, style]}>

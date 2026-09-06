@@ -2,7 +2,7 @@ import { Bookmark, Heart, MoveRight } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLang, type Strings } from '@/i18n';
 import { formatAgo } from '@/lib/datetime';
-import { formatTime } from '@/lib/format';
+import { formatCount, formatTime } from '@/lib/format';
 import { select, tap } from '@/lib/haptics';
 import { useSaved } from '@/store/saved';
 import {
@@ -61,9 +61,10 @@ interface PostCardProps {
  */
 export function PostCard({ post, mosqueName, committed = false, onPress }: PostCardProps) {
   const { t, lang, isAr, align, row, font } = useLang();
-  const { isLiked, isSaved, toggleLiked, toggleSaved } = useSaved();
+  const { isLiked, isSaved, likeCount, toggleLiked, toggleSaved } = useSaved();
   const liked = isLiked(post._id);
   const saved = isSaved(post._id);
+  const likes = likeCount(post);
 
   const cfg = postTypeColors[post.type];
   const initial = (mosqueName ?? '?').trim().charAt(0).toUpperCase();
@@ -158,13 +159,17 @@ export function PostCard({ post, mosqueName, committed = false, onPress }: PostC
       <View style={[styles.actions, row]}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={t.details}
+          accessibilityLabel={`${t.likes} ${likes}`}
           accessibilityState={{ selected: liked }}
           onPress={() => {
             select();
-            toggleLiked(post._id);
+            toggleLiked(post);
           }}
-          style={({ pressed }) => [styles.action, pressed && styles.pressed]}
+          style={({ pressed }) => [
+            styles.action,
+            isAr && styles.actionAr,
+            pressed && styles.pressed,
+          ]}
         >
           <Heart
             color={liked ? colors.accent : colors.inkMuted}
@@ -172,6 +177,16 @@ export function PostCard({ post, mosqueName, committed = false, onPress }: PostC
             size={iconSize.md}
             strokeWidth={1.8}
           />
+          {/*
+            Zero is not shown. A "0" under every quiet announcement reads as a
+            verdict on it; an empty heart says the same thing without the
+            scoreboard, and the number appears the moment there is one.
+          */}
+          {likes > 0 ? (
+            <Text style={[styles.count, liked && styles.countLiked]}>
+              {formatCount(likes, lang)}
+            </Text>
+          ) : null}
         </Pressable>
 
         <View style={styles.actionDivider} />
@@ -306,6 +321,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   actionWide: { flex: 2 },
+  count: { ...type.monoSmall, ...numeric, color: colors.inkMuted },
+  countLiked: { color: colors.accent },
   actionAr: { flexDirection: 'row-reverse' },
   actionDivider: { width: rule, backgroundColor: colors.rule, marginVertical: 6 },
   actionLabel: { ...type.smallStrong, color: colors.inkMuted },

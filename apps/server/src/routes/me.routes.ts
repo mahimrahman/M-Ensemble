@@ -3,6 +3,7 @@ import {
   getMe,
   getMyCommitments,
   getMyHours,
+  getMyLikes,
   getMyReliability,
   getMyMemberships,
   getMyMosques,
@@ -26,6 +27,7 @@ meRouter.get('/mosques', asyncHandler(getMyMosques));
 meRouter.get('/memberships', asyncHandler(getMyMemberships));
 meRouter.get('/commitments', asyncHandler(getMyCommitments));
 meRouter.get('/hours', asyncHandler(getMyHours));
+meRouter.get('/likes', asyncHandler(getMyLikes));
 meRouter.get('/reliability', asyncHandler(getMyReliability));
 
 meRouter.get('/notification-prefs', asyncHandler(getNotificationPrefs));

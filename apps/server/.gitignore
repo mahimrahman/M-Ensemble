@@ -1,0 +1,4 @@
+# Uploaded posters. Written at runtime, never committed - see
+# src/services/upload.service.ts.
+uploads/
+tests/.uploads/

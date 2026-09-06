@@ -74,6 +74,8 @@ export const {
   mockFollows,
   mockIqamah,
   mockJummah,
+  mockLikes,
+  likeCountFor,
   mockMemberships,
   mockMosques,
   // curated ten + the generated directory — what the seed writes

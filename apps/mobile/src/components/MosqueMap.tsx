@@ -3,7 +3,7 @@ import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { colors, radius, rule } from '@/theme';
 import { buildMapHtml } from './mapHtml';
-import type { Mosque } from '@/types';
+import type { Coordinates, Mosque } from '@/types';
 
 interface MosqueMapProps {
   mosques: Mosque[];
@@ -12,6 +12,15 @@ interface MosqueMapProps {
   height?: number;
   /** Static header map — no gestures. */
   interactive?: boolean;
+  /** The reader's own position, drawn as the blue dot. */
+  me?: Coordinates | null;
+  meLabel?: string;
+  /**
+   * Bump this to re-centre the map on `me`. A counter rather than a boolean
+   * because "centre on me" is an event, and the reader may want it twice after
+   * panning away — a flag that is already `true` fires nothing the second time.
+   */
+  focusMe?: number;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -30,18 +39,32 @@ export function MosqueMap({
   onSelect,
   height = 260,
   interactive = true,
+  me = null,
+  meLabel,
+  focusMe = 0,
   style,
 }: MosqueMapProps) {
   const webRef = useRef<WebView>(null);
 
   // Rebuilding the HTML would reload the map, so the selected pin is styled by
   // an injected call instead of a re-render.
-  const html = useMemo(() => buildMapHtml(mosques, interactive), [mosques, interactive]);
+  const html = useMemo(
+    () => buildMapHtml(mosques, interactive, me, meLabel),
+    [mosques, interactive, me, meLabel],
+  );
   const selectScript = `window.__select && window.__select(${JSON.stringify(selectedId)}); true;`;
 
   useEffect(() => {
     webRef.current?.injectJavaScript(selectScript);
   }, [selectScript]);
+
+  // Skips the first render: mounting is not a request to centre on anybody.
+  const focused = useRef(focusMe);
+  useEffect(() => {
+    if (focusMe === focused.current) return;
+    focused.current = focusMe;
+    webRef.current?.injectJavaScript('window.__focusMe && window.__focusMe(); true;');
+  }, [focusMe]);
 
   return (
     <View style={[styles.frame, { height }, style]}>

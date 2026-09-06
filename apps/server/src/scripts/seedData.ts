@@ -25,9 +25,11 @@ import {
   passwordFor,
   allMosques,
   defaultNotificationPrefs,
+  likeCountFor,
   mockFollows,
   mockIqamah,
   mockJummah,
+  mockLikes,
   mockMemberships,
   mockPastPosts,
   mockPosts,
@@ -39,6 +41,7 @@ import {
   FollowModel,
   IqamahConfigModel,
   JummahSessionModel,
+  LikeModel,
   MembershipModel,
   MosqueModel,
   PostModel,
@@ -50,6 +53,7 @@ export interface SeedCounts {
   mosques: number;
   users: number;
   follows: number;
+  likes: number;
   memberships: number;
   posts: number;
   signups: number;
@@ -66,7 +70,7 @@ export interface SeedOptions {
 }
 
 /**
- * Empties the eight collections and rebuilds their indexes.
+ * Empties the ten collections and rebuilds their indexes.
  *
  * `deleteMany` rather than `collection.drop()`: dropping a collection takes its
  * indexes with it, and the unique `{postId, userId}` index on `Signup` is the
@@ -149,8 +153,18 @@ export async function seedAll(options: SeedOptions = {}): Promise<SeedCounts> {
     mockMemberships.map((m) => ({ ...m, createdAt: new Date(m.createdAt) })),
   );
 
+  await upsertAll(
+    LikeModel,
+    mockLikes.map((like) => ({ ...like, createdAt: new Date(like.createdAt) })),
+  );
+
   // slotsFilled is written as given, never recomputed from signups - an event
   // can legitimately be 84/200 with no rows behind it.
+  //
+  // likeCount is the opposite: always recomputed, never taken from the fixture,
+  // because it is a cache of the Like rows written just above. A re-seed that
+  // refreshed the posts and left the count alone would put a number on a card
+  // that no rows agree with.
   await upsertAll(
     PostModel,
     [...mockPosts, ...mockPastPosts].map((post) => ({
@@ -158,6 +172,7 @@ export async function seedAll(options: SeedOptions = {}): Promise<SeedCounts> {
       startAt: new Date(post.startAt),
       endAt: new Date(post.endAt),
       createdAt: new Date(post.createdAt),
+      likeCount: likeCountFor(post._id),
       ...(post.cancelledAt ? { cancelledAt: new Date(post.cancelledAt) } : {}),
     })),
   );
@@ -188,17 +203,37 @@ export async function seedAll(options: SeedOptions = {}): Promise<SeedCounts> {
 }
 
 export async function countAll(): Promise<SeedCounts> {
-  const [mosques, users, follows, memberships, posts, signups, iqamahconfigs, jummahsessions] =
-    await Promise.all([
-      MosqueModel.countDocuments(),
-      UserModel.countDocuments(),
-      FollowModel.countDocuments(),
-      MembershipModel.countDocuments(),
-      PostModel.countDocuments(),
-      SignupModel.countDocuments(),
-      IqamahConfigModel.countDocuments(),
-      JummahSessionModel.countDocuments(),
-    ]);
+  const [
+    mosques,
+    users,
+    follows,
+    likes,
+    memberships,
+    posts,
+    signups,
+    iqamahconfigs,
+    jummahsessions,
+  ] = await Promise.all([
+    MosqueModel.countDocuments(),
+    UserModel.countDocuments(),
+    FollowModel.countDocuments(),
+    LikeModel.countDocuments(),
+    MembershipModel.countDocuments(),
+    PostModel.countDocuments(),
+    SignupModel.countDocuments(),
+    IqamahConfigModel.countDocuments(),
+    JummahSessionModel.countDocuments(),
+  ]);
 
-  return { mosques, users, follows, memberships, posts, signups, iqamahconfigs, jummahsessions };
+  return {
+    mosques,
+    users,
+    follows,
+    likes,
+    memberships,
+    posts,
+    signups,
+    iqamahconfigs,
+    jummahsessions,
+  };
 }

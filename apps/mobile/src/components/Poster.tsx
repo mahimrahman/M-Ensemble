@@ -1,4 +1,5 @@
 import { Image, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { resolveMediaUrl } from '@/api/http';
 import { colors, radius } from '@/theme';
 
 /**
@@ -36,7 +37,12 @@ export function hasPosterArt(post: { imageUrl?: string; posterKey?: string }): b
 }
 
 interface PosterProps {
-  /** A poster the mosque uploaded. Takes precedence over `posterKey`. */
+  /**
+   * A poster the mosque uploaded. Takes precedence over `posterKey`.
+   *
+   * Stored server-relative (`/uploads/<id>.jpg`) and resolved here, so the
+   * same row renders from a phone on the LAN and a browser on localhost.
+   */
   imageUrl?: string;
   /** One of the bundled posters. Ignored when it names artwork we don't ship. */
   posterKey?: string;
@@ -59,8 +65,9 @@ export function Poster({
   style,
 }: PosterProps) {
   // An uploaded poster wins; a bundled one is what the fixtures name.
-  const source = imageUrl
-    ? { uri: imageUrl }
+  const uploaded = resolveMediaUrl(imageUrl);
+  const source = uploaded
+    ? { uri: uploaded }
     : posterKey && posterKey in POSTER_ART
       ? POSTER_ART[posterKey as PosterKey]
       : null;

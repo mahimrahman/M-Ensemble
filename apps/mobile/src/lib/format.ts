@@ -50,6 +50,18 @@ export function formatWhen(startAt: string, endAt: string, lang: Lang = 'en'): s
 }
 
 /** "2h 30m" — how service hours read in My Stuff. */
+/**
+ * A tally beside an icon: "42", then "1.2k" once four digits would crowd the
+ * action bar. Localised, so Arabic gets its own digits like every other number
+ * in the app.
+ */
+export function formatCount(n: number, lang: Lang = 'en'): string {
+  const locale = LOCALE[lang];
+  if (n < 1000) return n.toLocaleString(locale);
+  const thousands = Math.round(n / 100) / 10;
+  return `${thousands.toLocaleString(locale, { maximumFractionDigits: 1 })}k`;
+}
+
 export function formatDuration(totalMinutes: number): string {
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;

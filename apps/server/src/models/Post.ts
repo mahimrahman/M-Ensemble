@@ -48,6 +48,10 @@ const postSchema = new Schema<PostRecord>(
     createdBy: { type: String, required: true },
     createdAt: { type: Date, required: true },
     cancelledAt: { type: Date },
+    // Denormalised from the Like rows. `required` with a default so it is
+    // always a number on the wire — a card reading `undefined + 1` is how a
+    // count becomes NaN in front of an audience.
+    likeCount: { type: Number, required: true, default: 0 },
   },
   contractJson(),
 );

@@ -67,6 +67,13 @@
         {
           "cameraPermission": "M’Ensemble uses the camera to scan check-in codes at events."
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "M’Ensemble lets mosque coordinators choose a poster for an event or class from their photos.",
+          "cameraPermission": "M’Ensemble lets mosque coordinators photograph a poster for an event or class."
+        }
       ]
     ],
     "experiments": {

@@ -20,6 +20,7 @@ import {
   Field,
   GradientHeader,
   Loading,
+  PosterField,
   Screen,
   Segmented,
 } from '@/components';
@@ -57,6 +58,8 @@ interface FormState {
   slotsNeeded: string;
   capacity: string;
   sessionCount: string;
+  /** The stored path of an uploaded poster, or '' for none. */
+  imageUrl: string;
 }
 
 const EMPTY: FormState = {
@@ -71,6 +74,7 @@ const EMPTY: FormState = {
   slotsNeeded: '4',
   capacity: '',
   sessionCount: '6',
+  imageUrl: '',
 };
 
 export default function CreatePostScreen() {
@@ -116,6 +120,7 @@ export default function CreatePostScreen() {
       slotsNeeded: post.slotsNeeded?.toString() ?? '',
       capacity: post.capacity?.toString() ?? '',
       sessionCount: post.sessions?.length.toString() ?? '1',
+      imageUrl: post.imageUrl ?? '',
     });
   }, [existing.data]);
 
@@ -167,6 +172,7 @@ export default function CreatePostScreen() {
       startAt,
       endAt,
       location: form.location.trim() || 'Mosque',
+      ...(form.imageUrl ? { imageUrl: form.imageUrl } : {}),
       ...(form.type === 'volunteer' ? { slotsNeeded: Number(form.slotsNeeded) } : {}),
       ...(form.type !== 'volunteer' && form.capacity ? { capacity: Number(form.capacity) } : {}),
       ...(form.type === 'class'
@@ -187,7 +193,10 @@ export default function CreatePostScreen() {
     setSaving(true);
     try {
       if (editId) {
-        const patch: UpdatePostInput = build();
+        // `build()` leaves `imageUrl` out when there is no poster, which on a
+        // patch reads as "don't touch it" — but here an empty field is the
+        // admin having removed one, and `null` is how the API is told that.
+        const patch: UpdatePostInput = { ...build(), imageUrl: form.imageUrl || null };
         await api.updatePost(editId, patch);
         router.back();
         return;
@@ -328,6 +337,18 @@ export default function CreatePostScreen() {
             ))}
           </View>
         </View>
+
+        {/*
+          Between the words and the schedule, because a poster is part of what
+          the post *is* — the feed leads with it — and not part of when it
+          happens. On an edit the mosque comes off the loaded post: the route
+          only carries `mosqueId` when creating.
+        */}
+        <PosterField
+          mosqueId={mosqueId ?? existing.data?.mosqueId}
+          value={form.imageUrl || undefined}
+          onChange={(url) => set('imageUrl', url ?? '')}
+        />
 
         {!isAnnouncement ? (
           <>

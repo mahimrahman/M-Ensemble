@@ -18,6 +18,8 @@ import {
   type ID,
   type Iqamah,
   type JummahSession,
+  type Like,
+  type LikeResult,
   type MEnsembleApi,
   type MemberDetail,
   type MemberRole,
@@ -49,6 +51,8 @@ import {
   mockFollows,
   mockIqamah,
   mockJummah,
+  likeCountFor,
+  mockLikes,
   mockMemberships,
   allMosques,
   mockPastPosts,
@@ -82,6 +86,7 @@ interface MockState {
   posts: Post[];
   signups: Signup[];
   follows: Follow[];
+  likes: Like[];
   memberships: Membership[];
   iqamah: Iqamah[];
   jummah: JummahSession[];
@@ -95,9 +100,16 @@ function fresh(): MockState {
   return {
     users: clone(mockUsers),
     mosques: clone(allMosques),
-    posts: [...clone(mockPosts), ...clone(mockPastPosts)],
+    // `likeCount` is derived here for the same reason the seed derives it:
+    // the fixtures declare who liked what, and the number on a card is a
+    // cache of those rows rather than a figure of its own.
+    posts: [...clone(mockPosts), ...clone(mockPastPosts)].map((post) => ({
+      ...post,
+      likeCount: likeCountFor(post._id),
+    })),
     signups: clone(mockSignups),
     follows: clone(mockFollows),
+    likes: clone(mockLikes),
     memberships: clone(mockMemberships),
     iqamah: clone(mockIqamah),
     jummah: clone(mockJummah),
@@ -149,6 +161,17 @@ function requirePost(id: ID): Post {
     throw new ApiRequestError(API_ERROR.NOT_FOUND, 'That post no longer exists.', 404);
   }
   return post;
+}
+
+/**
+ * Recount one post's likes and write the number back onto it, exactly as the
+ * server's `settle` does — so the card reads the same field either way.
+ */
+function likeResult(postId: ID, liked: boolean): LikeResult {
+  const likeCount = state.likes.filter((l) => l.postId === postId).length;
+  const post = state.posts.find((p) => p._id === postId);
+  if (post) post.likeCount = likeCount;
+  return { postId, likeCount, liked };
 }
 
 function requireMosque(id: ID): Mosque {
@@ -480,6 +503,17 @@ export const mockApi: MEnsembleApi = {
     return delay(clone(posts));
   },
 
+  /**
+   * The mock has no filesystem and no server, so there is nothing here to
+   * upload to. It exists because `MEnsembleApi` requires it and the oracle
+   * tests instantiate the whole surface; every screen that uploads talks to
+   * the HTTP client. Failing loudly beats returning a path that resolves to
+   * nothing and shows up later as a broken image.
+   */
+  async uploadPoster(): Promise<never> {
+    throw new Error('uploadPoster: the mock client has nowhere to put a file');
+  },
+
   async createPost(input: CreatePostInput) {
     const user = requireAdmin(input.mosqueId);
     const post: Post = {
@@ -784,6 +818,35 @@ export const mockApi: MEnsembleApi = {
       .sort((a, b) => new Date(b.startAt).getTime() - new Date(a.startAt).getTime());
 
     return delay(outcomes);
+  },
+
+  // ---------------------------------------------------------------- likes ---
+
+  async likePost(postId) {
+    const user = requireUser();
+    requirePost(postId);
+    const already = state.likes.some((l) => l.userId === user._id && l.postId === postId);
+    if (!already) {
+      state.likes.push({
+        _id: makeId('like'),
+        userId: user._id,
+        postId,
+        createdAt: new Date().toISOString(),
+      });
+    }
+    return delay(likeResult(postId, true));
+  },
+
+  async unlikePost(postId) {
+    const user = requireUser();
+    requirePost(postId);
+    state.likes = state.likes.filter((l) => !(l.userId === user._id && l.postId === postId));
+    return delay(likeResult(postId, false));
+  },
+
+  async getMyLikes() {
+    const user = requireUser();
+    return delay(state.likes.filter((l) => l.userId === user._id).map((l) => l.postId));
   },
 
   // -------------------------------------------------------------- signups ---

@@ -228,6 +228,19 @@ const fr = {
   of: 'sur',
   noMosques: 'Aucune mosquée',
   couldNotUpdate: 'Mise à jour impossible',
+  searchMosques: 'Rechercher une mosquée',
+  noMatches: 'Aucun résultat',
+  noMatchesBody: 'Aucune mosquée ne correspond à « {query} ».',
+  clearSearch: 'Effacer la recherche',
+  nearMe: 'Près de moi',
+  showingNearest: 'De la plus proche à la plus éloignée',
+  kmAway: 'à {km} km',
+  openInMaps: 'Ouvrir dans Google Maps ?',
+  openInMapsBody:
+    'Vous allez quitter M’Ensemble pour ouvrir l’itinéraire vers {name} dans Google Maps.',
+  openMaps: 'Ouvrir Google Maps',
+  couldNotOpenMaps: 'Impossible d’ouvrir Google Maps',
+  likes: 'J’aime',
 
   // ── mosque profile ──
   about: 'À propos',
@@ -367,6 +380,17 @@ const fr = {
     'Quand une mosquée que vous suivez a besoin de quelque chose, ça apparaît ici.',
   tryAnotherFilter: 'Essayez un autre filtre.',
   somethingWrong: 'Un problème est survenu.',
+
+  // ── coordinator forms: poster ──
+  poster: 'Affiche',
+  posterChoose: 'Choisir une image',
+  posterCamera: 'Prendre une photo',
+  posterRemove: 'Retirer l’affiche',
+  posterUploading: 'Envoi…',
+  posterHint: 'Facultatif. Recadrée en 16:9 — le format des affiches dans le fil.',
+  posterFailed: 'Impossible d’envoyer cette image. Réessayez.',
+  posterNeedsLibrary: 'Autorisez l’accès aux photos pour choisir une affiche.',
+  posterNeedsCamera: 'Autorisez l’accès à l’appareil photo pour prendre une photo.',
 
   // ── coordinator forms: create post / iqamah ──
   errTitle: 'Donnez-lui un titre.',
@@ -653,6 +677,18 @@ const en: Strings = {
   of: 'of',
   noMosques: 'No mosques yet',
   couldNotUpdate: 'Could not update',
+  searchMosques: 'Search mosques',
+  noMatches: 'No matches',
+  noMatchesBody: 'No mosque matches "{query}".',
+  clearSearch: 'Clear search',
+  nearMe: 'Near me',
+  showingNearest: 'Nearest first',
+  kmAway: '{km} km away',
+  openInMaps: 'Open in Google Maps?',
+  openInMapsBody: "You'll leave M'Ensemble to get directions to {name} in Google Maps.",
+  openMaps: 'Open Google Maps',
+  couldNotOpenMaps: "Couldn't open Google Maps",
+  likes: 'Likes',
 
   about: 'About',
   ourHistory: 'Our history',
@@ -783,6 +819,17 @@ const en: Strings = {
   nothingComingUpBody: 'When a mosque you follow needs something, it lands here.',
   tryAnotherFilter: 'Try another filter.',
   somethingWrong: 'Something went wrong.',
+
+  // ── coordinator forms: poster ──
+  poster: 'Poster',
+  posterChoose: 'Choose a photo',
+  posterCamera: 'Take a photo',
+  posterRemove: 'Remove poster',
+  posterUploading: 'Uploading…',
+  posterHint: 'Optional. Cropped to 16:9 — the shape posters take in the feed.',
+  posterFailed: 'Could not upload that image. Try again.',
+  posterNeedsLibrary: 'Allow photo access to choose a poster.',
+  posterNeedsCamera: 'Allow camera access to take a photo.',
 
   // ── coordinator forms: create post / iqamah ──
   errTitle: 'Give it a title.',
@@ -1062,6 +1109,18 @@ const ar: Strings = {
   of: 'من',
   noMosques: 'لا توجد مساجد',
   couldNotUpdate: 'تعذّر التحديث',
+  searchMosques: 'ابحث عن مسجد',
+  noMatches: 'لا نتائج',
+  noMatchesBody: 'لا يوجد مسجد يطابق «{query}».',
+  clearSearch: 'مسح البحث',
+  nearMe: 'بالقرب مني',
+  showingNearest: 'الأقرب أولاً',
+  kmAway: 'على بعد {km} كم',
+  openInMaps: 'فتح خرائط Google؟',
+  openInMapsBody: 'ستغادر «معًا» لفتح الاتجاهات إلى {name} في خرائط Google.',
+  openMaps: 'فتح خرائط Google',
+  couldNotOpenMaps: 'تعذّر فتح خرائط Google',
+  likes: 'إعجابات',
 
   about: 'نبذة',
   ourHistory: 'تاريخنا',
@@ -1192,6 +1251,17 @@ const ar: Strings = {
   nothingComingUpBody: 'عندما يحتاج مسجد تتابعه شيئاً، سيظهر هنا.',
   tryAnotherFilter: 'جرّب فلتراً آخر.',
   somethingWrong: 'حدث خطأ ما.',
+
+  // ── coordinator forms: poster ──
+  poster: 'الملصق',
+  posterChoose: 'اختيار صورة',
+  posterCamera: 'التقاط صورة',
+  posterRemove: 'إزالة الملصق',
+  posterUploading: 'جارٍ الرفع…',
+  posterHint: 'اختياري. يُقتصّ بنسبة ١٦:٩ — شكل الملصقات في آخر الأخبار.',
+  posterFailed: 'تعذّر رفع هذه الصورة. حاول مرة أخرى.',
+  posterNeedsLibrary: 'اسمح بالوصول إلى الصور لاختيار ملصق.',
+  posterNeedsCamera: 'اسمح بالوصول إلى الكاميرا لالتقاط صورة.',
 
   // ── coordinator forms: create post / iqamah ──
   errTitle: 'أضف عنوانًا.',

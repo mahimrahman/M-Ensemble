@@ -1,9 +1,11 @@
 import { createApp } from './app.js';
 import { env } from './config/env.js';
 import { connectDatabase, disconnectDatabase } from './config/db.js';
+import { ensureUploadDir } from './services/upload.service.js';
 
 async function main(): Promise<void> {
   await connectDatabase();
+  await ensureUploadDir();
 
   const server = createApp().listen(env.PORT, () => {
     console.log(`[server] listening on http://localhost:${env.PORT} (${env.NODE_ENV})`);

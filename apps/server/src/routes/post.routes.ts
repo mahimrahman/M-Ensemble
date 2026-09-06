@@ -3,8 +3,10 @@ import {
   cancelPost,
   checkIn,
   createPost,
+  deleteLike,
   getPost,
   getPostSignups,
+  postLike,
   signUpForPost,
   updatePost,
   withdrawFromPost,
@@ -32,6 +34,9 @@ postRouter.patch(
   asyncHandler(updatePost),
 );
 postRouter.post('/:id/cancel', requireAdmin(fromPost), asyncHandler(cancelPost));
+
+postRouter.post('/:id/like', asyncHandler(postLike));
+postRouter.delete('/:id/like', asyncHandler(deleteLike));
 
 postRouter.post('/:id/signup', asyncHandler(signUpForPost));
 postRouter.delete('/:id/signup', asyncHandler(withdrawFromPost));
