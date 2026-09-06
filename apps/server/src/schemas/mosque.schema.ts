@@ -32,3 +32,21 @@ export const iqamahConfigSchema = z.object({
 });
 
 export const memberRoleSchema = z.object({ role: z.enum(['member', 'admin']) }).strict();
+
+/**
+ * What a coordinator may change about their own mosque's profile.
+ *
+ * `.strict()` on purpose, unlike the iqamah body above: name, address,
+ * coordinates and joinCode are identity, and a typo'd client that sent one
+ * should get a 400 rather than have it silently stripped. Empty strings are
+ * allowed — that is how a field gets cleared.
+ */
+export const updateMosqueSchema = z
+  .object({
+    bio: z.string().max(2000).optional(),
+    history: z.string().max(2000).optional(),
+    website: z.string().max(200).optional(),
+    phone: z.string().max(60).optional(),
+    services: z.array(z.string().max(200)).max(20).optional(),
+  })
+  .strict();

@@ -8,9 +8,12 @@ import { contractJson } from '../utils/serialize.js';
  * `now` when someone re-signs up after withdrawing, which Mongoose-managed
  * timestamps would not permit. Hence no `timestamps: true` here.
  */
-export interface SignupRecord extends Omit<Signup, 'checkedInAt' | 'createdAt'> {
+export interface SignupRecord
+  extends Omit<Signup, 'checkedInAt' | 'createdAt' | 'lateCancelledAt' | 'noShowAt'> {
   checkedInAt?: Date;
   createdAt?: Date;
+  lateCancelledAt?: Date;
+  noShowAt?: Date;
 }
 
 const signupSchema = new Schema<SignupRecord>(
@@ -21,6 +24,9 @@ const signupSchema = new Schema<SignupRecord>(
     status: { type: String, required: true, enum: ['confirmed', 'withdrawn'] },
     checkedInAt: { type: Date },
     createdAt: { type: Date },
+    // Reliability. Both are stamped by the server — a client never sends them.
+    lateCancelledAt: { type: Date },
+    noShowAt: { type: Date },
   },
   contractJson(),
 );

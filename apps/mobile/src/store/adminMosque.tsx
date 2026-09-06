@@ -33,6 +33,8 @@ interface AdminMosqueValue {
   mosques: Mosque[];
   loading: boolean;
   setMosqueId: (id: ID) => void;
+  /** Re-fetch after the coordinator edits the mosque's own profile. */
+  reload: () => Promise<void>;
 }
 
 const AdminMosqueContext = createContext<AdminMosqueValue | null>(null);
@@ -82,6 +84,15 @@ export function AdminMosqueProvider({ children }: { children: ReactNode }) {
     };
   }, [key]);
 
+  const reload = useCallback(async () => {
+    if (adminMosqueIds.length === 0) return;
+    try {
+      setMosques(await Promise.all(adminMosqueIds.map((id) => api.getMosque(id))));
+    } catch {
+      // Keep what's on screen — a failed refresh must not blank the switcher.
+    }
+  }, [key]);
+
   const setMosqueId = useCallback((id: ID) => {
     setSelected(id);
     void AsyncStorage.setItem(ACTIVE_KEY, id);
@@ -97,8 +108,9 @@ export function AdminMosqueProvider({ children }: { children: ReactNode }) {
       mosques,
       loading,
       setMosqueId,
+      reload,
     };
-  }, [selected, key, mosques, loading, setMosqueId]);
+  }, [selected, key, mosques, loading, setMosqueId, reload]);
 
   return <AdminMosqueContext.Provider value={value}>{children}</AdminMosqueContext.Provider>;
 }

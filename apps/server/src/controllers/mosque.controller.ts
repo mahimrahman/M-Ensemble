@@ -1,5 +1,11 @@
 import type { Request, Response } from 'express';
-import type { DateString, MemberRole, MosqueIqamahConfig, PostType } from '@m-ensemble/shared';
+import type {
+  DateString,
+  MemberRole,
+  MosqueIqamahConfig,
+  PostType,
+  UpdateMosqueInput,
+} from '@m-ensemble/shared';
 import { FollowModel } from '../models/Follow.js';
 import { MosqueModel } from '../models/Mosque.js';
 import { PostModel } from '../models/Post.js';
@@ -26,6 +32,36 @@ export async function listMosques(_req: Request, res: Response): Promise<void> {
 export async function getMosque(req: Request, res: Response): Promise<void> {
   const mosque = await MosqueModel.findById(String(req.params.id));
   if (!mosque) throw new HttpError(404, ERROR.NOT_FOUND, 'Mosque not found.');
+  ok(res, mosque.toJSON());
+}
+
+/**
+ * Edit the mosque's own profile.
+ *
+ * Only the descriptive half: bio, history, contact and the services list.
+ * Name, address, coordinates and joinCode are identity — letting them be
+ * patched from the app would let one mosque rename itself as another. An empty
+ * string clears the field rather than storing "".
+ */
+export async function updateMosque(req: Request, res: Response): Promise<void> {
+  const mosque = await MosqueModel.findById(String(req.params.id));
+  if (!mosque) throw new HttpError(404, ERROR.NOT_FOUND, 'Mosque not found.');
+
+  const patch = req.body as UpdateMosqueInput;
+
+  if (patch.bio !== undefined) mosque.bio = patch.bio.trim() || undefined;
+  if (patch.history !== undefined) mosque.history = patch.history.trim() || undefined;
+  if (patch.website !== undefined) {
+    // Store the bare host; the app adds the scheme when it opens the link.
+    mosque.website = patch.website.trim().replace(/^https?:\/\//i, '') || undefined;
+  }
+  if (patch.phone !== undefined) mosque.phone = patch.phone.trim() || undefined;
+  if (patch.services !== undefined) {
+    const cleaned = patch.services.map((s) => s.trim()).filter(Boolean);
+    mosque.services = cleaned.length ? cleaned : undefined;
+  }
+
+  await mosque.save();
   ok(res, mosque.toJSON());
 }
 

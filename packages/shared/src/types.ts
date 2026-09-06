@@ -141,6 +141,53 @@ export interface Signup {
   checkedInAt?: Timestamp;
   /** When the slot was claimed — drives "new signups" on the admin home. */
   createdAt?: Timestamp;
+  /**
+   * Set when the volunteer withdrew inside `LATE_CANCEL_HOURS` of the start.
+   * Withdrawing early is free and leaves no trace; this close in, the mosque
+   * has to find someone else, so it goes on the record.
+   */
+  lateCancelledAt?: Timestamp;
+  /**
+   * Set when a post ended and this confirmed signup was never checked in.
+   * Written by the server as posts end, never by the client.
+   */
+  noShowAt?: Timestamp;
+}
+
+/**
+ * Withdrawing less than this many hours before the start counts as a late
+ * cancellation. One number, shared by the warning the app shows and the rule
+ * the server enforces, so they can never drift apart.
+ */
+export const LATE_CANCEL_HOURS = 24;
+
+/**
+ * How dependable someone has been. Shown to the volunteer on their own profile
+ * and to the coordinator on the member screen — the same numbers both sides,
+ * so a conversation about them starts from one set of facts.
+ */
+export interface ReliabilityRecord {
+  /** Confirmed signups on posts that have already ended. */
+  commitments: number;
+  /** Of those, the ones they were checked in for. */
+  attended: number;
+  /** Withdrawals inside the late window. */
+  lateCancellations: number;
+  /** Ended posts they were confirmed for and never checked in to. */
+  noShows: number;
+  /** `attended / commitments` as 0–100. 100 when there is nothing to judge. */
+  reliabilityRate: number;
+  /** Most recent incidents, newest first — the detail behind the counts. */
+  recent: ReliabilityIncident[];
+}
+
+export interface ReliabilityIncident {
+  postId: ID;
+  postTitle: string;
+  mosqueId: ID;
+  startAt: Timestamp;
+  kind: 'late-cancel' | 'no-show';
+  at: Timestamp;
 }
 
 /**
@@ -250,6 +297,10 @@ export interface MosqueMember {
   lastSeenAt?: Timestamp;
   /** What they told us they care about — drives who to ask next. */
   interests: string[];
+  /** Late cancellations at this mosque, all time. */
+  lateCancellations: number;
+  /** Ended posts they were confirmed for and never checked in to. */
+  noShows: number;
 }
 
 /** One person's signup, flattened with the post it belongs to. */
@@ -283,6 +334,32 @@ export interface MosqueDashboard {
   attendanceRate: number;
   /** Volunteer minutes served across all past posts. */
   minutesServed: number;
+
+  // ── Added for the coordinator's home. Every one of these answers a question
+  // someone actually asked while standing in a mosque office.
+
+  /** Live posts starting in the next 24h — "what do I run today". */
+  startingSoon: number;
+  /** Live volunteer posts with nobody signed up at all. The urgent list. */
+  postsWithNoSignups: number;
+  /** New followers in the last 7 days — is the audience growing. */
+  newFollowers7d: number;
+  /** People with a confirmed signup in the last 30 days. */
+  activeVolunteers30d: number;
+  /**
+   * People who signed up here for the first time in the last 30 days. The
+   * number that says whether the mosque is reaching anyone new.
+   */
+  firstTimeVolunteers30d: number;
+  /** Late cancellations across the mosque in the last 30 days. */
+  lateCancellations30d: number;
+  /** No-shows across the mosque in the last 30 days. */
+  noShows30d: number;
+  /**
+   * Attendance rate over posts that ended in the last 30 days, 0–100.
+   * `attendanceRate` is all-time; this one shows whether it is moving.
+   */
+  attendanceRate30d: number;
 }
 
 /** A post that has already ended, with how the turnout actually went. */

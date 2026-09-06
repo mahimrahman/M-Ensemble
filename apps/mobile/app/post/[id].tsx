@@ -16,6 +16,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Alert } from '@/lib/alert';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTopInset } from '@/hooks/useTopInset';
+import { LATE_CANCEL_HOURS } from '@m-ensemble/shared';
 import { API_ERROR, api, isApiError } from '@/api/client';
 import {
   BackBar,
@@ -114,13 +115,22 @@ export default function PostDetailScreen() {
 
   function confirmWithdraw() {
     const isVolunteer = post.data?.type === 'volunteer';
+
+    // Inside the window the mosque can no longer replace you easily, so say
+    // plainly what it costs before asking again. Outside it, withdrawing is
+    // free and the prompt stays the gentle one — we want early notice.
+    const hoursBefore = post.data
+      ? (new Date(post.data.startAt).getTime() - Date.now()) / 3_600_000
+      : Number.POSITIVE_INFINITY;
+    const isLate = hoursBefore < LATE_CANCEL_HOURS;
+
     Alert.alert(
-      isVolunteer ? t.giveUpSlot : t.notGoing,
-      isVolunteer ? t.giveUpBody : t.notGoingBody,
+      isLate ? t.lateCancelTitle : isVolunteer ? t.giveUpSlot : t.notGoing,
+      isLate ? t.lateCancelBody : isVolunteer ? t.giveUpBody : t.notGoingBody,
       [
         { text: t.keepIt, style: 'cancel' },
         {
-          text: isVolunteer ? t.withdraw : t.cantMakeIt,
+          text: isLate ? t.lateCancelConfirm : isVolunteer ? t.withdraw : t.cantMakeIt,
           style: 'destructive',
           onPress: () => void withdraw(),
         },
@@ -131,7 +141,13 @@ export default function PostDetailScreen() {
   async function withdraw() {
     setBusy(true);
     try {
-      await api.withdraw(id);
+      // The server decides whether this counted as late — it re-reads the clock
+      // at the write. Report what it actually recorded, not what we predicted.
+      const result = await api.withdraw(id);
+      if (result.lateCancelled) {
+        warn();
+        Alert.alert(t.lateCancelRecorded, t.lateCancelBody);
+      }
     } catch {
       warn();
       Alert.alert(t.couldNotWithdraw, t.tryAgain);

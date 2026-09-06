@@ -20,6 +20,7 @@ import {
   PrayerTable,
   Screen,
   SectionTitle,
+  Segmented,
 } from '@/components';
 import { useApi } from '@/hooks/useApi';
 import { useNextPrayer } from '@/hooks/useNextPrayer';
@@ -37,6 +38,7 @@ export default function MosquesScreen() {
   const { browsingCity } = useLocation();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [scope, setScope] = useState<'all' | 'following'>('all');
   const scrollRef = useRef<ScrollView>(null);
   const rowOffsets = useRef<Record<string, number>>({});
 
@@ -44,7 +46,10 @@ export default function MosquesScreen() {
   const followed = useApi(() => api.getFollowedMosques(), []);
   const followedIds = new Set((followed.data ?? []).map((m) => m._id));
 
-  const list = (mosques.data ?? []).filter((m) => mosqueCity(m).id === browsingCity.id);
+  // "All" is every mosque in the city you're browsing — the directory is large,
+  // so "Following" is the short list people actually come back to.
+  const inCity = (mosques.data ?? []).filter((m) => mosqueCity(m).id === browsingCity.id);
+  const list = scope === 'following' ? inCity.filter((m) => followedIds.has(m._id)) : inCity;
   const active = list.find((m) => m._id === selectedId) ?? list[0] ?? null;
 
   // The table under the list follows whichever mosque is selected.
@@ -119,8 +124,28 @@ export default function MosquesScreen() {
         />
 
         <View style={styles.padded}>
+          <View style={styles.scopeRow}>
+            <Segmented
+              options={[
+                { value: 'all', label: `${t.all} (${inCity.length})` },
+                {
+                  value: 'following',
+                  label: `${t.following} (${inCity.filter((m) => followedIds.has(m._id)).length})`,
+                },
+              ]}
+              value={scope}
+              onChange={(next) => {
+                tap();
+                setScope(next);
+              }}
+            />
+          </View>
+
           {list.length === 0 ? (
-            <EmptyState title={t.noMosques} />
+            <EmptyState
+              title={scope === 'following' ? t.notFollowingAny : t.noMosques}
+              {...(scope === 'following' ? { message: t.nearbyMosques } : {})}
+            />
           ) : (
             list.map((mosque) => {
               const isFollowed = followedIds.has(mosque._id);
@@ -240,6 +265,7 @@ export default function MosquesScreen() {
 
 const styles = StyleSheet.create({
   scroll: { paddingBottom: spacing.xxxl },
+  scopeRow: { marginBottom: spacing.md },
   padded: { paddingHorizontal: feedPadding },
   map: { marginHorizontal: 0, borderRadius: 0, borderWidth: 0 },
 

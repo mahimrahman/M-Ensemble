@@ -81,9 +81,13 @@ export async function signUpForPost(req: Request, res: Response): Promise<void> 
   ok(res, signup.toJSON(), 201);
 }
 
+/**
+ * Returns what the withdrawal actually did rather than `null`, so the screen
+ * can tell the volunteer whether it went on their record. The server decides
+ * that — the client's warning is a courtesy, not the rule.
+ */
 export async function withdrawFromPost(req: Request, res: Response): Promise<void> {
-  await withdrawSlot(String(req.params.id), currentUser(req)._id);
-  okNull(res);
+  ok(res, await withdrawSlot(String(req.params.id), currentUser(req)._id));
 }
 
 /** **All statuses** — the app filters `confirmed` itself. */

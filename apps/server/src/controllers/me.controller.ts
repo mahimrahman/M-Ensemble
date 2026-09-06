@@ -6,6 +6,7 @@ import { MosqueModel } from '../models/Mosque.js';
 import { PostModel } from '../models/Post.js';
 import { SignupModel } from '../models/Signup.js';
 import { currentUser } from '../middleware/requireAuth.js';
+import { buildReliability } from '../services/reliability.service.js';
 import { postMinutes } from '../utils/time.js';
 import { ok, okNull } from '../utils/respond.js';
 
@@ -80,6 +81,14 @@ export async function getMyHours(req: Request, res: Response): Promise<void> {
 
   const hours: ServiceHours = { totalMinutes, shiftsCompleted: served.length };
   ok(res, hours);
+}
+
+/**
+ * The volunteer`s own record. Same numbers the coordinator sees on the member
+ * screen — one computation, so the two sides cannot tell different stories.
+ */
+export async function getMyReliability(req: Request, res: Response): Promise<void> {
+  ok(res, await buildReliability(currentUser(req)._id));
 }
 
 export async function getNotificationPrefs(req: Request, res: Response): Promise<void> {

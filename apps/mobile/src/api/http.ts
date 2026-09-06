@@ -29,12 +29,15 @@ import type {
   PrayerTable,
   PublicUser,
   RosterEntry,
+  ReliabilityRecord,
   RosterFilter,
   ServiceHours,
   Signup,
   SignupInput,
+  UpdateMosqueInput,
   UpdatePostInput,
   User,
+  WithdrawResult,
   ApiResponse,
 } from '@/types';
 import { ApiRequestError } from './errors';
@@ -125,6 +128,8 @@ export const httpApi: MEnsembleApi = {
   getMosquePostsForAdmin: (mosqueId: ID) => get<Post[]>(`/mosques/${mosqueId}/posts?all=true`),
   updatePost: (id: ID, body: UpdatePostInput) => patch<Post>(`/posts/${id}`, body),
   cancelPost: (id: ID) => post<Post>(`/posts/${id}/cancel`),
+  updateMosque: (mosqueId: ID, body: UpdateMosqueInput) =>
+    patch<Mosque>(`/mosques/${mosqueId}`, body),
   getIqamahConfig: (mosqueId: ID) => get<MosqueIqamahConfig>(`/mosques/${mosqueId}/iqamah`),
   setIqamahConfig: (mosqueId: ID, input: IqamahConfigInput) =>
     put<MosqueIqamahConfig>(`/mosques/${mosqueId}/iqamah`, input),
@@ -140,12 +145,13 @@ export const httpApi: MEnsembleApi = {
   getEventOutcomes: (mosqueId: ID) => get<EventOutcome[]>(`/mosques/${mosqueId}/outcomes`),
 
   signup: (postId: ID) => post<Signup>(`/posts/${postId}/signup`),
-  withdraw: (postId: ID) => del<void>(`/posts/${postId}/signup`),
+  withdraw: (postId: ID) => del<WithdrawResult>(`/posts/${postId}/signup`),
   getSignups: (postId: ID) => get<Signup[]>(`/posts/${postId}/signups`),
   checkIn: (postId: ID, userId: ID) => post<void>(`/posts/${postId}/checkin`, { userId }),
 
   getCommitments: () => get<Signup[]>('/me/commitments'),
   getServiceHours: () => get<ServiceHours>('/me/hours'),
+  getMyReliability: () => get<ReliabilityRecord>('/me/reliability'),
 
   getPrayerTimes: (mosqueId: ID, date: DateString) =>
     get<PrayerTable>(`/mosques/${mosqueId}/prayer-times?date=${date}`),

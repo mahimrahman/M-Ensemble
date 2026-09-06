@@ -34,6 +34,7 @@ export const {
   // contract
   API_ERROR,
   PRAYERS,
+  LATE_CANCEL_HOURS,
   // prayer maths
   MOSQUE_TIMEZONE,
   addMinutes,
@@ -72,6 +73,10 @@ export const {
   mockJummah,
   mockMemberships,
   mockMosques,
+  // curated ten + the generated directory — what the seed writes
+  allMosques,
+  directoryMosques,
+  isOperatedMosque,
   mockPastPosts,
   mockPosts,
   mockSignups,

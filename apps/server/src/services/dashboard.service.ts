@@ -2,6 +2,7 @@ import type { MosqueDashboard } from '@m-ensemble/shared';
 import { FollowModel } from '../models/Follow.js';
 import { PostModel } from '../models/Post.js';
 import { SignupModel } from '../models/Signup.js';
+import { sweepNoShows } from './reliability.service.js';
 import { DAY_MS, isEnded, isLive, postMinutes } from '../utils/time.js';
 
 /**
@@ -16,6 +17,10 @@ import { DAY_MS, isEnded, isLive, postMinutes } from '../utils/time.js';
  * every type.
  */
 export async function buildDashboard(mosqueId: string): Promise<MosqueDashboard> {
+  // Stamp any no-shows first, so `noShows30d` counts posts that have ended
+  // since the last time anyone looked at this mosque.
+  await sweepNoShows(mosqueId);
+
   const now = Date.now();
   const posts = await PostModel.find({ mosqueId });
 
@@ -47,6 +52,34 @@ export async function buildDashboard(mosqueId: string): Promise<MosqueDashboard>
   }, 0);
 
   const cutoff = now + 7 * DAY_MS;
+  const monthAgo = now - 30 * DAY_MS;
+
+  // The 30-day window. All-time numbers flatter a mosque that was busy a year
+  // ago; these say what is happening now, which is what a coordinator is
+  // deciding on.
+  const endedRecently = ended.filter((p) => p.endAt.getTime() >= monthAgo);
+  const endedRecentlyIds = new Set(endedRecently.map((p) => p._id));
+  const confirmedRecent = confirmedEnded.filter((s) => endedRecentlyIds.has(s.postId));
+  const attendedRecent = confirmedRecent.filter((s) => s.checkedInAt);
+
+  // Reliability needs *every* row, not just the confirmed ones: a late
+  // cancellation flips the row to withdrawn.
+  const allSignups = await SignupModel.find({ postId: { $in: posts.map((p) => p._id) } });
+  const since = (d?: Date) => !!d && d.getTime() >= monthAgo;
+
+  // "First time here" is judged against their whole history at this mosque, so
+  // someone who volunteered two years ago and came back is not counted as new.
+  const firstSignupAt = new Map<string, number>();
+  for (const s of allSignups) {
+    const at = s.createdAt?.getTime();
+    if (at === undefined) continue;
+    const seen = firstSignupAt.get(s.userId);
+    if (seen === undefined || at < seen) firstSignupAt.set(s.userId, at);
+  }
+
+  const activeRecently = new Set(
+    allSignups.filter((s) => s.status === 'confirmed' && since(s.createdAt)).map((s) => s.userId),
+  );
 
   return {
     mosqueId,
@@ -62,5 +95,23 @@ export async function buildDashboard(mosqueId: string): Promise<MosqueDashboard>
       ? Math.round((attendedEnded.length / confirmedEnded.length) * 100)
       : 0,
     minutesServed,
+
+    startingSoon: live.filter((p) => p.startAt.getTime() <= now + DAY_MS).length,
+    postsWithNoSignups: live.filter(
+      (p) => p.type === 'volunteer' && !confirmedLive.some((s) => s.postId === p._id),
+    ).length,
+    newFollowers7d: await FollowModel.countDocuments({
+      mosqueId,
+      createdAt: { $gte: new Date(now - 7 * DAY_MS) },
+    }),
+    activeVolunteers30d: activeRecently.size,
+    firstTimeVolunteers30d: [...activeRecently].filter(
+      (userId) => (firstSignupAt.get(userId) ?? 0) >= monthAgo,
+    ).length,
+    lateCancellations30d: allSignups.filter((s) => since(s.lateCancelledAt)).length,
+    noShows30d: allSignups.filter((s) => since(s.noShowAt)).length,
+    attendanceRate30d: confirmedRecent.length
+      ? Math.round((attendedRecent.length / confirmedRecent.length) * 100)
+      : 0,
   };
 }

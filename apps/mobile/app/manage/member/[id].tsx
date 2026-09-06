@@ -164,6 +164,37 @@ export default function MemberDetailScreen() {
           </View>
         )}
 
+        {/*
+          The reliability record. Shown only when there is something on it —
+          a clean volunteer should not be presented to their coordinator
+          underneath a heading about failures.
+        */}
+        {member.lateCancellations > 0 || member.noShows > 0 ? (
+          <>
+            <SectionTitle title={t.reliability} />
+            <View style={styles.recordCard}>
+              <View style={[styles.recordRow, row]}>
+                <Text style={font(styles.recordLabel)}>{t.lateCancellations}</Text>
+                <Text style={styles.recordValue}>{member.lateCancellations}</Text>
+              </View>
+              <View style={[styles.recordRow, row]}>
+                <Text style={font(styles.recordLabel)}>{t.noShows}</Text>
+                <Text style={styles.recordValue}>{member.noShows}</Text>
+              </View>
+              {(detail.data?.incidents ?? []).slice(0, 4).map((incident) => (
+                <Text
+                  key={`${incident.postId}-${incident.kind}`}
+                  style={[font(styles.recordIncident), align]}
+                  numberOfLines={1}
+                >
+                  {incident.kind === 'late-cancel' ? t.incidentLateCancel : t.incidentNoShow} ·{' '}
+                  {incident.postTitle}
+                </Text>
+              ))}
+            </View>
+          </>
+        ) : null}
+
         {/* ── Everything they've signed up for here ── */}
         <SectionTitle
           title={t.history}
@@ -213,6 +244,19 @@ export default function MemberDetailScreen() {
 }
 
 const styles = StyleSheet.create({
+  recordCard: {
+    backgroundColor: colors.surface,
+    borderWidth: rule,
+    borderColor: colors.rule,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    gap: spacing.sm,
+  },
+  recordRow: { justifyContent: 'space-between', alignItems: 'baseline', gap: spacing.sm },
+  recordLabel: { ...type.small, color: colors.inkMuted },
+  recordValue: { ...type.h3, ...numeric, color: colors.ink },
+  recordIncident: { ...type.small, color: colors.danger, marginTop: 2 },
+
   guard: { paddingHorizontal: screenPadding, paddingTop: spacing.xl },
 
   identity: { alignItems: 'center', gap: spacing.md, marginBottom: spacing.lg },

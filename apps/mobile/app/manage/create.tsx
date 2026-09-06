@@ -23,8 +23,9 @@ import {
   Segmented,
 } from '@/components';
 import { useApi } from '@/hooks/useApi';
-import { useLang, type Strings } from '@/i18n';
+import { fill, useLang, type Strings } from '@/i18n';
 import { fromInstant, isWallClock, mosqueDate, toInstant, weeklySessions } from '@/lib/datetime';
+import { formatHours } from '@/lib/format';
 import { success, warn } from '@/lib/haptics';
 import { INTEREST_OPTIONS, interestLabel } from '@/lib/interests';
 import { colors, rule, screenPadding, spacing, type } from '@/theme';
@@ -80,6 +81,18 @@ export default function CreatePostScreen() {
   const [saving, setSaving] = useState(false);
 
   const existing = useApi(async () => (editId ? api.getPost(editId) : null), [editId]);
+
+  /**
+   * How long one volunteer is credited for turning up. Only shown once both
+   * times parse — a half-typed "1" should not flash a wrong number.
+   */
+  const shiftLength = (() => {
+    if (!isWallClock(form.startTime) || !isWallClock(form.endTime)) return null;
+    const [sh = 0, sm = 0] = form.startTime.split(':').map(Number);
+    const [eh = 0, em = 0] = form.endTime.split(':').map(Number);
+    const minutes = eh * 60 + em - (sh * 60 + sm);
+    return minutes > 0 ? formatHours(minutes) : null;
+  })();
 
   useEffect(() => {
     const post = existing.data;
@@ -324,6 +337,18 @@ export default function CreatePostScreen() {
               </View>
             </View>
 
+            {/*
+              Say out loud what these two times are worth. Check-in has no
+              check-out — a volunteer who is marked present is credited the
+              whole span — so the coordinator setting it should see the number
+              they are about to put on someone's record.
+            */}
+            {form.type === 'volunteer' && shiftLength ? (
+              <Text style={font(styles.durationNote)}>
+                {fill(t.shiftLengthNote, { length: shiftLength })}
+              </Text>
+            ) : null}
+
             <Field
               label={t.location}
               value={form.location}
@@ -410,6 +435,7 @@ const styles = StyleSheet.create({
   multiline: { minHeight: 96, textAlignVertical: 'top' },
   group: { gap: spacing.xs },
   label: { ...type.caption, color: colors.inkMuted, textTransform: 'uppercase' },
+  durationNote: { ...type.small, color: colors.inkMuted },
   hint: { ...type.small, color: colors.inkMuted },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.xs },
   timeRow: { flexDirection: 'row', gap: spacing.md },

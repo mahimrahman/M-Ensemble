@@ -13,12 +13,12 @@
 import bcrypt from 'bcryptjs';
 import {
   MOCK_PASSWORD,
+  allMosques,
   defaultNotificationPrefs,
   mockFollows,
   mockIqamah,
   mockJummah,
   mockMemberships,
-  mockMosques,
   mockPastPosts,
   mockPosts,
   mockSignups,
@@ -89,7 +89,7 @@ export async function seedAll(options: SeedOptions = {}): Promise<SeedCounts> {
     })),
   );
 
-  await MosqueModel.insertMany(mockMosques.map((mosque) => ({ ...mosque })));
+  await MosqueModel.insertMany(allMosques.map((mosque) => ({ ...mosque })));
 
   await FollowModel.insertMany(
     mockFollows.map((follow) => ({ ...follow, createdAt: new Date(follow.createdAt) })),

@@ -11,6 +11,7 @@
  * on the morning of the demo (and re-run if the laptop sleeps overnight).
  */
 
+import { directoryMosques } from './directory';
 import type {
   Follow,
   ID,
@@ -245,6 +246,24 @@ export const mockMosques: Mosque[] = [
     services: ['Multiple jummah services', 'Daily prayers downtown', 'Weekly halaqas'],
   },
 ];
+
+/**
+ * Every mosque the app can show: the ten above, plus the generated directory.
+ *
+ * The ten are *operated* — they have coordinators, posts, iqamah times and a
+ * demo walkthrough. The directory ones are real mosques we hold public data
+ * for but that nobody has claimed: browsable, followable, with no posts and no
+ * prayer configuration of their own.
+ *
+ * The mock client and the server seed both read this, so a mosque added to the
+ * directory shows up in the app and in Mongo without touching either.
+ */
+export const allMosques: Mosque[] = [...mockMosques, ...directoryMosques];
+
+/** True when a mosque has a coordinator and real content behind it. */
+export function isOperatedMosque(mosqueId: ID): boolean {
+  return mockMosques.some((m) => m._id === mosqueId);
+}
 
 // ----------------------------------------------------------------- people ---
 

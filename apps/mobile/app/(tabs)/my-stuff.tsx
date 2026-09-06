@@ -47,6 +47,7 @@ export default function MyStuffScreen() {
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const hours = useApi(() => api.getServiceHours(), []);
+  const record = useApi(() => api.getMyReliability(), []);
   const mosques = useApi(() => api.getMosques(), []);
   const { savedIds } = useSaved();
   const savedKey = [...savedIds].sort().join(',');
@@ -114,11 +115,57 @@ export default function MyStuffScreen() {
           <StatRow>
             <Stat value={formatHours(hours.data?.totalMinutes ?? 0)} label={t.hoursTotal} />
             <Stat value={`${upcoming.length}`} label={t.activitiesMonth} />
+            <Stat
+              value={`${record.data?.reliabilityRate ?? 100}%`}
+              label={t.reliabilityRate}
+            />
           </StatRow>
         </View>
       </GradientHeader>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {/*
+          Accountability cuts both ways: the same card that shows a late
+          cancellation shows a clean record when there is one. It sits above
+          the lists because it is about the person, not about one booking.
+        */}
+        {record.data && record.data.commitments > 0 ? (
+          <>
+            <SectionTitle title={t.reliability} />
+            <View style={styles.recordCard}>
+              <View style={[styles.recordRow, row]}>
+                <Text style={font(styles.recordLabel)}>{t.commitmentsKept}</Text>
+                <Text style={styles.recordValue}>
+                  {record.data.attended}/{record.data.commitments}
+                </Text>
+              </View>
+              <View style={[styles.recordRow, row]}>
+                <Text style={font(styles.recordLabel)}>{t.lateCancellations}</Text>
+                <Text style={styles.recordValue}>{record.data.lateCancellations}</Text>
+              </View>
+              <View style={[styles.recordRow, row]}>
+                <Text style={font(styles.recordLabel)}>{t.noShows}</Text>
+                <Text style={styles.recordValue}>{record.data.noShows}</Text>
+              </View>
+
+              {record.data.recent.length === 0 ? (
+                <Text style={[font(styles.recordClean), align]}>{t.noIncidents}</Text>
+              ) : (
+                record.data.recent.slice(0, 3).map((incident) => (
+                  <Text
+                    key={`${incident.postId}-${incident.kind}`}
+                    style={[font(styles.recordIncident), align]}
+                    numberOfLines={1}
+                  >
+                    {incident.kind === 'late-cancel' ? t.incidentLateCancel : t.incidentNoShow} ·{' '}
+                    {incident.postTitle}
+                  </Text>
+                ))
+              )}
+            </View>
+          </>
+        ) : null}
+
         <SectionTitle title={t.next} />
 
         {upcoming.length === 0 ? (
@@ -243,6 +290,21 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg,
     paddingBottom: spacing.xxxl,
   },
+
+  recordCard: {
+    backgroundColor: colors.surface,
+    borderWidth: rule,
+    borderColor: colors.rule,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  recordRow: { justifyContent: 'space-between', alignItems: 'baseline', gap: spacing.sm },
+  recordLabel: { ...type.small, color: colors.inkMuted },
+  recordValue: { ...type.h3, ...numeric, color: colors.ink },
+  recordClean: { ...type.small, color: colors.inkMuted, marginTop: spacing.xs },
+  recordIncident: { ...type.small, color: colors.danger, marginTop: 2 },
 
   card: {
     backgroundColor: colors.surface,

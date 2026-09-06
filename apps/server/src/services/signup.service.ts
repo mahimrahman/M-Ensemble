@@ -1,3 +1,5 @@
+import type { WithdrawResult } from '@m-ensemble/shared';
+import { LATE_CANCEL_HOURS } from '../shared.js';
 import { PostModel } from '../models/Post.js';
 import { SignupModel, type SignupDocument } from '../models/Signup.js';
 import { HttpError } from '../middleware/errorHandler.js';
@@ -83,15 +85,24 @@ export async function claimSlot(postId: string, userId: string): Promise<SignupD
  * Give a slot back. 404 when there is nothing confirmed to withdraw from —
  * the same code the app shows for a post that has disappeared.
  */
-export async function withdrawSlot(postId: string, userId: string): Promise<void> {
+export async function withdrawSlot(postId: string, userId: string): Promise<WithdrawResult> {
   const post = await PostModel.findById(postId);
   if (!post) {
     throw new HttpError(404, ERROR.NOT_FOUND, 'That post no longer exists.');
   }
 
+  // The clock is read here, at the write. The app warns using the same
+  // constant, but only this decides what goes on the record — a phone with a
+  // wrong clock, or a warning dismissed slowly, must not change the answer.
+  const hoursBefore = (post.startAt.getTime() - Date.now()) / 3_600_000;
+  const lateCancelled = hoursBefore < LATE_CANCEL_HOURS;
+
   const signup = await SignupModel.findOneAndUpdate(
     { postId, userId, status: 'confirmed' },
-    { $set: { status: 'withdrawn' }, $unset: { checkedInAt: '' } },
+    {
+      $set: { status: 'withdrawn', ...(lateCancelled ? { lateCancelledAt: new Date() } : {}) },
+      $unset: { checkedInAt: '' },
+    },
   );
 
   if (!signup) {
@@ -100,6 +111,8 @@ export async function withdrawSlot(postId: string, userId: string): Promise<void
 
   // `$gt: 0` is the atomic floor — slotsFilled must never go negative.
   await PostModel.updateOne({ _id: postId, slotsFilled: { $gt: 0 } }, { $inc: { slotsFilled: -1 } });
+
+  return { lateCancelled, hoursBefore: Math.max(0, Math.round(hoursBefore * 10) / 10) };
 }
 
 /**

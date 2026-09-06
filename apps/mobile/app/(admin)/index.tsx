@@ -8,7 +8,7 @@
  */
 
 import { useRouter } from 'expo-router';
-import { ChevronRight, Plus, QrCode, Users } from 'lucide-react-native';
+import { ChevronRight, Clock, Plus, QrCode, TriangleAlert, Users } from 'lucide-react-native';
 import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { api } from '@/api/client';
@@ -25,7 +25,7 @@ import {
   postTypeLabel,
 } from '@/components';
 import { useApi } from '@/hooks/useApi';
-import { useLang } from '@/i18n';
+import { fill, useLang } from '@/i18n';
 import { formatAgo } from '@/lib/datetime';
 import { formatHours, formatTime, formatWhen } from '@/lib/format';
 import { tap } from '@/lib/haptics';
@@ -168,21 +168,89 @@ export default function DashboardScreen() {
           }}
         />
 
+        {/*
+          ── Anything that needs a decision today ──
+          Above the metrics on purpose. A tile you can only nod at is worth
+          less than a sentence that tells you to go and do something, so the
+          things that are actually wrong come first — and disappear entirely
+          when nothing is wrong, rather than sitting there reading zero.
+        */}
+        {d && (d.postsWithNoSignups > 0 || d.startingSoon > 0) ? (
+          <View style={styles.alerts}>
+            {d.postsWithNoSignups > 0 ? (
+              <Pressable
+                onPress={() => {
+                  tap();
+                  router.push('/(admin)/events');
+                }}
+                style={({ pressed }) => [styles.alertRow, row, pressed && styles.pressed]}
+              >
+                <TriangleAlert color={colors.danger} size={18} strokeWidth={2} />
+                <Text style={[font(styles.alertText), align]}>
+                  {fill(t.noSignupsAlert, { count: `${d.postsWithNoSignups}` })}
+                </Text>
+              </Pressable>
+            ) : null}
+            {d.startingSoon > 0 ? (
+              <View style={[styles.alertRow, row]}>
+                <Clock color={colors.accent} size={18} strokeWidth={2} />
+                <Text style={[font(styles.alertText), align]}>
+                  {fill(t.startingSoonAlert, { count: `${d.startingSoon}` })}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+
         {/* ── Health of the mosque, at a glance ── */}
         <View style={[styles.tiles, row]}>
           <View style={styles.tile}>
-            <Text style={styles.tileValue}>{d ? `${d.attendanceRate}%` : '—'}</Text>
-            <Text style={[font(styles.tileLabel), align]}>{t.attendance}</Text>
+            <Text style={styles.tileValue}>{d ? `${d.attendanceRate30d}%` : '—'}</Text>
+            <Text style={[font(styles.tileLabel), align]}>{t.attendance30d}</Text>
           </View>
           <View style={styles.tile}>
             <Text style={styles.tileValue}>{d ? formatHours(d.minutesServed) : '—'}</Text>
             <Text style={[font(styles.tileLabel), align]}>{t.hoursServed}</Text>
           </View>
           <View style={styles.tile}>
-            <Text style={styles.tileValue}>{d?.followerCount ?? '—'}</Text>
-            <Text style={[font(styles.tileLabel), align]}>{t.followers}</Text>
+            <Text style={styles.tileValue}>{d?.activeVolunteers30d ?? '—'}</Text>
+            <Text style={[font(styles.tileLabel), align]}>{t.activeVolunteers}</Text>
           </View>
         </View>
+
+        <View style={[styles.tiles, row]}>
+          <View style={styles.tile}>
+            <Text style={styles.tileValue}>{d?.followerCount ?? '—'}</Text>
+            <Text style={[font(styles.tileLabel), align]}>{t.followers}</Text>
+            {/* Growth needs a direction, not just a level. */}
+            {d && d.newFollowers7d > 0 ? (
+              <Text style={font(styles.tileDelta)}>+{d.newFollowers7d}</Text>
+            ) : null}
+          </View>
+          <View style={styles.tile}>
+            <Text style={styles.tileValue}>{d?.firstTimeVolunteers30d ?? '—'}</Text>
+            <Text style={[font(styles.tileLabel), align]}>{t.firstTimers}</Text>
+          </View>
+          <View style={styles.tile}>
+            <Text style={styles.tileValue}>
+              {d ? d.lateCancellations30d + d.noShows30d : '—'}
+            </Text>
+            <Text style={[font(styles.tileLabel), align]}>{t.droppedOut}</Text>
+          </View>
+        </View>
+
+        {/* Coverage across every live volunteer post, as one bar. */}
+        {d && d.slotsNeeded > 0 ? (
+          <View style={styles.coverage}>
+            <View style={[styles.coverageHead, row]}>
+              <Text style={[font(styles.coverageLabel), align]}>{t.coverage}</Text>
+              <Text style={styles.coverageValue}>
+                {d.slotsNeeded - d.slotsUnfilled}/{d.slotsNeeded}
+              </Text>
+            </View>
+            <Meter filled={d.slotsNeeded - d.slotsUnfilled} total={d.slotsNeeded} />
+          </View>
+        ) : null}
 
         {/* ── Today ── */}
         <SectionTitle title={t.todaySchedule} />
@@ -334,6 +402,30 @@ const styles = StyleSheet.create({
   count: { ...type.monoSmall, ...numeric, color: colors.attention },
   link: { ...type.captionStrong, color: colors.accent },
 
+  alerts: { gap: spacing.sm, marginBottom: spacing.md },
+  alertRow: {
+    alignItems: 'center',
+    gap: spacing.sm,
+    padding: spacing.md,
+    backgroundColor: colors.surface,
+    borderWidth: rule,
+    borderColor: colors.rule,
+    borderRadius: radius.lg,
+  },
+  alertText: { ...type.small, color: colors.ink, flex: 1 },
+  tileDelta: { ...type.caption, color: colors.accent },
+  coverage: {
+    gap: spacing.sm,
+    padding: spacing.lg,
+    backgroundColor: colors.surface,
+    borderWidth: rule,
+    borderColor: colors.rule,
+    borderRadius: radius.lg,
+    marginBottom: spacing.md,
+  },
+  coverageHead: { justifyContent: 'space-between', alignItems: 'baseline', gap: spacing.sm },
+  coverageLabel: { ...type.overline, color: colors.inkMuted },
+  coverageValue: { ...type.h3, ...numeric, color: colors.ink },
   tiles: { gap: spacing.sm },
   tile: {
     flex: 1,

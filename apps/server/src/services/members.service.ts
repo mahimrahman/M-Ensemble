@@ -9,6 +9,7 @@ import { ERROR } from '../utils/errors.js';
 import { newId } from '../utils/ids.js';
 import { postMinutes } from '../utils/time.js';
 import { toRosterEntry } from './roster.service.js';
+import { buildIncidents, sweepNoShows } from './reliability.service.js';
 
 /**
  * The mosque's people, scored by what they have actually turned up to.
@@ -19,6 +20,10 @@ import { toRosterEntry } from './roster.service.js';
  * claimed a shift without following still belongs in the directory.
  */
 export async function buildMembers(mosqueId: string): Promise<MosqueMember[]> {
+  // Stamp any no-shows this mosque has accrued before counting them, so the
+  // coordinator's numbers and the volunteer's own profile agree.
+  await sweepNoShows(mosqueId);
+
   const posts = await PostModel.find({ mosqueId });
   const postById = new Map(posts.map((p) => [p._id, p]));
   const postIds = [...postById.keys()];
@@ -56,6 +61,11 @@ export async function buildMembers(mosqueId: string): Promise<MosqueMember[]> {
     const mine = signups.filter((s) => s.userId === userId && s.status === 'confirmed');
     const attended = mine.filter((s) => s.checkedInAt);
 
+    // Every row of theirs here, not just the confirmed ones — a late
+    // cancellation flips the row to `withdrawn`, so filtering to confirmed
+    // first would hide exactly what these two counts exist to show.
+    const everything = signups.filter((s) => s.userId === userId);
+
     const minutesServed = attended.reduce((sum, s) => {
       const post = postById.get(s.postId);
       return post && post.type === 'volunteer' ? sum + postMinutes(post) : sum;
@@ -77,6 +87,8 @@ export async function buildMembers(mosqueId: string): Promise<MosqueMember[]> {
       // "never seen" on absence.
       ...(lastSeen ? { lastSeenAt: lastSeen.toISOString() } : {}),
       interests: [...user.interests],
+      lateCancellations: everything.filter((s) => s.lateCancelledAt).length,
+      noShows: everything.filter((s) => s.noShowAt).length,
     });
   }
 
@@ -110,7 +122,7 @@ export async function buildMemberDetail(
     .map((s) => toRosterEntry(s, postById.get(s.postId)!, member.name))
     .sort((a, b) => new Date(b.startAt).getTime() - new Date(a.startAt).getTime());
 
-  return { member, history };
+  return { member, history, incidents: await buildIncidents(userId, mosqueId) };
 }
 
 /**

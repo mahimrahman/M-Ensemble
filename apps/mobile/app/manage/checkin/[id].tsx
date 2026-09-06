@@ -6,8 +6,8 @@
  */
 
 import * as Linking from 'expo-linking';
-import { useLocalSearchParams } from 'expo-router';
-import { UserCheck } from 'lucide-react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { ScanLine, UserCheck } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Alert } from '@/lib/alert';
@@ -17,7 +17,7 @@ import { BackBar, Badge, Button, Card, GradientHeader, Loading, Screen } from '@
 import { useApi } from '@/hooks/useApi';
 import { useLang } from '@/i18n';
 import { formatTime } from '@/lib/format';
-import { success, warn } from '@/lib/haptics';
+import { success, tap, warn } from '@/lib/haptics';
 import { colors, numeric, radius, rule, screenPadding, spacing, type } from '@/theme';
 import type { Signup } from '@/types';
 
@@ -25,6 +25,7 @@ const POLL_MS = 4000;
 
 export default function CheckInScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const { t, lang, align, row, font } = useLang();
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -104,6 +105,21 @@ export default function CheckInScreen() {
           </View>
           <Text style={font(styles.qrLead)}>{t.qrDisplay}</Text>
           <Text style={font(styles.qrHint)}>{t.qrSub}</Text>
+
+          {/*
+            The other direction: rather than every member scanning this screen,
+            the coordinator can scan each member's own code. `post` is passed
+            because a member's code names a person, not an event.
+          */}
+          <Button
+            label={t.scanQr}
+            icon={ScanLine}
+            variant="ghost"
+            onPress={() => {
+              tap();
+              router.push({ pathname: '/scan', params: { post: id } });
+            }}
+          />
 
           <View style={[styles.counter, row]}>
             <Text style={styles.counterValue}>

@@ -17,6 +17,8 @@ import type {
   Post,
   PostType,
   PrayerTable,
+  ReliabilityIncident,
+  ReliabilityRecord,
   RosterEntry,
   Signup,
   SignupInput,
@@ -98,7 +100,26 @@ export interface RosterFilter {
 export interface MemberDetail {
   member: MosqueMember;
   history: RosterEntry[];
+  /** What went on their record here, newest first. */
+  incidents: ReliabilityIncident[];
 }
+
+/** What withdrawing actually did, so the screen can be honest about it. */
+export interface WithdrawResult {
+  /** True when it landed inside the late window and went on the record. */
+  lateCancelled: boolean;
+  /** Hours remaining when the withdrawal was written, for the message. */
+  hoursBefore: number;
+}
+
+/**
+ * The parts of its own profile a mosque may edit. Name, address, coordinates
+ * and join code are not here on purpose — those are identity, and changing
+ * them from the app would let one mosque impersonate another.
+ */
+export type UpdateMosqueInput = Partial<
+  Pick<Mosque, 'bio' | 'history' | 'website' | 'phone' | 'services'>
+>;
 
 /**
  * The single surface every screen talks to.
@@ -132,6 +153,8 @@ export interface MEnsembleApi {
   getMosquePostsForAdmin(mosqueId: ID): Promise<Post[]>;
   updatePost(id: ID, patch: UpdatePostInput): Promise<Post>;
   cancelPost(id: ID): Promise<Post>;
+  /** Edit the mosque profile — bio, history, contact, services. Admin only. */
+  updateMosque(mosqueId: ID, patch: UpdateMosqueInput): Promise<Mosque>;
   getIqamahConfig(mosqueId: ID): Promise<MosqueIqamahConfig>;
   setIqamahConfig(mosqueId: ID, input: IqamahConfigInput): Promise<MosqueIqamahConfig>;
 
@@ -153,12 +176,19 @@ export interface MEnsembleApi {
   getEventOutcomes(mosqueId: ID): Promise<EventOutcome[]>;
 
   signup(postId: ID): Promise<Signup>;
-  withdraw(postId: ID): Promise<void>;
+  /**
+   * Give the slot back. Resolves to whether it counted as a late cancellation
+   * so the screen can say what went on the record — the server decides that,
+   * never the client, and it re-checks the clock at the moment of the write.
+   */
+  withdraw(postId: ID): Promise<WithdrawResult>;
   getSignups(postId: ID): Promise<Signup[]>;
   checkIn(postId: ID, userId: ID): Promise<void>;
 
   getCommitments(): Promise<Signup[]>;
   getServiceHours(): Promise<ServiceHours>;
+  /** The signed-in volunteer's own reliability record, across every mosque. */
+  getMyReliability(): Promise<ReliabilityRecord>;
 
   getPrayerTimes(mosqueId: ID, date: DateString): Promise<PrayerTable>;
 

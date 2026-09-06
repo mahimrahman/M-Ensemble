@@ -13,7 +13,15 @@
  * Pass a `height`; the width follows from the artwork's own aspect ratio.
  */
 
-import { Image, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import {
+  Image,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
+import { screenPadding } from '@/theme';
 
 const ART = {
   lockup: {
@@ -37,6 +45,13 @@ interface LogoProps {
   tone?: LogoTone;
   /** Rendered height in px. Width is derived so the artwork never distorts. */
   height?: number;
+  /**
+   * The widest the artwork may draw, as a fraction of the screen. The lockup
+   * is nearly 4:1, so a height that looks modest becomes wider than a phone —
+   * `height={92}` alone is 366px on a 390px screen. Height gives way when it
+   * would breach this; the aspect ratio is preserved either way.
+   */
+  maxWidthRatio?: number;
   style?: StyleProp<ViewStyle>;
   /** Screen readers announce the brand once per screen; hide the rest. */
   label?: string;
@@ -46,14 +61,22 @@ export function Logo({
   variant = 'lockup',
   tone = 'onDark',
   height = 64,
+  maxWidthRatio = 0.62,
   style,
   label,
 }: LogoProps) {
   const art = ART[variant];
+  const { width: screenWidth } = useWindowDimensions();
+
+  // Fit to whichever runs out first — the height asked for, or the width the
+  // screen can spare. Both stay on the artwork's own ratio, so it never
+  // distorts and never runs into the gutters.
+  const maxWidth = Math.max(0, screenWidth - screenPadding * 2) * maxWidthRatio;
+  const drawnHeight = Math.min(height, maxWidth / art.aspect);
 
   return (
     <View
-      style={[styles.frame, { height, width: height * art.aspect }, style]}
+      style={[styles.frame, { height: drawnHeight, width: drawnHeight * art.aspect }, style]}
       accessibilityRole="image"
       {...(label
         ? { accessibilityLabel: label }

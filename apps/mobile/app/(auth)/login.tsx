@@ -68,7 +68,7 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.brand}>
-            <Logo tone="onDark" height={92} label={t.welcome} />
+            <Logo tone="onDark" height={64} label={t.welcome} />
             <Text style={[font(styles.tagline), align]}>{t.welcomeSub}</Text>
           </View>
 

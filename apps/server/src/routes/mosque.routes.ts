@@ -14,8 +14,13 @@ import {
   putIqamah,
   putMemberRole,
   unfollowMosque,
+  updateMosque,
 } from '../controllers/mosque.controller.js';
-import { iqamahConfigSchema, memberRoleSchema } from '../schemas/mosque.schema.js';
+import {
+  iqamahConfigSchema,
+  memberRoleSchema,
+  updateMosqueSchema,
+} from '../schemas/mosque.schema.js';
 import {
   mosquePostsQuerySchema,
   prayerTimesQuerySchema,
@@ -31,6 +36,14 @@ const admin = requireAdmin(fromParam('id'));
 
 mosqueRouter.get('/', asyncHandler(listMosques));
 mosqueRouter.get('/:id', asyncHandler(getMosque));
+
+// The coordinator edits their own mosque's profile — descriptive fields only.
+mosqueRouter.patch(
+  '/:id',
+  admin,
+  validate(updateMosqueSchema, 'body'),
+  asyncHandler(updateMosque),
+);
 
 mosqueRouter.post('/:id/follow', asyncHandler(followMosque));
 mosqueRouter.delete('/:id/follow', asyncHandler(unfollowMosque));

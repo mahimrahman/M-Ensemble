@@ -26,6 +26,8 @@ import {
   type NotificationPrefs,
   type Post,
   type PublicUser,
+  type ReliabilityIncident,
+  type ReliabilityRecord,
   type RosterEntry,
   type RosterFilter,
   type ServiceHours,
@@ -38,13 +40,14 @@ import { buildPrayerTable } from '@/lib/prayer';
 import {
   CURRENT_USER_ID,
   MOCK_PASSWORD,
+  LATE_CANCEL_HOURS,
   coordinatorMosqueFor,
   defaultNotificationPrefs,
   mockFollows,
   mockIqamah,
   mockJummah,
   mockMemberships,
-  mockMosques,
+  allMosques,
   mockPastPosts,
   mockPosts,
   mockSignups,
@@ -86,7 +89,7 @@ interface MockState {
 function fresh(): MockState {
   return {
     users: clone(mockUsers),
-    mosques: clone(mockMosques),
+    mosques: clone(allMosques),
     posts: [...clone(mockPosts), ...clone(mockPastPosts)],
     signups: clone(mockSignups),
     follows: clone(mockFollows),
@@ -231,6 +234,13 @@ function buildMembers(mosqueId: ID): MosqueMember[] {
       const post = postById.get(s.postId);
       return post && post.type === 'volunteer' ? sum + postMinutes(post) : sum;
     }, 0);
+
+    // Reliability counts every signup of theirs here, not just the confirmed
+    // ones — a late cancellation flips the row to `withdrawn`, so filtering to
+    // confirmed first would hide exactly what we are trying to count.
+    const everything = state.signups.filter((s) => s.userId === userId && postIds.has(s.postId));
+    const lateCancellations = everything.filter((s) => s.lateCancelledAt).length;
+    const noShows = everything.filter((s) => s.noShowAt).length;
     const lastSeenAt = attended
       .map((s) => s.checkedInAt as string)
       .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0];
@@ -245,6 +255,8 @@ function buildMembers(mosqueId: ID): MosqueMember[] {
       minutesServed,
       ...(lastSeenAt ? { lastSeenAt } : {}),
       interests: [...user.interests],
+      lateCancellations,
+      noShows,
     });
   }
 
@@ -253,6 +265,54 @@ function buildMembers(mosqueId: ID): MosqueMember[] {
     if (a.role !== b.role) return a.role === 'admin' ? -1 : 1;
     return b.attendedCount - a.attendedCount || a.name.localeCompare(b.name);
   });
+}
+
+/**
+ * Mark confirmed signups on posts that have ended, and were never checked in,
+ * as no-shows.
+ *
+ * On the server this is a sweep that runs as posts end. Here it runs lazily,
+ * whenever something asks about reliability — the effect is the same and it
+ * needs no timer. Idempotent: a row already stamped is left alone.
+ */
+function sweepNoShows(): void {
+  const now = Date.now();
+  const ended = new Map(
+    state.posts
+      .filter((p) => !p.cancelledAt && new Date(p.endAt).getTime() < now)
+      .map((p) => [p._id, p]),
+  );
+  for (const signup of state.signups) {
+    if (signup.status !== 'confirmed' || signup.checkedInAt || signup.noShowAt) continue;
+    const post = ended.get(signup.postId);
+    if (post) signup.noShowAt = post.endAt;
+  }
+}
+
+/** The incidents behind the counts, newest first. */
+function buildIncidents(userId: ID, mosqueId?: ID): ReliabilityIncident[] {
+  sweepNoShows();
+  const postById = new Map(state.posts.map((p) => [p._id, p]));
+  const out: ReliabilityIncident[] = [];
+
+  for (const signup of state.signups) {
+    if (signup.userId !== userId) continue;
+    const post = postById.get(signup.postId);
+    if (!post || (mosqueId && post.mosqueId !== mosqueId)) continue;
+
+    const base = {
+      postId: post._id,
+      postTitle: post.title,
+      mosqueId: post.mosqueId,
+      startAt: post.startAt,
+    };
+    if (signup.lateCancelledAt) {
+      out.push({ ...base, kind: 'late-cancel', at: signup.lateCancelledAt });
+    }
+    if (signup.noShowAt) out.push({ ...base, kind: 'no-show', at: signup.noShowAt });
+  }
+
+  return out.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
 }
 
 // ----------------------------------------------------------------- client ---
@@ -426,6 +486,24 @@ export const mockApi: MEnsembleApi = {
     return delay(clone(post));
   },
 
+  async updateMosque(mosqueId, patch) {
+    requireAdmin(mosqueId);
+    const mosque = requireMosque(mosqueId);
+
+    // Only the editable half. Identity — name, address, coordinates, join code —
+    // is not patchable from the app, so spreading the whole body is not safe.
+    if (patch.bio !== undefined) mosque.bio = patch.bio || undefined;
+    if (patch.history !== undefined) mosque.history = patch.history || undefined;
+    if (patch.website !== undefined) mosque.website = patch.website || undefined;
+    if (patch.phone !== undefined) mosque.phone = patch.phone || undefined;
+    if (patch.services !== undefined) {
+      const cleaned = patch.services.map((s) => s.trim()).filter(Boolean);
+      mosque.services = cleaned.length ? cleaned : undefined;
+    }
+
+    return delay(clone(mosque));
+  },
+
   async getIqamahConfig(mosqueId) {
     requireMosque(mosqueId);
     return delay({
@@ -452,6 +530,9 @@ export const mockApi: MEnsembleApi = {
 
   async getMosqueDashboard(mosqueId) {
     requireAdmin(mosqueId);
+    // Stamp no-shows first so the 30-day counts below include posts that have
+    // ended since anyone last looked.
+    sweepNoShows();
     const now = Date.now();
     const posts = state.posts.filter((p) => p.mosqueId === mosqueId);
     const live = posts.filter((p) => isLive(p, now));
@@ -488,6 +569,34 @@ export const mockApi: MEnsembleApi = {
     }, 0);
 
     const cutoff = now + 7 * DAY_MS;
+    const monthAgo = now - 30 * DAY_MS;
+
+    // The 30-day window: all-time numbers flatter a mosque that was busy a year
+    // ago, and a coordinator is deciding about now.
+    const endedRecentlyIds = new Set(
+      ended.filter((p) => new Date(p.endAt).getTime() >= monthAgo).map((p) => p._id),
+    );
+    const confirmedRecent = confirmedEnded.filter((s) => endedRecentlyIds.has(s.postId));
+    const attendedRecent = confirmedRecent.filter((s) => s.checkedInAt);
+
+    // Every row, not just the confirmed ones — a late cancellation flips the
+    // row to withdrawn and would otherwise vanish from these counts.
+    const postIds = new Set(posts.map((p) => p._id));
+    const allSignups = state.signups.filter((s) => postIds.has(s.postId));
+    const since = (iso?: string) => !!iso && new Date(iso).getTime() >= monthAgo;
+
+    // Judged against their whole history here, so someone returning after two
+    // years is not counted as a first-timer.
+    const firstSignupAt = new Map<ID, number>();
+    for (const s of allSignups) {
+      if (!s.createdAt) continue;
+      const at = new Date(s.createdAt).getTime();
+      const seen = firstSignupAt.get(s.userId);
+      if (seen === undefined || at < seen) firstSignupAt.set(s.userId, at);
+    }
+    const activeRecently = new Set(
+      allSignups.filter((s) => s.status === 'confirmed' && since(s.createdAt)).map((s) => s.userId),
+    );
 
     return delay<MosqueDashboard>({
       mosqueId,
@@ -499,6 +608,23 @@ export const mockApi: MEnsembleApi = {
       followerCount: state.follows.filter((f) => f.mosqueId === mosqueId).length,
       attendanceRate,
       minutesServed,
+
+      startingSoon: live.filter((p) => new Date(p.startAt).getTime() <= now + DAY_MS).length,
+      postsWithNoSignups: live.filter(
+        (p) => p.type === 'volunteer' && !confirmedLive.some((s) => s.postId === p._id),
+      ).length,
+      newFollowers7d: state.follows.filter(
+        (f) => f.mosqueId === mosqueId && new Date(f.createdAt).getTime() >= now - 7 * DAY_MS,
+      ).length,
+      activeVolunteers30d: activeRecently.size,
+      firstTimeVolunteers30d: [...activeRecently].filter(
+        (userId) => (firstSignupAt.get(userId) ?? 0) >= monthAgo,
+      ).length,
+      lateCancellations30d: allSignups.filter((s) => since(s.lateCancelledAt)).length,
+      noShows30d: allSignups.filter((s) => since(s.noShowAt)).length,
+      attendanceRate30d: confirmedRecent.length
+        ? Math.round((attendedRecent.length / confirmedRecent.length) * 100)
+        : 0,
     });
   },
 
@@ -545,7 +671,11 @@ export const mockApi: MEnsembleApi = {
       .map((s) => toRosterEntry(s, postById.get(s.postId) as Post, member.name))
       .sort((a, b) => new Date(b.startAt).getTime() - new Date(a.startAt).getTime());
 
-    return delay<MemberDetail>({ member, history });
+    return delay<MemberDetail>({
+      member,
+      history,
+      incidents: buildIncidents(userId, mosqueId),
+    });
   },
 
   async setMemberRole(mosqueId, userId, role) {
@@ -659,10 +789,18 @@ export const mockApi: MEnsembleApi = {
     if (!signup) {
       throw new ApiRequestError(API_ERROR.NOT_FOUND, "You aren't signed up for this.", 404);
     }
+    // The clock is read here, at the write — not on the client before it. The
+    // app shows a warning based on the same rule, but what actually goes on the
+    // record is decided at this moment.
+    const hoursBefore = (new Date(post.startAt).getTime() - Date.now()) / 3_600_000;
+    const lateCancelled = hoursBefore < LATE_CANCEL_HOURS;
+
     signup.status = 'withdrawn';
     delete signup.checkedInAt;
+    if (lateCancelled) signup.lateCancelledAt = new Date().toISOString();
     post.slotsFilled = Math.max(0, post.slotsFilled - 1);
-    return delay(undefined);
+
+    return delay({ lateCancelled, hoursBefore: Math.max(0, Math.round(hoursBefore * 10) / 10) });
   },
 
   async getSignups(postId) {
@@ -704,6 +842,38 @@ export const mockApi: MEnsembleApi = {
     }, 0);
 
     return delay<ServiceHours>({ totalMinutes, shiftsCompleted: served.length });
+  },
+
+  async getMyReliability() {
+    const user = requireUser();
+    sweepNoShows();
+
+    const now = Date.now();
+    const endedPostIds = new Set(
+      state.posts
+        .filter((p) => !p.cancelledAt && new Date(p.endAt).getTime() < now)
+        .map((p) => p._id),
+    );
+
+    const mine = state.signups.filter((s) => s.userId === user._id);
+    // "Commitments" is what they were still signed up for when the post ran —
+    // an early withdrawal was never a commitment and must not count against
+    // them, which is the whole reason cancelling early is free.
+    const commitments = mine.filter(
+      (s) => s.status === 'confirmed' && endedPostIds.has(s.postId),
+    ).length;
+    const attended = mine.filter((s) => s.checkedInAt && endedPostIds.has(s.postId)).length;
+
+    return delay<ReliabilityRecord>({
+      commitments,
+      attended,
+      lateCancellations: mine.filter((s) => s.lateCancelledAt).length,
+      noShows: mine.filter((s) => s.noShowAt).length,
+      // Nothing to judge yet reads as 100, not 0 — a new volunteer has not
+      // failed anything.
+      reliabilityRate: commitments === 0 ? 100 : Math.round((attended / commitments) * 100),
+      recent: buildIncidents(user._id).slice(0, 10),
+    });
   },
 
   // --------------------------------------------------------------- prayer ---

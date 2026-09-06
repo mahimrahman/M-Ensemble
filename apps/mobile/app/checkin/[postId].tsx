@@ -90,6 +90,11 @@ export default function SelfCheckInScreen() {
             </View>
             <Text style={font(styles.hint)}>{t.myQrSub}</Text>
           </View>
+          {/*
+            Either side can be the one holding the camera. If the coordinator
+            is showing the event's code instead, scan that.
+          */}
+          <Button label={t.scanQr} onPress={() => router.push('/scan')} />
           <Button label={t.close} variant="secondary" onPress={() => router.back()} />
         </View>
       </Screen>
