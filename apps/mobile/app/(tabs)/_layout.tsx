@@ -11,8 +11,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLang } from '@/i18n';
 import { colors, icon, rule, type } from '@/theme';
 
-/** The bar's own height. The home-indicator inset is added on top of it. */
+/** The bar's own height. What survives of the home-indicator inset is added on top. */
 const BAR_HEIGHT = 78;
+
+/**
+ * How much of the home-indicator inset the bar gives back. The full inset put a
+ * visibly deep gap under the icons; keeping most of it stays clear of the
+ * indicator without the bar looking bottom-heavy. Floors at 0, so a phone with
+ * no inset is untouched.
+ */
+const INSET_TRIM = 10;
 
 /**
  * The bottom bar. The prototype draws an icon, a label, and a short teal
@@ -40,16 +48,19 @@ function TabItem({ Icon, label, focused }: { Icon: LucideIcon; label: string; fo
 export default function TabLayout() {
   const { t } = useLang();
   const insets = useSafeAreaInsets();
+  const bottomInset = Math.max(insets.bottom - INSET_TRIM, 0);
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: false,
-        // An explicit height is the bar's *total* height: the navigator still
-        // pads the bottom by the safe-area inset inside it, so without adding
-        // the inset here the icon slot is squeezed on home-indicator phones.
-        tabBarStyle: [styles.bar, { height: BAR_HEIGHT + insets.bottom }],
+        // An explicit height is the bar's *total* height, so the inset the
+        // navigator pads inside it has to be added here or the icon slot is
+        // squeezed on home-indicator phones. The paddingBottom is not
+        // redundant: the navigator pads the *full* inset by default, and only
+        // a value of our own overrides it with the trimmed one.
+        tabBarStyle: [styles.bar, { height: BAR_HEIGHT + bottomInset, paddingBottom: bottomInset }],
         tabBarItemStyle: styles.barItem,
         tabBarIconStyle: styles.iconSlot,
       }}

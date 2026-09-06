@@ -56,6 +56,21 @@ export default function LoginScreen() {
     }
   }
 
+  /**
+   * The demo doors. Fills the form as well as signing in, so the room can see
+   * which account went in — the fields start empty now, and a tap that moved
+   * straight to the feed left nothing on screen to say who you were.
+   *
+   * The values are passed to submit() explicitly rather than read back from
+   * state: the two setters above do not touch this closure, so submit() would
+   * otherwise send the empty strings it captured on this render.
+   */
+  function signInAs(withEmail: string, withPassword: string) {
+    setEmail(withEmail);
+    setPassword(withPassword);
+    void submit(withEmail, withPassword);
+  }
+
   return (
     <LinearGradient
       colors={[...gradients.masthead]}
@@ -105,7 +120,16 @@ export default function LoginScreen() {
               error={error ?? undefined}
             />
 
-            <Button label={t.login} size="lg" loading={busy} onPress={() => void submit()} />
+            {/* Held until both fields have something. An empty form used to
+                reach the server and come back as a validation error, which
+                reads as a failure rather than as nothing typed yet. */}
+            <Button
+              label={t.login}
+              size="lg"
+              loading={busy}
+              disabled={!email.trim() || !password}
+              onPress={() => void submit()}
+            />
 
             <Link href="/signup" style={styles.link}>
               <Text style={font(styles.linkText)}>
@@ -123,7 +147,7 @@ export default function LoginScreen() {
                 variant="inverse"
                 fullWidth={false}
                 disabled={busy}
-                onPress={() => void submit(MEMBER_EMAIL, MEMBER_PASSWORD)}
+                onPress={() => signInAs(MEMBER_EMAIL, MEMBER_PASSWORD)}
                 style={styles.demoButton}
               />
               <Button
@@ -131,7 +155,7 @@ export default function LoginScreen() {
                 variant="inverse"
                 fullWidth={false}
                 disabled={busy}
-                onPress={() => void submit(DEMO_COORDINATOR_EMAIL, DEMO_COORDINATOR_PASSWORD)}
+                onPress={() => signInAs(DEMO_COORDINATOR_EMAIL, DEMO_COORDINATOR_PASSWORD)}
                 style={styles.demoButton}
               />
             </View>

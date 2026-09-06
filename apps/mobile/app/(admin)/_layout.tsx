@@ -28,6 +28,14 @@ import { colors, icon, rule, type } from '@/theme';
 /** The bar's own height. The home-indicator inset is added on top of it. */
 const BAR_HEIGHT = 78;
 
+/**
+ * How much of the home-indicator inset the bar gives back. The full inset put a
+ * visibly deep gap under the icons; keeping most of it stays clear of the
+ * indicator without the bar looking bottom-heavy. Floors at 0, so a phone with
+ * no inset is untouched.
+ */
+const INSET_TRIM = 10;
+
 function TabItem({ Icon, label, focused }: { Icon: LucideIcon; label: string; focused: boolean }) {
   const { font } = useLang();
   const tint = focused ? colors.accent : colors.inkFaint;
@@ -50,6 +58,7 @@ export default function AdminLayout() {
   const { adminMosqueIds, status } = useAuth();
   const { t } = useLang();
   const insets = useSafeAreaInsets();
+  const bottomInset = Math.max(insets.bottom - INSET_TRIM, 0);
 
   // Losing the role mid-session (or deep-linking in without it) drops you back
   // to the member app rather than showing an empty coordinator shell.
@@ -64,9 +73,9 @@ export default function AdminLayout() {
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: false,
-        // Total height, so the safe-area inset the navigator pads inside the
-        // bar has to be added here — see the member layout.
-        tabBarStyle: [styles.bar, { height: BAR_HEIGHT + insets.bottom }],
+        // Total height, and a trimmed bottom inset — see the member layout,
+        // which this deliberately matches.
+        tabBarStyle: [styles.bar, { height: BAR_HEIGHT + bottomInset, paddingBottom: bottomInset }],
         tabBarItemStyle: styles.barItem,
         tabBarIconStyle: styles.iconSlot,
       }}
