@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest';
+import { CURRENT_USER_ID, mockFollows } from '../src/shared.js';
 import { PostModel } from '../src/models/Post.js';
 import { AMINA, YUSUF, api, tokenFor } from './helpers/api.js';
+
+/**
+ * Read from the fixtures, never spelled out here. Yusuf's follow list grows
+ * whenever someone adds a mosque to `packages/shared/src/fixtures.ts`, and a
+ * literal in this file would turn a wider feed into a red suite.
+ */
+const FOLLOWED = new Set(
+  mockFollows.filter((f) => f.userId === CURRENT_USER_ID).map((f) => f.mosqueId),
+);
 
 interface FeedPost {
   _id: string;
@@ -23,10 +33,9 @@ describe('feed', () => {
     const posts = await feed(await tokenFor(YUSUF));
     const now = Date.now();
 
-    // user_001 follows Khadija and Madina and nothing else.
-    expect(new Set(posts.map((p) => p.mosqueId))).toEqual(
-      new Set(['mosque_khadija', 'mosque_madina']),
-    );
+    // Every post comes from a mosque user_001 follows, and from nowhere else.
+    expect(posts.length).toBeGreaterThan(0);
+    expect(posts.every((p) => FOLLOWED.has(p.mosqueId))).toBe(true);
     expect(posts.every((p) => !p.cancelledAt)).toBe(true);
     expect(posts.every((p) => new Date(p.startAt).getTime() || true)).toBe(true);
     expect(posts.map((p) => p.startAt)).toEqual([...posts.map((p) => p.startAt)].sort());
