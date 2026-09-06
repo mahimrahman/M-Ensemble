@@ -5,11 +5,23 @@ matched the mock, this is a `.env` edit and an afternoon of checking shapes.
 
 ## The flip
 
+**Done.** `apps/mobile/.env` now reads:
+
 ```bash
 # apps/mobile/.env
 EXPO_PUBLIC_USE_MOCKS=false
 EXPO_PUBLIC_API_URL=http://<laptop LAN ip>:4000/api   # never localhost on a phone
 ```
+
+The IP in the committed-adjacent `.env` is this laptop's Wi-Fi address at the
+time of writing. **Re-check it whenever the network changes** — the hotspot
+fallback hands out a different one, and a stale IP looks exactly like a dead
+server from the phone.
+
+The server needs `JWT_SECRET` in `apps/server/.env`; the Atlas onboarding
+rewrote that file and dropped it, which makes the process throw on boot rather
+than start and fail later. It has been added back. `.env` is gitignored, so
+anyone cloning fresh copies `.env.example` and fills in both.
 
 Restart the dev server after changing `.env` — Expo inlines `EXPO_PUBLIC_*` at
 bundle time. `CORS_ORIGIN=*` on the server is fine for the demo (the web
@@ -73,6 +85,24 @@ Shape mismatches are fixed **on the server**. The contract in
 `packages/shared` is locked; if a field genuinely has to change, change the
 type, the mock, and the server in one PR.
 
+### What has already been walked, off-device
+
+Every endpoint in the table above was driven against the running server on the
+LAN URL and answered with the right status and the right shape — the member
+surface, the six admin views, and the writes (`PATCH /me`, push-token,
+notification prefs, follow/unfollow, the signup lifecycle, create/patch/cancel,
+the role change). The quirks were checked rather than assumed:
+
+- a signup on a cancelled post answers **410** with code `NOT_FOUND`
+- a coordinator demoting **themselves** is **403**
+- a dead token is **401**, which is the status `store/auth.tsx` signs out on —
+  a 403 there would strand the user on a cached session
+- `GET /me` carries no `passwordHash` and `GET /users?ids=` no email
+- follow, unfollow and check-in are all idempotent on the second call
+
+What that does **not** cover, and what the three tests below are still for: two
+real handsets, a real Expo push token, and the camera opening the QR link.
+
 ## The three tests that matter
 
 1. **Two phones.** Coordinator (amina@example.com) on phone A creates a
@@ -80,8 +110,9 @@ type, the mock, and the server in one PR.
    who follows Khadija and has that interest: the push lands within seconds.
    Tap it, claim a slot, and phone A's coverage screen updates on its next
    focus. This is the demo sentence; rehearse it until it is boring.
-2. **Race.** Seed a post at one slot remaining (`post_001` starts at 1/4 —
-   claim two, then race the fourth). Two phones tap _Claim a slot_ together.
+2. **Race.** Seed a post at one slot remaining (`post_002`, the Iftar setup
+   shift, starts at 1/4 — claim two, then race the fourth). Two phones tap
+   _Claim a slot_ together.
    One gets "You're in", the other gets _Just filled up_ and the screen reloads
    to _All slots filled_. `slotsFilled` on the server equals `slotsNeeded`.
 3. **QR check-in.** Coordinator opens _Show check-in QR_ on the shift. Member

@@ -4,12 +4,14 @@
 ### Run the two logins first: they capture the tokens the rest of the file uses.
 ###
 ### Seeded credentials — everyone's password is `mensemble`.
-###   yusuf@example.com  user_001  member, follows Khadija + Madina
+###   yusuf@example.com  user_001  member, follows five Montreal mosques
 ###   amina@example.com  user_002  coordinator @ Khadija
 
 @host = http://localhost:4000/api
 @mosque = mosque_khadija
-@post = post_001
+### The demo shift: volunteer, slotsNeeded 4, seeds at 1. Use a limited post
+### here — post_001 is a 60-seat class and can never answer FULL.
+@post = post_002
 
 ### ─────────────────────────────────────────────────────── open ───
 
