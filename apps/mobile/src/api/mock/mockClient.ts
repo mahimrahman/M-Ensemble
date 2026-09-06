@@ -8,6 +8,8 @@
 
 import {
   API_ERROR,
+  SOCIAL_PLATFORMS,
+  normalizeSocial,
   type AppNotification,
   type AuthResult,
   type BroadcastInput,
@@ -27,6 +29,7 @@ import {
   type Mosque,
   type MosqueDashboard,
   type MosqueMember,
+  type MosqueSocial,
   type NotificationFeed,
   type NotificationPrefs,
   type Post,
@@ -580,6 +583,17 @@ export const mockApi: MEnsembleApi = {
     if (patch.services !== undefined) {
       const cleaned = patch.services.map((s) => s.trim()).filter(Boolean);
       mosque.services = cleaned.length ? cleaned : undefined;
+    }
+    if (patch.social !== undefined) {
+      // A replace, not a merge — same as the server. Emptying a field is the
+      // only way to remove a link, so a merge would make one permanent.
+      const social: MosqueSocial = {};
+      for (const platform of SOCIAL_PLATFORMS) {
+        const raw = patch.social[platform];
+        const url = raw === undefined ? null : normalizeSocial(platform, raw);
+        if (url) social[platform] = url;
+      }
+      mosque.social = Object.keys(social).length ? social : undefined;
     }
 
     return delay(clone(mosque));

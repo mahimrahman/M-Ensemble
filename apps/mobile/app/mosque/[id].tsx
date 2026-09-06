@@ -1,7 +1,8 @@
 /**
- * Mosque profile — where it is and how to reach it, a follow button, what the
- * mosque says about itself (about, services, history), today's prayer table
- * (adhan beside the iqamah this mosque actually prays at), and its posts.
+ * Mosque profile — where it is and how to reach it, a follow button, the
+ * mosque's pages elsewhere, what it says about itself (about, services,
+ * history), today's prayer table (adhan beside the iqamah this mosque actually
+ * prays at), and its posts.
  */
 
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -32,13 +33,15 @@ import {
   PrayerTable,
   Screen,
   SectionTitle,
+  SocialLinks,
 } from '@/components';
 import { useApi } from '@/hooks/useApi';
 import { useNextPrayer } from '@/hooks/useNextPrayer';
 import { useLang } from '@/i18n';
 import { useStarred } from '@/store/starred';
+import { withPlaceholderSocial } from '@/types';
 import { success, tap, warn } from '@/lib/haptics';
-import { colors, feedPadding, icon, screenPadding, spacing, type } from '@/theme';
+import { colors, feedPadding, icon, rule, screenPadding, spacing, type } from '@/theme';
 
 export default function MosqueScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -162,6 +165,18 @@ export default function MosqueScreen() {
               <Text style={[font(styles.rowText), align]}>
                 {t.joinCode} {m.joinCode}
               </Text>
+            </View>
+            {/*
+              Where the mosque posts what never became an event here. In the
+              details card with the phone and the website because it is the
+              same question — how do I reach this masjid — and the honest
+              answer is not only "in this app". The placeholders are filled in
+              here as well as in the seed, so the row draws even against a
+              database that predates the field.
+            */}
+            <View style={styles.socialBlock}>
+              <Text style={[font(styles.socialLead), align]}>{t.alsoFollow}</Text>
+              <SocialLinks social={withPlaceholderSocial(m.social)} />
             </View>
           </Card>
 
@@ -342,6 +357,16 @@ const styles = StyleSheet.create({
   starTitle: { ...type.bodyStrong, color: colors.ink },
   starHint: { ...type.small, color: colors.inkMuted },
   unclaimedTitle: { ...type.h3, color: colors.ink, marginBottom: spacing.xs },
+  // Sits below the last contact row, set off by a hairline so the chips read
+  // as their own thing rather than another line of address.
+  socialBlock: {
+    gap: spacing.sm,
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: rule,
+    borderTopColor: colors.rule,
+  },
+  socialLead: { ...type.overline, color: colors.inkMuted },
   ratingScore: { ...type.smallStrong, color: colors.ink },
 
   /** Body copy the mosque wrote. Looser leading than a data row. */

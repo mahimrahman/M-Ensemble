@@ -48,6 +48,11 @@ export const {
   monthlyValueCents,
   campaignSpentCents,
   formatMoney,
+  // the mosque's pages elsewhere
+  SOCIAL_PLATFORMS,
+  SOCIAL_LABEL,
+  normalizeSocial,
+  socialLinks,
   // cities, resolved from coordinates rather than stored on the mosque
   CITY_CENTERS,
   cityIdAt,

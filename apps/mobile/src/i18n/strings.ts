@@ -180,6 +180,10 @@ const fr = {
   qrSub: 'Les bénévoles scannent à l’arrivée',
   myQr: 'Mon code de pointage',
   myQrSub: 'Montrez-le au coordinateur à votre arrivée.',
+  myQrScanned: 'Le coordinateur a scanné votre code.',
+  alsoFollow: 'Suivez la mosquée',
+  mosqueSocial: 'Pages de la mosquée',
+  socialHint: 'Un identifiant ou un lien complet, au choix. Laissez vide pour retirer.',
   presencelist: 'Liste des présences',
   attendance: 'Présences',
 
@@ -625,6 +629,10 @@ const en: Strings = {
   qrSub: 'Volunteers scan on arrival',
   myQr: 'My check-in code',
   myQrSub: 'Show this to the coordinator when you arrive.',
+  myQrScanned: 'The coordinator scanned your code.',
+  alsoFollow: 'Also follow the mosque',
+  mosqueSocial: 'Mosque pages',
+  socialHint: 'A handle or a full link, whichever you have. Leave blank to remove one.',
   presencelist: 'Attendance list',
   attendance: 'Attendance',
 
@@ -1050,6 +1058,10 @@ const ar: Strings = {
   qrSub: 'يمسح المتطوعون عند الوصول',
   myQr: 'رمز حضوري',
   myQrSub: 'اعرضه على المنسق عند وصولك.',
+  myQrScanned: 'قام المنسق بمسح رمزك.',
+  alsoFollow: 'تابع المسجد',
+  mosqueSocial: 'صفحات المسجد',
+  socialHint: 'اسم الحساب أو الرابط الكامل، أيهما لديك. اتركه فارغًا للحذف.',
   presencelist: 'قائمة الحضور',
   attendance: 'الحضور',
 

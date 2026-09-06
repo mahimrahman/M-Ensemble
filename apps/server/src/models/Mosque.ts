@@ -40,6 +40,18 @@ const mosqueSchema = new Schema<MosqueRecord>(
       count: { type: Number },
     },
     services: { type: [String], default: undefined },
+    // One optional string per platform, each a full https URL. Spelled out
+    // rather than a free Map so an unknown key is dropped on write instead of
+    // reaching the app as a platform nothing knows how to draw.
+    social: {
+      facebook: { type: String, trim: true },
+      instagram: { type: String, trim: true },
+      youtube: { type: String, trim: true },
+      tiktok: { type: String, trim: true },
+      x: { type: String, trim: true },
+      whatsapp: { type: String, trim: true },
+      telegram: { type: String, trim: true },
+    },
     timezone: { type: String, default: 'America/Toronto' },
     // When we onboarded them. Server-only like `timezone`, and absent on the
     // directory rows, which we never onboarded at all.

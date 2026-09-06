@@ -151,7 +151,7 @@ export interface WithdrawResult {
  * them from the app would let one mosque impersonate another.
  */
 export type UpdateMosqueInput = Partial<
-  Pick<Mosque, 'bio' | 'history' | 'website' | 'phone' | 'services'>
+  Pick<Mosque, 'bio' | 'history' | 'website' | 'phone' | 'services' | 'social'>
 >;
 
 /**

@@ -5,6 +5,8 @@
  * client and the API at the same time — open a PR, don't edit in passing.
  */
 
+import type { MosqueSocial } from './social';
+
 export type ID = string;
 
 /** ISO-8601 instant, always UTC, e.g. "2026-09-05T13:21:00.000Z". */
@@ -90,6 +92,12 @@ export interface Mosque {
   rating?: { score: number; count: number };
   /** Standing programs — the things that run every week, not dated posts. */
   services?: string[];
+  /**
+   * The mosque's pages elsewhere — full https URLs, keyed by platform. Where
+   * the announcement that never became a post is, so the profile can point at
+   * it rather than pretend the app is the whole story. See `./social`.
+   */
+  social?: MosqueSocial;
 }
 
 /** One meeting of a multi-session post (a class that runs six Saturdays). */

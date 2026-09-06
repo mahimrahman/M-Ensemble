@@ -5,6 +5,11 @@
  *   opened "my check-in code"      → shows your own QR for them to scan
  *
  * The `show` param picks which. Everything else is the same screen.
+ *
+ * The code screen is not passive: it polls its own signup, so the moment the
+ * coordinator's scan lands the QR is replaced by the confirmation. Without
+ * that, the member is left holding a code with no way to tell whether it
+ * worked — the coordinator's phone is the only one that reacted.
  */
 
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -16,19 +21,25 @@ import { API_ERROR, api, isApiError } from '@/api/client';
 import { BackBar, Button, GradientHeader, Loading, Screen } from '@/components';
 import { useApi } from '@/hooks/useApi';
 import { useLang } from '@/i18n';
+import { formatTime } from '@/lib/format';
 import { success, warn } from '@/lib/haptics';
 import { useAuth } from '@/store/auth';
 import { colors, radius, rule, screenPadding, spacing, type } from '@/theme';
 
 type Outcome = 'checking' | 'done' | 'not-signed-up' | 'error';
 
+/** How often the displayed code asks whether it has been scanned yet. */
+const POLL_MS = 3000;
+
 export default function SelfCheckInScreen() {
   const { postId, show } = useLocalSearchParams<{ postId: string; show?: string }>();
   const router = useRouter();
   const { user } = useAuth();
-  const { t, font } = useLang();
+  const { t, lang, font } = useLang();
   const [outcome, setOutcome] = useState<Outcome>('checking');
   const [busy, setBusy] = useState(false);
+  /** Set once the coordinator's scan shows up in our own signup row. */
+  const [scannedAt, setScannedAt] = useState<string | null>(null);
 
   // Opened from "my check-in code" rather than by scanning: just show the QR.
   const showOnly = show === '1';
@@ -55,6 +66,42 @@ export default function SelfCheckInScreen() {
     };
   }, [postId, user?._id, showOnly]);
 
+  /**
+   * While the code is on screen, watch our own signup row for the scan.
+   *
+   * The check-in is written by the coordinator's phone, so nothing on this one
+   * knows it happened — polling is what closes that loop. It also covers the
+   * coordinator ticking the name off the roster by hand, and settles the screen
+   * immediately if the member was already checked in before opening it.
+   *
+   * A failed poll is left silent on purpose: the QR is still valid and the next
+   * tick retries, so a dropped request is not worth an error over a working code.
+   */
+  useEffect(() => {
+    if (!showOnly || !user || scannedAt) return;
+    const me = user._id;
+    let cancelled = false;
+
+    async function poll() {
+      try {
+        const signups = await api.getSignups(postId);
+        const mine = signups.find((s) => s.userId === me);
+        if (cancelled || !mine?.checkedInAt) return;
+        success();
+        setScannedAt(mine.checkedInAt);
+      } catch {
+        // next tick
+      }
+    }
+
+    void poll();
+    const timer = setInterval(() => void poll(), POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [showOnly, postId, user?._id, scannedAt]);
+
   async function claimAndCheckIn() {
     if (!user) return;
     setBusy(true);
@@ -79,23 +126,42 @@ export default function SelfCheckInScreen() {
       <Screen padded={false} edges={['left', 'right']}>
         <GradientHeader back={<BackBar />} eyebrow={t.myQr} title={title} />
         <View style={styles.center}>
-          <View style={styles.qrCard}>
-            <View style={styles.qrWrap}>
-              <QRCode
-                value={`mensemble://checkin/${postId}?user=${user?._id ?? ''}`}
-                size={216}
-                color={colors.dark}
-                backgroundColor="#FFFFFF"
-              />
-            </View>
-            <Text style={font(styles.hint)}>{t.myQrSub}</Text>
-          </View>
-          {/*
-            Either side can be the one holding the camera. If the coordinator
-            is showing the event's code instead, scan that.
-          */}
-          <Button label={t.scanQr} onPress={() => router.push('/scan')} />
-          <Button label={t.close} variant="secondary" onPress={() => router.back()} />
+          {scannedAt ? (
+            /*
+              Scanned. The code is spent, so it goes away rather than sitting
+              there inviting a second scan — what replaces it is the receipt,
+              carrying the time the coordinator recorded.
+            */
+            <>
+              <View style={[styles.ring, styles.ringOk]}>
+                <CheckCircle2 color={colors.accent} size={52} strokeWidth={1.8} />
+              </View>
+              <Text style={font(styles.title)}>{t.checkedIn} ✓</Text>
+              <Text style={font(styles.body)}>{formatTime(scannedAt, lang)}</Text>
+              <Text style={font(styles.hint)}>{t.myQrScanned}</Text>
+              <Button label={t.done} onPress={() => router.replace('/my-stuff')} />
+            </>
+          ) : (
+            <>
+              <View style={styles.qrCard}>
+                <View style={styles.qrWrap}>
+                  <QRCode
+                    value={`mensemble://checkin/${postId}?user=${user?._id ?? ''}`}
+                    size={216}
+                    color={colors.dark}
+                    backgroundColor="#FFFFFF"
+                  />
+                </View>
+                <Text style={font(styles.hint)}>{t.myQrSub}</Text>
+              </View>
+              {/*
+                Either side can be the one holding the camera. If the coordinator
+                is showing the event's code instead, scan that.
+              */}
+              <Button label={t.scanQr} onPress={() => router.push('/scan')} />
+              <Button label={t.close} variant="secondary" onPress={() => router.back()} />
+            </>
+          )}
         </View>
       </Screen>
     );

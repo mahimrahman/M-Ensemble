@@ -12,6 +12,7 @@
  */
 
 import { directoryMosques } from './directory';
+import { withPlaceholderSocial } from './social';
 import type {
   Follow,
   ID,
@@ -105,6 +106,10 @@ export const mockMosques: Mosque[] = [
       'New-immigrant settlement help',
       'Islamic library and hall rental',
     ],
+    social: {
+      facebook: 'https://facebook.com/khadijahmosquemontreal',
+      instagram: 'https://instagram.com/khadijah_centre',
+    },
   },
   {
     _id: MADINA_ID,
@@ -127,6 +132,7 @@ export const mockMosques: Mosque[] = [
       'Food bank and scholarships',
       'Eid prayers at 6:00 and 7:00 AM',
     ],
+    social: { facebook: 'https://facebook.com/AlMadinahCenter' },
   },
   {
     _id: SALAHOUDDINE_ID,
@@ -149,6 +155,7 @@ export const mockMosques: Mosque[] = [
       'Free self-defence classes',
       'Scouts, summer camp and Hajj trips',
     ],
+    social: { facebook: 'https://facebook.com/AicpCanada' },
   },
   {
     _id: CIIC_ID,
@@ -171,6 +178,10 @@ export const mockMosques: Mosque[] = [
       'Ramadan halaqa and taraweeh',
       'Rawasi Café and interfaith visits',
     ],
+    social: {
+      facebook: 'https://facebook.com/CIICMAC',
+      instagram: 'https://instagram.com/ciicmac',
+    },
   },
   {
     _id: VERDUN_ID,
@@ -191,6 +202,10 @@ export const mockMosques: Mosque[] = [
       'Al-Huda Verdun weekend school',
       'Family and youth programs',
     ],
+    social: {
+      facebook: 'https://facebook.com/CentreIslamiqueVerdun',
+      instagram: 'https://instagram.com/maccivmac',
+    },
   },
   {
     _id: FATIMA_ID,
@@ -225,6 +240,10 @@ export const mockMosques: Mosque[] = [
       'Al-Huda weekend school',
       'Ramadan iftars and taraweeh',
     ],
+    social: {
+      facebook: 'https://facebook.com/alrawdah.ca',
+      x: 'https://x.com/alrawdah',
+    },
   },
   {
     _id: LAVAL_ID,
@@ -269,7 +288,13 @@ export const mockMosques: Mosque[] = [
  * The mock client and the server seed both read this, so a mosque added to the
  * directory shows up in the app and in Mongo without touching either.
  */
-export const allMosques: Mosque[] = [...mockMosques, ...directoryMosques];
+export const allMosques: Mosque[] = [...mockMosques, ...directoryMosques].map((mosque) => ({
+  ...mosque,
+  // Verified handles win; the placeholders only fill the platforms we have
+  // nothing for, so Khadijah keeps its own Facebook and Instagram. A
+  // coordinator replaces theirs from **Edit mosque profile**.
+  social: withPlaceholderSocial(mosque.social),
+}));
 
 /** True when a mosque has a coordinator and real content behind it. */
 export function isOperatedMosque(mosqueId: ID): boolean {

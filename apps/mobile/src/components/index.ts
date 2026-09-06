@@ -25,4 +25,5 @@ export { PromoCard } from './PromoCard';
 export { PrayerTable } from './PrayerTable';
 export { GradientHeader, Screen, SectionTitle } from './Screen';
 export { Segmented } from './Segmented';
+export { SocialLinks } from './SocialLinks';
 export { StatRow, Stat } from './Stat';

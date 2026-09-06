@@ -303,41 +303,45 @@ export default function MosquesScreen() {
                     rowOffsets.current[mosque._id] = e.nativeEvent.layout.y;
                   }}
                 >
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={mosque.name}
-                    accessibilityState={{ selected: isSelected, expanded: isSelected }}
-                    onPress={() => selectMosque(mosque._id)}
-                    onLongPress={() =>
-                      router.push({ pathname: '/mosque/[id]', params: { id: mosque._id } })
-                    }
-                    style={({ pressed }) => [
-                      styles.row,
-                      row,
-                      isSelected && styles.rowSelected,
-                      pressed && styles.pressed,
-                    ]}
-                  >
-                    <View style={[styles.icon, isSelected && styles.iconSelected]}>
-                      <Text style={styles.iconGlyph}>🕌</Text>
-                    </View>
+                  {/*
+                    A plain View, not a Pressable: the star and directions
+                    buttons live inside it, and on web a Pressable with a
+                    button role becomes a real <button>, which HTML forbids
+                    nesting. The selectable part is the sibling Pressable
+                    beside them, stretched to take the rest of the row.
+                  */}
+                  <View style={[styles.row, row, isSelected && styles.rowSelected]}>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={mosque.name}
+                      accessibilityState={{ selected: isSelected, expanded: isSelected }}
+                      onPress={() => selectMosque(mosque._id)}
+                      onLongPress={() =>
+                        router.push({ pathname: '/mosque/[id]', params: { id: mosque._id } })
+                      }
+                      style={({ pressed }) => [styles.rowMain, row, pressed && styles.pressed]}
+                    >
+                      <View style={[styles.icon, isSelected && styles.iconSelected]}>
+                        <Text style={styles.iconGlyph}>🕌</Text>
+                      </View>
 
-                    <View style={styles.rowText}>
-                      {isFollowed ? (
-                        <Text style={font(styles.following)}>{t.following.toUpperCase()}</Text>
-                      ) : null}
-                      <Text
-                        style={[font(styles.name), align, isSelected && styles.nameSelected]}
-                        numberOfLines={1}
-                      >
-                        {mosque.name}
-                      </Text>
-                      <Text style={[font(styles.address), align]} numberOfLines={1}>
-                        {km === null
-                          ? mosque.address
-                          : `${fill(t.kmAway, { km: km.toFixed(1) })} · ${mosque.address}`}
-                      </Text>
-                    </View>
+                      <View style={styles.rowText}>
+                        {isFollowed ? (
+                          <Text style={font(styles.following)}>{t.following.toUpperCase()}</Text>
+                        ) : null}
+                        <Text
+                          style={[font(styles.name), align, isSelected && styles.nameSelected]}
+                          numberOfLines={1}
+                        >
+                          {mosque.name}
+                        </Text>
+                        <Text style={[font(styles.address), align]} numberOfLines={1}>
+                          {km === null
+                            ? mosque.address
+                            : `${fill(t.kmAway, { km: km.toFixed(1) })} · ${mosque.address}`}
+                        </Text>
+                      </View>
+                    </Pressable>
 
                     {/*
                       Starring picks whose prayer times the home screen shows.
@@ -377,7 +381,7 @@ export default function MosquesScreen() {
                         style={isAr ? styles.flip : undefined}
                       />
                     </Pressable>
-                  </Pressable>
+                  </View>
 
                   {/* Follow / open sit under the row so the row itself selects. */}
                   {isSelected ? (
@@ -453,6 +457,8 @@ const styles = StyleSheet.create({
     borderColor: colors.rule,
     borderRadius: radius.lg,
   },
+  /** The tappable name-and-address part; takes every pixel the buttons leave. */
+  rowMain: { flex: 1, alignItems: 'center', gap: spacing.md },
   rowSelected: { backgroundColor: '#EDF7F6', borderColor: colors.ruleStrong },
   pressed: { opacity: 0.75 },
   icon: {

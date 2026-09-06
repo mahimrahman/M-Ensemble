@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import type { BillingInterval, IssuedCredential, Subscription } from '@m-ensemble/shared';
+import { SOCIAL_LABEL, socialLinks } from '@m-ensemble/shared';
 import { api } from '@/api';
 import { useWriteGuard } from '@/auth';
 import {
@@ -171,6 +172,32 @@ export function MosqueDetail(): React.JSX.Element {
                         >
                           {data.mosque.website}
                         </a>
+                      ) : (
+                        <span className="muted">—</span>
+                      )}
+                    </dd>
+                    {/*
+                      The mosque's own pages. Read-only here — a coordinator
+                      edits these from the app, and this screen is the one
+                      someone reads before ringing them, so knowing where else
+                      the mosque publishes belongs beside the phone number.
+                    */}
+                    <dt>Social</dt>
+                    <dd>
+                      {socialLinks(data.mosque.social).length ? (
+                        <span className="social-links">
+                          {socialLinks(data.mosque.social).map(({ platform, url }) => (
+                            <a
+                              key={platform}
+                              href={url}
+                              target="_blank"
+                              rel="noreferrer noopener"
+                              style={{ color: 'var(--brand)' }}
+                            >
+                              {SOCIAL_LABEL[platform]}
+                            </a>
+                          ))}
+                        </span>
                       ) : (
                         <span className="muted">—</span>
                       )}

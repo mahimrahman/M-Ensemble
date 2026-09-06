@@ -1,4 +1,7 @@
 import { z } from 'zod';
+// Runtime values come through the server's shim, never straight from the
+// package — see `src/shared.ts` for why a named import of one throws at boot.
+import { SOCIAL_PLATFORMS } from '../shared.js';
 
 const WALL_CLOCK = /^([01]\d|2[0-3]):([0-5]\d)$/;
 const DATE_STRING = /^\d{4}-\d{2}-\d{2}$/;
@@ -48,6 +51,18 @@ export const updateMosqueSchema = z
     website: z.string().max(200).optional(),
     phone: z.string().max(60).optional(),
     services: z.array(z.string().max(200)).max(20).optional(),
+    // Handles or URLs, whichever the coordinator typed; the controller
+    // normalizes. Every platform optional and an empty string clears one, so
+    // the editor can send all seven fields on every save without inventing
+    // links for the ones left blank.
+    social: z
+      .object(
+        Object.fromEntries(
+          SOCIAL_PLATFORMS.map((p) => [p, z.string().max(300).optional()]),
+        ) as Record<(typeof SOCIAL_PLATFORMS)[number], z.ZodOptional<z.ZodString>>,
+      )
+      .strict()
+      .optional(),
   })
   .strict();
 

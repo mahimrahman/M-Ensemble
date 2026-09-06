@@ -10,11 +10,20 @@ import { useRouter } from 'expo-router';
 import { Clock, ListPlus, LogOut, MapPin, Pencil, QrCode, Send } from 'lucide-react-native';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Alert } from '@/lib/alert';
-import { Button, Card, GradientHeader, LangSwitcher, Screen, SectionTitle } from '@/components';
+import {
+  Button,
+  Card,
+  GradientHeader,
+  LangSwitcher,
+  Screen,
+  SectionTitle,
+  SocialLinks,
+} from '@/components';
 import { useLang } from '@/i18n';
 import { tap } from '@/lib/haptics';
 import { useAdminMosque } from '@/store/adminMosque';
 import { useAuth } from '@/store/auth';
+import { withPlaceholderSocial } from '@/types';
 import { colors, icon, numeric, radius, rule, screenPadding, spacing, type } from '@/theme';
 
 export default function AdminSettingsScreen() {
@@ -91,6 +100,19 @@ export default function AdminSettingsScreen() {
             <Text style={[font(styles.meta), align]}>{t.joinCode}</Text>
             <Text style={styles.code}>{mosque?.joinCode ?? '-'}</Text>
           </View>
+          {/*
+            The same chips the congregation sees on the mosque page, so a
+            coordinator can check at a glance that the links published under
+            their name are the right ones. Tapping one opens it — the fastest
+            way to catch a page that has moved. Editing them is behind
+            "Edit mosque profile" below.
+          */}
+          {mosque ? (
+            <View style={styles.socialBlock}>
+              <Text style={[font(styles.socialLead), align]}>{t.alsoFollow}</Text>
+              <SocialLinks social={withPlaceholderSocial(mosque.social)} />
+            </View>
+          ) : null}
         </Card>
 
         {/* ── Doors to the things settings owns ── */}
@@ -179,6 +201,17 @@ const styles = StyleSheet.create({
   mosqueName: { ...type.h3, color: colors.ink },
   meta: { ...type.small, color: colors.inkMuted, flex: 1 },
   code: { ...type.mono, ...numeric, fontSize: 13, color: colors.accent, letterSpacing: 1 },
+
+  // Set off by a hairline so the chips read as their own thing rather than
+  // another line of address. Mirrors the member's mosque page.
+  socialBlock: {
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+    paddingTop: spacing.md,
+    borderTopWidth: rule,
+    borderTopColor: colors.rule,
+  },
+  socialLead: { ...type.overline, color: colors.inkMuted },
 
   signOut: { marginTop: spacing.xl },
 });

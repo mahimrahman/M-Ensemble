@@ -4,9 +4,13 @@ import type {
   DateString,
   MemberRole,
   MosqueIqamahConfig,
+  MosqueSocial,
   PostType,
   UpdateMosqueInput,
 } from '@m-ensemble/shared';
+// Runtime values come through the shim, never straight from the package —
+// `src/shared.ts` explains why a named import of one throws at boot.
+import { SOCIAL_PLATFORMS, normalizeSocial } from '../shared.js';
 import { FollowModel } from '../models/Follow.js';
 import { MosqueModel } from '../models/Mosque.js';
 import { PostModel } from '../models/Post.js';
@@ -40,10 +44,10 @@ export async function getMosque(req: Request, res: Response): Promise<void> {
 /**
  * Edit the mosque's own profile.
  *
- * Only the descriptive half: bio, history, contact and the services list.
- * Name, address, coordinates and joinCode are identity — letting them be
- * patched from the app would let one mosque rename itself as another. An empty
- * string clears the field rather than storing "".
+ * Only the descriptive half: bio, history, contact, the services list and the
+ * mosque's pages elsewhere. Name, address, coordinates and joinCode are
+ * identity — letting them be patched from the app would let one mosque rename
+ * itself as another. An empty string clears the field rather than storing "".
  */
 export async function updateMosque(req: Request, res: Response): Promise<void> {
   const mosque = await MosqueModel.findById(String(req.params.id));
@@ -61,6 +65,19 @@ export async function updateMosque(req: Request, res: Response): Promise<void> {
   if (patch.services !== undefined) {
     const cleaned = patch.services.map((s) => s.trim()).filter(Boolean);
     mosque.services = cleaned.length ? cleaned : undefined;
+  }
+  if (patch.social !== undefined) {
+    // The editor posts every platform every time, so this is a replace rather
+    // than a merge: a field the coordinator emptied has to actually go, and
+    // merging would make a link unremovable. `normalizeSocial` is what turns
+    // the handle they typed into the URL the app opens.
+    const social: MosqueSocial = {};
+    for (const platform of SOCIAL_PLATFORMS) {
+      const raw = patch.social[platform];
+      const url = raw === undefined ? null : normalizeSocial(platform, raw);
+      if (url) social[platform] = url;
+    }
+    mosque.social = Object.keys(social).length ? social : undefined;
   }
 
   await mosque.save();

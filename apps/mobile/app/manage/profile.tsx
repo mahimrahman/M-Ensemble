@@ -2,9 +2,10 @@
  * The mosque's own profile, edited by its coordinator.
  *
  * What people read on the mosque page — the description, the history, the
- * standing programmes, and how to get in touch. Deliberately *not* here: name,
- * address, coordinates and join code. Those are identity; a mosque renaming
- * itself into another one is not an edit, and the server rejects them too.
+ * standing programmes, how to get in touch, and the mosque's pages elsewhere.
+ * Deliberately *not* here: name, address, coordinates and join code. Those are
+ * identity; a mosque renaming itself into another one is not an edit, and the
+ * server rejects them too.
  *
  * The services list is a textarea rather than a row editor on purpose. A
  * coordinator adding six programmes at a kitchen table wants to type six lines,
@@ -29,7 +30,19 @@ import {
 import { useLang } from '@/i18n';
 import { success, warn } from '@/lib/haptics';
 import { useAdminMosque } from '@/store/adminMosque';
+import { SOCIAL_LABEL, SOCIAL_PLATFORMS, type MosqueSocial, type SocialPlatform } from '@/types';
 import { colors, screenPadding, spacing, type } from '@/theme';
+
+/** What to type, per platform — a handle for most, an invite for the rest. */
+const SOCIAL_PLACEHOLDER: Record<SocialPlatform, string> = {
+  facebook: 'yourmosquepage',
+  instagram: '@yourmosque',
+  youtube: '@yourmosque',
+  tiktok: '@yourmosque',
+  x: '@yourmosque',
+  whatsapp: 'chat.whatsapp.com/… or +1 514-000-0000',
+  telegram: '@yourmosque',
+};
 
 export default function MosqueProfileScreen() {
   const router = useRouter();
@@ -41,6 +54,13 @@ export default function MosqueProfileScreen() {
   const [website, setWebsite] = useState('');
   const [phone, setPhone] = useState('');
   const [services, setServices] = useState('');
+  /**
+   * Every platform gets a slot whether or not the mosque uses it, so adding a
+   * page later means typing into the blank rather than hunting for an "add".
+   * Blanks go up as empty strings and the server drops them — which is also
+   * how a link that should no longer be there gets removed.
+   */
+  const [social, setSocial] = useState<Partial<Record<SocialPlatform, string>>>({});
   const [saving, setSaving] = useState(false);
 
   // Fill from whatever is published now, once it arrives.
@@ -51,6 +71,7 @@ export default function MosqueProfileScreen() {
     setWebsite(mosque.website ?? '');
     setPhone(mosque.phone ?? '');
     setServices((mosque.services ?? []).join('\n'));
+    setSocial(Object.fromEntries(SOCIAL_PLATFORMS.map((p) => [p, mosque.social?.[p] ?? ''])));
   }, [mosque?._id]);
 
   async function save() {
@@ -64,6 +85,11 @@ export default function MosqueProfileScreen() {
         phone,
         // One per line; the server drops the blanks a trailing newline leaves.
         services: services.split('\n'),
+        // Sent whole rather than as a diff: the server replaces the set, so an
+        // emptied field is what removes a link.
+        social: Object.fromEntries(
+          SOCIAL_PLATFORMS.map((p) => [p, social[p] ?? '']),
+        ) as MosqueSocial,
       });
       success();
       await reload();
@@ -156,6 +182,20 @@ export default function MosqueProfileScreen() {
           placeholder="+1 514-000-0000"
         />
 
+        <SectionTitle title={t.mosqueSocial} />
+        <Text style={[font(styles.socialHint), align]}>{t.socialHint}</Text>
+        {SOCIAL_PLATFORMS.map((platform) => (
+          <Field
+            key={platform}
+            label={SOCIAL_LABEL[platform]}
+            value={social[platform] ?? ''}
+            onChangeText={(value) => setSocial((prev) => ({ ...prev, [platform]: value }))}
+            autoCapitalize="none"
+            keyboardType="url"
+            placeholder={SOCIAL_PLACEHOLDER[platform]}
+          />
+        ))}
+
         <Button label={t.save} size="lg" loading={saving} onPress={() => void save()} />
       </ScrollView>
     </Screen>
@@ -173,4 +213,5 @@ const styles = StyleSheet.create({
   fixed: { gap: 2 },
   fixedName: { ...type.h3, color: colors.ink },
   fixedAddress: { ...type.small, color: colors.inkMuted },
+  socialHint: { ...type.small, color: colors.inkMuted },
 });
