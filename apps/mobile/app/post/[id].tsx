@@ -146,7 +146,8 @@ export default function PostDetailScreen() {
       const result = await api.withdraw(id);
       if (result.lateCancelled) {
         warn();
-        Alert.alert(t.lateCancelRecorded, t.lateCancelBody);
+        // Amber, not red: it happened, it is on the record, but nothing failed.
+        Alert.warn(t.lateCancelRecorded, t.lateCancelBody);
       }
     } catch {
       warn();
@@ -211,7 +212,7 @@ export default function PostDetailScreen() {
           onPress={() => router.push({ pathname: '/mosque/[id]', params: { id: p.mosqueId } })}
           style={({ pressed }) => [styles.mosqueRow, row, pressed && styles.pressed]}
         >
-          <Text style={font(styles.mosqueName)}>{mosque.data?.name ?? '—'}</Text>
+          <Text style={font(styles.mosqueName)}>{mosque.data?.name ?? '-'}</Text>
           <ArrowRight
             color={colors.inkOnDark}
             size={iconSize.xs}
@@ -234,7 +235,7 @@ export default function PostDetailScreen() {
         showsVerticalScrollIndicator={false}
       >
         {isPosterPost(p) ? (
-          <Poster imageUrl={p.imageUrl} posterKey={p.posterKey} seed={p._id} height={180} radius={0} />
+          <Poster imageUrl={p.imageUrl} posterKey={p.posterKey} height={180} radius={0} />
         ) : null}
 
         <View style={styles.body}>

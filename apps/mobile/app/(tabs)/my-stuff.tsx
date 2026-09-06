@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
   recordLabel: { ...type.small, color: colors.inkMuted },
   recordValue: { ...type.h3, ...numeric, color: colors.ink },
   recordClean: { ...type.small, color: colors.inkMuted, marginTop: spacing.xs },
-  recordIncident: { ...type.small, color: colors.danger, marginTop: 2 },
+  recordIncident: { ...type.small, color: colors.warn, marginTop: 2 },
 
   card: {
     backgroundColor: colors.surface,

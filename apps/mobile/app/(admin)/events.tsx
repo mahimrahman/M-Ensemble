@@ -186,7 +186,7 @@ export default function EventsScreen() {
 
         <View style={styles.turnout}>
           <Text style={[styles.turnoutPct, weak && styles.turnoutWeak]}>
-            {outcome.confirmed ? `${rate}%` : '—'}
+            {outcome.confirmed ? `${rate}%` : '-'}
           </Text>
           <Text style={styles.turnoutCount}>
             {outcome.attended}/{outcome.confirmed}

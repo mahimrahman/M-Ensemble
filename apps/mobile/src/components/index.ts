@@ -1,3 +1,4 @@
+export { DialogProvider, useDialog } from './AppDialog';
 export { BackBar } from './BackBar';
 export { Badge, type BadgeTone } from './Badge';
 export { Button, type ButtonSize, type ButtonVariant } from './Button';

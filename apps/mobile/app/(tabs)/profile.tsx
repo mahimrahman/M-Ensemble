@@ -103,10 +103,10 @@ export default function ProfileScreen() {
           </View>
           <View style={styles.headText}>
             <Text style={[font(styles.name), align]} numberOfLines={1}>
-              {user?.name ?? '—'}
+              {user?.name ?? '-'}
             </Text>
             <Text style={[styles.email, align]} numberOfLines={1}>
-              {user?.email ?? '—'}
+              {user?.email ?? '-'}
             </Text>
             {adminMosqueIds.length > 0 ? (
               <Text style={[font(styles.role), align]}>{t.coordinator.toUpperCase()}</Text>
@@ -119,7 +119,7 @@ export default function ProfileScreen() {
         {/* ── Language ── */}
         <Card>
           <Text style={[font(styles.cardTitle), align]}>{t.language}</Text>
-          <LangSwitcher tone="onLight" />
+          <LangSwitcher tone="onLight" layout="block" />
         </Card>
 
         {/* ── Interests ── */}

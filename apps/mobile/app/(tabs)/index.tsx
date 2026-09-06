@@ -17,6 +17,7 @@ import {
   LocationPrompt,
   Loading,
   PostCard,
+  hasPosterArt,
   PrayerCard,
   Screen,
   postTypeLabel,
@@ -25,6 +26,7 @@ import { useApi } from '@/hooks/useApi';
 import { fill, useLang } from '@/i18n';
 import { cityName, mosqueCity } from '@/lib/cities';
 import { useLocation } from '@/store/location';
+import { useStarred } from '@/store/starred';
 import { colors, feedPadding, rule, spacing } from '@/theme';
 import type { PostType } from '@/types';
 
@@ -32,12 +34,17 @@ type Filter = 'all' | PostType;
 
 const FILTERS: Filter[] = ['all', 'volunteer', 'event', 'class', 'announcement'];
 
+/** Text posts between one poster and the next. */
+const TEXT_BETWEEN_POSTERS = 2;
+
 export default function FeedScreen() {
   const router = useRouter();
   const { t, lang } = useLang();
   const { browsingCity } = useLocation();
   const [filter, setFilter] = useState<Filter>('all');
   const [refreshing, setRefreshing] = useState(false);
+
+  const { starredId } = useStarred();
 
   const allMosques = useApi(() => api.getMosques(), []);
   const followed = useApi(() => api.getFollowedMosques(), []);
@@ -76,11 +83,48 @@ export default function FeedScreen() {
     ]).finally(() => setRefreshing(false));
   }, [feed, allMosques, followed, commitments]);
 
+  /**
+   * Whose prayer times the masthead shows.
+   *
+   * The star wins outright, wherever that mosque is - somebody who starred the
+   * mosque they pray at should keep seeing its times while browsing another
+   * city. Failing that, a mosque they follow here; failing that, any mosque in
+   * the city, which is the generic default.
+   */
+  const starredMosque = (allMosques.data ?? []).find((m) => m._id === starredId) ?? null;
   const primaryMosque =
+    starredMosque ??
     cityMosques.find((m) => (followed.data ?? []).some((f) => f._id === m._id)) ??
     cityMosques[0] ??
     null;
-  const posts = feed.data ?? [];
+  /**
+   * The feed, arranged so it doesn't read as a wall of notices.
+   *
+   * A poster leads, then roughly two text posts before the next one. Chronology
+   * still governs within each group - this only decides how the two kinds are
+   * woven together, so the eye gets a picture early and then again before it
+   * tires. Once either kind runs out the rest follows in date order.
+   */
+  const posts = useMemo(() => {
+    const chronological = feed.data ?? [];
+    const withArt = chronological.filter((post) => hasPosterArt(post));
+    const textOnly = chronological.filter((post) => !hasPosterArt(post));
+
+    const woven: typeof chronological = [];
+    let i = 0;
+    let j = 0;
+    while (i < withArt.length || j < textOnly.length) {
+      if (i < withArt.length) woven.push(withArt[i++]!);
+      for (let k = 0; k < TEXT_BETWEEN_POSTERS && j < textOnly.length; k += 1) {
+        woven.push(textOnly[j++]!);
+      }
+      // Nothing left to break up the images with: the remaining posters follow.
+      if (j >= textOnly.length) {
+        while (i < withArt.length) woven.push(withArt[i++]!);
+      }
+    }
+    return woven;
+  }, [feed.data]);
 
   if (allMosques.loading) {
     return (

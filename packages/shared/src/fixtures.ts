@@ -109,8 +109,8 @@ export const mockMosques: Mosque[] = [
     history:
       'Founded as the Association Salam Paix de Montréal to serve students and families in the downtown core. What started as a prayer space now carries a library, a conference room and a multi-purpose hall, alongside a zakat desk, orphan sponsorship and a food bank.',
     services: [
-      'Arabic School — language, recitation, manners',
-      'Quran Academy — Hifz and Tajweed, all levels',
+      'Arabic School - language, recitation, manners',
+      'Quran Academy - Hifz and Tajweed, all levels',
       'Eight-week summer camp with robotics',
       'Zakat support and orphan sponsorship',
       'Food bank and scholarships',
@@ -129,7 +129,7 @@ export const mockMosques: Mosque[] = [
     rating: { score: 4.7, count: 179 },
     bio: 'One of the busiest program calendars in the city. There is a lesson and a free dinner every Friday, zikr and madih every Saturday, soccer and free self-defence for the youth, and a Mawlid parade that goes out through the streets once a year.',
     history:
-      'The Av. du Parc mosque of the Association of Islamic Charitable Projects. It built its reputation on the Friday lesson and the dinner that follows it — open to anyone who walks in, no registration, running for years without a break.',
+      'The Av. du Parc mosque of the Association of Islamic Charitable Projects. It built its reputation on the Friday lesson and the dinner that follows it - open to anyone who walks in, no registration, running for years without a break.',
     services: [
       'Friday lesson and free dinner, 7:00 PM',
       'Zikr and madih, Saturdays 7:30 PM',
@@ -153,7 +153,7 @@ export const mockMosques: Mosque[] = [
     history:
       'Opened by the Muslim Association of Canada to give downtown Montreal a centre rather than only a prayer hall. It hosts the Al-Huda weekend school, welcomes McGill and Concordia groups on interfaith visits, and programs heritage and arts alongside its social services.',
     services: [
-      'Three jummah services — 11:45, 12:30, 1:15',
+      'Three jummah services - 11:45, 12:30, 1:15',
       'MAC Al-Huda weekend Islamic school',
       'Sisters’ potluck brunch, monthly',
       'CIIC Juniors children’s workshops',
@@ -190,7 +190,7 @@ export const mockMosques: Mosque[] = [
     prayerConfig: QC_PRAYER,
     phone: '514-285-1893',
     rating: { score: 4.6, count: 87 },
-    bio: 'Two minutes’ walk from métro Saint-Laurent, open for every salat. Small, plain and reliable — the early fajr congregation is the reason a lot of people know it.',
+    bio: 'Two minutes’ walk from métro Saint-Laurent, open for every salat. Small, plain and reliable - the early fajr congregation is the reason a lot of people know it.',
     history:
       'A downtown mosque that has kept to what it does well: the five prayers on time, and regular halaqat and dars at the mosque. Free and donation-based, with no programming it cannot sustain.',
     services: ['Open for every salat', 'Regular halaqat and dars', 'Early fajr congregation'],
@@ -242,7 +242,7 @@ export const mockMosques: Mosque[] = [
     coordinates: { lat: 43.6559, lng: -79.386 },
     joinCode: 'TORONTO',
     prayerConfig: { ...QC_PRAYER, madhab: 'hanafi' },
-    bio: 'A downtown masjid built around the working day — several jummah services so people can get back, and a steady stream of walk-ins between prayers.',
+    bio: 'A downtown masjid built around the working day - several jummah services so people can get back, and a steady stream of walk-ins between prayers.',
     services: ['Multiple jummah services', 'Daily prayers downtown', 'Weekly halaqas'],
   },
 ];
@@ -564,7 +564,7 @@ export const mockPosts: Post[] = [
     type: 'class',
     title: 'Weekend Quran classes',
     description:
-      'Registration is open for the weekend Quran school, running its ninth year. Saturdays and Sundays, 10:30 to 1:30, ages 5 to 12 — reading and memorization, September through June. $75 a month, with $20 off for each additional sibling.',
+      'Registration is open for the weekend Quran school, running its ninth year. Saturdays and Sundays, 10:30 to 1:30, ages 5 to 12 - reading and memorization, September through June. $75 a month, with $20 off for each additional sibling.',
     category: 'Education',
     startAt: nextWeekday(6, '10:30'),
     endAt: nextWeekday(6, '13:30'),
@@ -585,7 +585,7 @@ export const mockPosts: Post[] = [
     _id: 'post_002',
     mosqueId: KHADIJA_ID,
     type: 'volunteer',
-    title: 'Iftar setup — Saturday community dinner',
+    title: 'Iftar setup - Saturday community dinner',
     description:
       'We need four people to lay out tables, set the serving line and fill the water jugs before maghrib. Arrive 90 minutes early. Food after, obviously.',
     category: 'Community meals',
@@ -635,7 +635,7 @@ export const mockPosts: Post[] = [
     type: 'event',
     title: 'Weekly family halaqah',
     description:
-      'The whole family in one room — a short talk, then tea and questions. Children welcome; there is no separate program, that is the point of it.',
+      'The whole family in one room - a short talk, then tea and questions. Children welcome; there is no separate program, that is the point of it.',
     category: 'Education',
     startAt: nextWeekday(3, '19:00'),
     endAt: nextWeekday(3, '20:30'),
@@ -649,7 +649,7 @@ export const mockPosts: Post[] = [
     _id: 'post_006',
     mosqueId: KHADIJA_ID,
     type: 'announcement',
-    title: 'Marriage and family counselling — now booking',
+    title: 'Marriage and family counselling - now booking',
     description:
       'The counselling program has openings again. Sessions are confidential and free to the community. The centre is licensed by the Government of Quebec for Islamic marriages; call 514-934-7684 to arrange either.',
     category: 'Outreach',
@@ -666,7 +666,7 @@ export const mockPosts: Post[] = [
     _id: 'post_007',
     mosqueId: MADINA_ID,
     type: 'class',
-    title: 'Arabic School 2025–26 — registration open',
+    title: 'Arabic School 2025–26 - registration open',
     description:
       'Three streams on Sundays: Arabic Language, Quranic Recitation, and Islamic Manners. Pay in full for $700, or $650 on the early bird with registration waived. There is also a register-now-pay-later option: $50 deposit, then $250 in September, $200 in January, $200 in March. Optional lunch is $150 for the year.',
     category: 'Education',
@@ -689,9 +689,9 @@ export const mockPosts: Post[] = [
     _id: 'post_008',
     mosqueId: MADINA_ID,
     type: 'event',
-    title: 'Summer camp 2026 — eight weeks, deposits open',
+    title: 'Summer camp 2026 - eight weeks, deposits open',
     description:
-      'Robotics and coding for the kids, a pool visit every week, skating at the arena down the street, a group restaurant meal on Fridays and something outdoors every day. $150 a week, or $1,100 for all eight weeks — which saves you $100. Hold a place with a $50 deposit. Early drop-off and late pick-up are $25 each.',
+      'Robotics and coding for the kids, a pool visit every week, skating at the arena down the street, a group restaurant meal on Fridays and something outdoors every day. $150 a week, or $1,100 for all eight weeks - which saves you $100. Hold a place with a $50 deposit. Early drop-off and late pick-up are $25 each.',
     category: 'Youth',
     startAt: iso(12, '09:00'),
     endAt: iso(12, '16:00'),
@@ -722,9 +722,9 @@ export const mockPosts: Post[] = [
     _id: 'post_010',
     mosqueId: MADINA_ID,
     type: 'class',
-    title: 'Quran Academy — Hifz and Tajweed circles',
+    title: 'Quran Academy - Hifz and Tajweed circles',
     description:
-      'Weekly circles at every level and every age, with teachers holding Ijaza in all Qira’at. The schedule is flexible — tell us when you can come and we will place you in a circle. Free.',
+      'Weekly circles at every level and every age, with teachers holding Ijaza in all Qira’at. The schedule is flexible - tell us when you can come and we will place you in a circle. Free.',
     category: 'Education',
     startAt: nextWeekday(1, '18:00'),
     endAt: nextWeekday(1, '19:30'),
@@ -757,7 +757,7 @@ export const mockPosts: Post[] = [
     type: 'event',
     title: 'Friday lesson, then dinner',
     description:
-      'The lesson on belief and religious themes at 7:00, as it is every Friday, and dinner served straight after. Free, no registration, everyone welcome — just come.',
+      'The lesson on belief and religious themes at 7:00, as it is every Friday, and dinner served straight after. Free, no registration, everyone welcome - just come.',
     category: 'Community meals',
     startAt: nextWeekday(5, '19:00'),
     endAt: nextWeekday(5, '21:00'),
@@ -791,7 +791,7 @@ export const mockPosts: Post[] = [
     type: 'class',
     title: 'Free self-defence classes',
     description:
-      'Free self-defence, taught by instructors from the community. Open to youth and adults. Times shift with the season — call 514-274-6194 for the current schedule before your first session.',
+      'Free self-defence, taught by instructors from the community. Open to youth and adults. Times shift with the season - call 514-274-6194 for the current schedule before your first session.',
     category: 'Youth',
     startAt: nextWeekday(2, '18:30'),
     endAt: nextWeekday(2, '20:00'),
@@ -806,7 +806,7 @@ export const mockPosts: Post[] = [
     _id: 'post_015',
     mosqueId: SALAHOUDDINE_ID,
     type: 'event',
-    title: 'Soccer training — men’s team and open sessions',
+    title: 'Soccer training - men’s team and open sessions',
     description:
       'Training for the adult team plus open sessions for anyone who wants a game. Boots and shin pads; we have the rest. Call the mosque for this week’s pitch and time.',
     category: 'Youth',
@@ -825,7 +825,7 @@ export const mockPosts: Post[] = [
     type: 'volunteer',
     title: 'Friday dinner serving line',
     description:
-      'Six people on the line and two on the washing-up. The dinner runs every week and it only works because this shift fills — take one Friday a month if you can.',
+      'Six people on the line and two on the washing-up. The dinner runs every week and it only works because this shift fills - take one Friday a month if you can.',
     category: 'Community meals',
     startAt: nextWeekday(5, '18:30'),
     endAt: nextWeekday(5, '21:30'),
@@ -839,9 +839,9 @@ export const mockPosts: Post[] = [
     _id: 'post_017',
     mosqueId: SALAHOUDDINE_ID,
     type: 'announcement',
-    title: 'Mawlid parade — route and stewards',
+    title: 'Mawlid parade - route and stewards',
     description:
-      'The annual parade goes out through the streets next month. We need stewards along the route and drivers for the sound van. The Ma’had institute semester starts the same week — sign-up sheets are on the noticeboard for both.',
+      'The annual parade goes out through the streets next month. We need stewards along the route and drivers for the sound van. The Ma’had institute semester starts the same week - sign-up sheets are on the noticeboard for both.',
     category: 'Community',
     startAt: iso(-3, '18:00'),
     endAt: iso(25, '23:59'),
@@ -889,7 +889,7 @@ export const mockPosts: Post[] = [
     _id: 'post_020',
     mosqueId: CIIC_ID,
     type: 'event',
-    title: 'CIIC Juniors — Ramadan fiqh workshop',
+    title: 'CIIC Juniors - Ramadan fiqh workshop',
     description:
       'A workshop for the children on the fiqh of fasting, run by the Juniors Team. Ages 7 to 12, two hours with a break, and they go home with a workbook.',
     category: 'Youth',
@@ -905,7 +905,7 @@ export const mockPosts: Post[] = [
     _id: 'post_021',
     mosqueId: CIIC_ID,
     type: 'volunteer',
-    title: 'Jummah welcome team — three services',
+    title: 'Jummah welcome team - three services',
     description:
       'Three jummah services at 11:45, 12:30 and 1:15 means three turnovers in ninety minutes. Four people on the doors and the shoe racks keeps it moving.',
     category: 'Volunteering',
@@ -921,9 +921,9 @@ export const mockPosts: Post[] = [
     _id: 'post_022',
     mosqueId: CIIC_ID,
     type: 'announcement',
-    title: 'Interfaith visit — McGill and Concordia groups',
+    title: 'Interfaith visit - McGill and Concordia groups',
     description:
-      'We are hosting the My Neighbour’s Faith groups from both universities this month. If you can help show people round after jummah, tell the office — it is an hour and it does more good than most things we run.',
+      'We are hosting the My Neighbour’s Faith groups from both universities this month. If you can help show people round after jummah, tell the office - it is an hour and it does more good than most things we run.',
     category: 'Outreach',
     startAt: iso(-1, '11:00'),
     endAt: iso(18, '23:59'),
@@ -938,7 +938,7 @@ export const mockPosts: Post[] = [
     _id: 'post_023',
     mosqueId: VERDUN_ID,
     type: 'event',
-    title: 'Ramadan iftar buffet — every night',
+    title: 'Ramadan iftar buffet - every night',
     description:
       'The homemade Algerian buffet runs every night of Ramadan, cooked by the community and free to everyone. Bring your family, bring a neighbour. Taraweeh follows.',
     category: 'Community meals',
@@ -955,7 +955,7 @@ export const mockPosts: Post[] = [
     _id: 'post_024',
     mosqueId: VERDUN_ID,
     type: 'volunteer',
-    title: 'Iftar kitchen — cooking and serving',
+    title: 'Iftar kitchen - cooking and serving',
     description:
       'The buffet is cooked here, not catered. Ten people across the evening: prep from four, serving from seven, clearing after. Take one night or take a week.',
     category: 'Community meals',
@@ -1011,7 +1011,7 @@ export const mockPosts: Post[] = [
     _id: 'post_027',
     mosqueId: FATIMA_ID,
     type: 'announcement',
-    title: 'Fajr congregation — the early one',
+    title: 'Fajr congregation - the early one',
     description:
       'People come across town for the fajr jama’ah here. Doors open twenty minutes before; there is tea afterwards and nobody is in a hurry.',
     category: 'Prayer times',
@@ -1028,7 +1028,7 @@ export const mockPosts: Post[] = [
     _id: 'post_028',
     mosqueId: RAWDAH_ID,
     type: 'volunteer',
-    title: 'New carpet installation — lifting help',
+    title: 'New carpet installation - lifting help',
     description:
       'The installers need five of us to move the old rolls out and hold the underlay. Heavy lifting; wear shoes you can ruin.',
     category: 'Facilities',
@@ -1044,7 +1044,7 @@ export const mockPosts: Post[] = [
     _id: 'post_029',
     mosqueId: OTTAWA_ID,
     type: 'event',
-    title: 'Community iftar — open to all',
+    title: 'Community iftar - open to all',
     description:
       'A shared iftar in the main hall. Bring a dish if you can; everyone is welcome regardless.',
     category: 'Community meals',

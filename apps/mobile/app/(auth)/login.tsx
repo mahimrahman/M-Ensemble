@@ -67,9 +67,10 @@ export default function LoginScreen() {
             <LangSwitcher />
           </View>
 
+          {/* Logo only. The lockup already carries "Répondre présent" as
+              artwork; a second tagline underneath said the same thing twice. */}
           <View style={styles.brand}>
             <Logo tone="onDark" height={64} label={t.welcome} />
-            <Text style={[font(styles.tagline), align]}>{t.welcomeSub}</Text>
           </View>
 
           <View style={styles.card}>

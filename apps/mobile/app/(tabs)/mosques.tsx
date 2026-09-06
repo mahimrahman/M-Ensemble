@@ -5,7 +5,7 @@
  */
 
 import { useRouter } from 'expo-router';
-import { CalendarDays, ExternalLink } from 'lucide-react-native';
+import { ExternalLink, Star } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Alert } from '@/lib/alert';
@@ -17,17 +17,14 @@ import {
   Loading,
   LocationPill,
   MosqueMap,
-  PrayerTable,
   Screen,
-  SectionTitle,
   Segmented,
 } from '@/components';
 import { useApi } from '@/hooks/useApi';
-import { useNextPrayer } from '@/hooks/useNextPrayer';
 import { useLang } from '@/i18n';
 import { cityName, mosqueCity } from '@/lib/cities';
 import { useLocation } from '@/store/location';
-import { todayDateString } from '@/lib/format';
+import { useStarred } from '@/store/starred';
 import { tap } from '@/lib/haptics';
 import { colors, feedPadding, icon as iconSize, radius, spacing, type } from '@/theme';
 import type { Mosque } from '@/types';
@@ -36,6 +33,7 @@ export default function MosquesScreen() {
   const router = useRouter();
   const { t, lang, isAr, align, row, font } = useLang();
   const { browsingCity } = useLocation();
+  const { isStarred, toggleStarred } = useStarred();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [scope, setScope] = useState<'all' | 'following'>('all');
@@ -52,12 +50,9 @@ export default function MosquesScreen() {
   const list = scope === 'following' ? inCity.filter((m) => followedIds.has(m._id)) : inCity;
   const active = list.find((m) => m._id === selectedId) ?? list[0] ?? null;
 
-  // The table under the list follows whichever mosque is selected.
-  const table = useApi(
-    async () => (active ? api.getPrayerTimes(active._id, todayDateString()) : null),
-    [active?._id],
-  );
-  const { next } = useNextPrayer(active?._id ?? null);
+  // Prayer times are not here any more: they live on the mosque's own page,
+  // where the name at the top says whose times these are. On this list a table
+  // pinned under a selection kept answering a question nobody had asked yet.
 
   // Default the selection to the first mosque once the list arrives.
   useEffect(() => {
@@ -191,6 +186,30 @@ export default function MosquesScreen() {
                       </Text>
                     </View>
 
+                    {/*
+                      Starring picks whose prayer times the home screen shows.
+                      Separate from following on purpose: you follow a mosque
+                      for its posts, you star the one you actually pray at.
+                    */}
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={t.starForPrayerTimes}
+                      accessibilityState={{ selected: isStarred(mosque._id) }}
+                      hitSlop={8}
+                      onPress={() => {
+                        tap();
+                        toggleStarred(mosque._id);
+                      }}
+                      style={({ pressed }) => [styles.linkBtn, pressed && styles.pressed]}
+                    >
+                      <Star
+                        color={isStarred(mosque._id) ? colors.star : colors.inkFaint}
+                        fill={isStarred(mosque._id) ? colors.star : 'none'}
+                        size={iconSize.sm}
+                        strokeWidth={2}
+                      />
+                    </Pressable>
+
                     <Pressable
                       accessibilityRole="link"
                       accessibilityLabel={t.directions}
@@ -234,29 +253,6 @@ export default function MosquesScreen() {
             })
           )}
 
-          {/* Today's table for the selected mosque. */}
-          {active ? (
-            <View style={styles.tableBlock}>
-              <SectionTitle title={`${t.todayPrayers} · ${active.name}`} />
-              {table.data ? (
-                <PrayerTable table={table.data} highlight={next?.prayer ?? null} />
-              ) : (
-                <Loading variant="inline" label={t.loading} />
-              )}
-              <Button
-                label={t.seeFullMonth}
-                icon={CalendarDays}
-                variant="secondary"
-                onPress={() =>
-                  router.push({
-                    pathname: '/prayer-month/[mosqueId]',
-                    params: { mosqueId: active._id },
-                  })
-                }
-                style={styles.monthButton}
-              />
-            </View>
-          ) : null}
         </View>
       </ScrollView>
     </Screen>
@@ -305,7 +301,4 @@ const styles = StyleSheet.create({
   },
   flip: { transform: [{ scaleX: -1 }] },
   rowActions: { gap: spacing.sm, paddingTop: spacing.sm, paddingHorizontal: 2 },
-
-  tableBlock: { marginTop: spacing.xl },
-  monthButton: { marginTop: spacing.md },
 });

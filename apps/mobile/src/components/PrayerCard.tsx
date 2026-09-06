@@ -69,7 +69,7 @@ export function PrayerCard({ mosque }: PrayerCardProps) {
             {prayerLabel(next.prayer, lang)}
           </Text>
           <Text style={[styles.times, align]}>
-            {row_?.adhan ?? '—'} → {row_?.iqamah ?? '—'}
+            {row_?.adhan ?? '-'} → {row_?.iqamah ?? '-'}
           </Text>
           {isTomorrow ? (
             <Text style={[styles.tomorrow, align, font(styles.tomorrow)]}>{t.tomorrow}</Text>
@@ -230,14 +230,16 @@ const styles = StyleSheet.create({
   pipName: { ...type.tiny, fontSize: 11, color: 'rgba(255,255,255,0.6)', marginBottom: 3 },
   pipNameAr: { fontSize: 12 },
   pipTime: { ...type.mono, ...numeric, color: 'rgba(255,255,255,0.55)' },
-  pipTimeActive: { color: colors.inkInverse, fontFamily: type.monoLarge.fontFamily },
+  pipTimeActive: { color: colors.star, fontFamily: type.monoLarge.fontFamily },
   pipTextActive: { color: colors.inkInverse },
   pipTextPast: { color: 'rgba(255,255,255,0.28)' },
   pipDot: {
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: colors.live,
+    // The logo's orange, on the surface the app shows most. Teal on a teal
+    // gradient was the one accent that had nothing to push against.
+    backgroundColor: colors.star,
     marginTop: 4,
   },
 });

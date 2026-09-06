@@ -45,7 +45,7 @@ export default function CheckInScreen() {
     async () => (confirmed.length ? api.getUsers(confirmed.map((s) => s.userId)) : []),
     [confirmed.map((s) => s.userId).join(',')],
   );
-  const nameOf = (userId: string) => people.data?.find((u) => u._id === userId)?.name ?? '—';
+  const nameOf = (userId: string) => people.data?.find((u) => u._id === userId)?.name ?? '-';
 
   // Expo Go gets an exp:// link, a standalone build gets mensemble://. Same route.
   const url = Linking.createURL(`/checkin/${id}`);

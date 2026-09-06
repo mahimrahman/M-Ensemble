@@ -46,7 +46,7 @@ export function PrayerTable({ table, highlight = null }: PrayerTableProps) {
             </View>
             <Text style={[styles.cell, styles.adhan, isAr && styles.rtlText]}>{r.adhan}</Text>
             <Text style={[styles.cell, styles.iqamah, isAr && styles.rtlText]}>
-              {r.iqamah ?? '—'}
+              {r.iqamah ?? '-'}
             </Text>
           </View>
         );

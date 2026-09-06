@@ -1,21 +1,30 @@
 /**
- * `Alert.alert` that also works on web.
+ * `Alert.alert`, drawn by the app rather than by the OS.
  *
- * react-native-web ships `Alert` as a no-op, so on the web preview every
- * confirmation ("Cancel this post?", "Give up your slot?") silently did
- * nothing and every error toast vanished. The review happens on web, so
- * that is a broken app, not a platform quirk.
+ * Every confirmation and error in the app comes through here. It used to hand
+ * off to the platform: an iOS sheet, an Android Material box, and on web a
+ * `window.confirm` that prints the page URL above the message. Three different
+ * dialogs, none of them in the app's typeface, colours, or reading direction —
+ * and a confirmation is part of the product, not a system service.
  *
- * Same signature as React Native's. On native it *is* React Native's. On web:
- *   - no buttons / one button → `window.alert`, then that button's handler
- *   - two or more            → `window.confirm`; OK runs the affirmative
- *                              button (the non-cancel one), Cancel runs the
- *                              cancel-styled one if it has a handler
+ * So this now routes to `<DialogProvider>` (see `components/AppDialog.tsx`),
+ * which draws them in the app's own design. The signature is React Native's,
+ * unchanged, so no screen had to be rewritten.
+ *
+ * The platform path stays as a fallback for the window before the provider
+ * mounts — an error thrown during boot still has to reach somebody.
  */
 
 import { Alert as NativeAlert, Platform, type AlertButton, type AlertOptions } from 'react-native';
+import { requestDialog } from '@/components/AppDialog';
 
-function webAlert(title: string, message?: string, buttons?: AlertButton[]): void {
+/** Last resort: the provider isn't mounted yet (a failure during boot). */
+function platformFallback(title: string, message?: string, buttons?: AlertButton[]): void {
+  if (Platform.OS !== 'web') {
+    NativeAlert.alert(title, message, buttons);
+    return;
+  }
+
   const text = message ? `${title}\n\n${message}` : title;
   const list = buttons ?? [];
 
@@ -26,24 +35,25 @@ function webAlert(title: string, message?: string, buttons?: AlertButton[]): voi
   }
 
   const cancel = list.find((b) => b.style === 'cancel');
-  // The affirmative action: the last button that isn't the cancel one, which is
-  // where the destructive/confirm button sits in every call in the app.
   const confirm = [...list].reverse().find((b) => b !== cancel) ?? list[list.length - 1];
 
-  if (window.confirm(text)) {
-    confirm?.onPress?.();
-  } else {
-    cancel?.onPress?.();
-  }
+  if (window.confirm(text)) confirm?.onPress?.();
+  else cancel?.onPress?.();
 }
 
 export const Alert = {
-  alert(title: string, message?: string, buttons?: AlertButton[], options?: AlertOptions): void {
-    if (Platform.OS === 'web') {
-      webAlert(title, message, buttons);
-      return;
-    }
-    NativeAlert.alert(title, message, buttons, options);
+  alert(title: string, message?: string, buttons?: AlertButton[], _options?: AlertOptions): void {
+    if (requestDialog({ title, message, buttons })) return;
+    platformFallback(title, message, buttons);
+  },
+
+  /**
+   * The amber variant, for something that is not an error but goes on the
+   * record — a late cancellation, mainly. Same shape as `alert`.
+   */
+  warn(title: string, message?: string, buttons?: AlertButton[]): void {
+    if (requestDialog({ title, message, buttons, tone: 'warn' })) return;
+    platformFallback(title, message, buttons);
   },
 };
 

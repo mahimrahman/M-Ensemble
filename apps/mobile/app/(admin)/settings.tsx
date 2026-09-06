@@ -78,18 +78,18 @@ export default function AdminSettingsScreen() {
         <SectionTitle title={t.mosqueProfile} />
         <Card style={styles.card}>
           <Text style={[font(styles.mosqueName), align]} numberOfLines={2}>
-            {mosque?.name ?? '—'}
+            {mosque?.name ?? '-'}
           </Text>
           <View style={[styles.line, row]}>
             <MapPin color={colors.inkFaint} size={icon.sm} strokeWidth={2} />
             <Text style={[font(styles.meta), align]} numberOfLines={2}>
-              {mosque?.address ?? '—'}
+              {mosque?.address ?? '-'}
             </Text>
           </View>
           <View style={[styles.line, row]}>
             <QrCode color={colors.inkFaint} size={icon.sm} strokeWidth={2} />
             <Text style={[font(styles.meta), align]}>{t.joinCode}</Text>
-            <Text style={styles.code}>{mosque?.joinCode ?? '—'}</Text>
+            <Text style={styles.code}>{mosque?.joinCode ?? '-'}</Text>
           </View>
         </Card>
 
@@ -124,7 +124,7 @@ export default function AdminSettingsScreen() {
         />
 
         <SectionTitle title={t.language} />
-        <LangSwitcher />
+        <LangSwitcher tone="onLight" layout="block" />
 
         <View style={styles.signOut}>
           <Button label={t.signOut} icon={LogOut} variant="danger" onPress={confirmSignOut} />

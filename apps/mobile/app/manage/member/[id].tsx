@@ -132,7 +132,7 @@ export default function MemberDetailScreen() {
 
           <StatRow>
             <Stat value={`${member.attendedCount}`} label={t.attended} />
-            <Stat value={rate === null ? '—' : `${rate}%`} label={t.reliability} />
+            <Stat value={rate === null ? '-' : `${rate}%`} label={t.reliability} />
             <Stat value={formatHours(member.minutesServed)} label={t.hoursServed} />
           </StatRow>
         </View>
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
   recordRow: { justifyContent: 'space-between', alignItems: 'baseline', gap: spacing.sm },
   recordLabel: { ...type.small, color: colors.inkMuted },
   recordValue: { ...type.h3, ...numeric, color: colors.ink },
-  recordIncident: { ...type.small, color: colors.danger, marginTop: 2 },
+  recordIncident: { ...type.small, color: colors.warn, marginTop: 2 },
 
   guard: { paddingHorizontal: screenPadding, paddingTop: spacing.xl },
 

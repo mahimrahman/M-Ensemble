@@ -18,16 +18,23 @@ import {
 } from '@/theme';
 import type { Post, PostType } from '@/types';
 import { Meter } from './Meter';
-import { Poster } from './Poster';
+import { hasPosterArt, Poster } from './Poster';
 
 /** The type tag's label, in the active language. */
 export function postTypeLabel(t: Strings, postType: PostType): string {
   return t[postType];
 }
 
-/** Events and classes carry a poster image; the rest are text notices. */
+/**
+ * True only when the post has real artwork to show.
+ *
+ * It used to mean "is an event or a class", on the assumption those always got
+ * a picture - but a post with no poster then rendered a generated geometric
+ * panel that said nothing. Now the type doesn't decide it; having a poster
+ * does, and everything else is a text post.
+ */
 export function isPosterPost(post: Post): boolean {
-  return post.type === 'event' || post.type === 'class';
+  return hasPosterArt(post);
 }
 
 interface PostCardProps {
@@ -74,7 +81,7 @@ export function PostCard({ post, mosqueName, committed = false, onPress }: PostC
 
         <View style={styles.headerText}>
           <Text style={[font(styles.mosque), align]} numberOfLines={1}>
-            {mosqueName ?? '—'}
+            {mosqueName ?? '-'}
           </Text>
           <View style={[styles.metaRow, row]}>
             <Text style={font(styles.ago)}>
@@ -136,7 +143,7 @@ export function PostCard({ post, mosqueName, committed = false, onPress }: PostC
           }}
           style={({ pressed }) => pressed && styles.pressed}
         >
-          <Poster imageUrl={post.imageUrl} posterKey={post.posterKey} seed={post._id} height={200} radius={0} />
+          <Poster imageUrl={post.imageUrl} posterKey={post.posterKey} height={200} radius={0} />
         </Pressable>
       ) : null}
 

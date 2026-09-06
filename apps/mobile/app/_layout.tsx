@@ -4,13 +4,15 @@ import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect } from 'react';
 import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Loading } from '@/components';
+import { DialogProvider, Loading } from '@/components';
 import { LangProvider, useLang } from '@/i18n';
 import { AdminMosqueProvider } from '@/store/adminMosque';
 import { AuthProvider, useAuth } from '@/store/auth';
 import { LocationProvider } from '@/store/location';
 import { SavedProvider } from '@/store/saved';
+import { StarredProvider } from '@/store/starred';
 import { colors } from '@/theme';
+import { usePushSetup } from '@/hooks/usePushSetup';
 import { useAppFonts } from '@/theme/fonts';
 
 // Held until the fonts are in — the design lands wrong for a frame otherwise.
@@ -32,6 +34,10 @@ function RootNavigator() {
   const { t } = useLang();
   const segments = useSegments();
   const router = useRouter();
+
+  // Registers the device and routes notification taps. At the root, so a
+  // coordinator who never opens the Profile tab still gets a token.
+  usePushSetup(status === 'authenticated');
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -87,10 +93,13 @@ function RootNavigator() {
       <Stack.Screen name="prayer-month/[mosqueId]" />
       <Stack.Screen name="cities" options={{ animation: 'slide_from_bottom' }} />
       <Stack.Screen name="checkin/[postId]" options={{ animation: 'slide_from_bottom' }} />
-      {/* coordinator — every screen re-checks the role through the API */}
+      {/* The camera scanner: both sides of the check-in handshake open it. */}
+      <Stack.Screen name="scan" options={{ animation: 'slide_from_bottom' }} />
+      {/* coordinator - every screen re-checks the role through the API */}
       <Stack.Screen name="manage/create" options={{ animation: 'slide_from_bottom' }} />
       <Stack.Screen name="manage/posts" />
       <Stack.Screen name="manage/iqamah" />
+      <Stack.Screen name="manage/profile" />
       <Stack.Screen name="manage/coverage/[id]" />
       <Stack.Screen name="manage/checkin/[id]" options={{ animation: 'slide_from_bottom' }} />
       <Stack.Screen name="manage/member/[id]" />
@@ -113,18 +122,25 @@ export default function RootLayout() {
         {/* The masthead runs under the status bar, so its text is light. */}
         <StatusBar style="light" />
         <LangProvider>
-          <AuthProvider>
-            {/* Above the navigator so the manage/* screens — pushed on the root
-                stack, outside the (admin) tab group — can read it too. It only
-                fetches when the session actually coordinates a mosque. */}
-            <AdminMosqueProvider>
-              <SavedProvider>
-                <LocationProvider>
-                  <RootNavigator />
-                </LocationProvider>
-              </SavedProvider>
-            </AdminMosqueProvider>
-          </AuthProvider>
+          {/* Inside LangProvider so dialogs get the app's strings and reading
+              direction; outside everything else so any screen, and any error
+              thrown in a store, can raise one. */}
+          <DialogProvider>
+            <AuthProvider>
+              {/* Above the navigator so the manage/* screens - pushed on the root
+                  stack, outside the (admin) tab group - can read it too. It only
+                  fetches when the session actually coordinates a mosque. */}
+              <AdminMosqueProvider>
+                <SavedProvider>
+                  <StarredProvider>
+                    <LocationProvider>
+                      <RootNavigator />
+                    </LocationProvider>
+                  </StarredProvider>
+                </SavedProvider>
+              </AdminMosqueProvider>
+            </AuthProvider>
+          </DialogProvider>
         </LangProvider>
       </View>
     </SafeAreaProvider>

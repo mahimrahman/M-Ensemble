@@ -129,7 +129,7 @@ export const directoryMosques: Mosque[] = [
     },
     "bio": "On 816 Av. Sainte-Croix in Saint-Laurent.",
     "services": [
-      "Children's Summer Camp combining educational activities with fun and discipline (praised by parents for…",
+      "Children's Summer Camp combining educational activities with fun and discipline (praised by parents for...",
       "Daily prayers and Jumu'ah (khutbah largely in Arabic); large volunteer base"
     ]
   },
@@ -226,7 +226,7 @@ export const directoryMosques: Mosque[] = [
     },
     "bio": "On 7220 Rue Hutchison.",
     "services": [
-      "Park-Extension / Mile End mosque with an on-site library; open for daily congregational prayers; women's…"
+      "Park-Extension / Mile End mosque with an on-site library; open for daily congregational prayers; women's..."
     ]
   },
   {
@@ -250,7 +250,7 @@ export const directoryMosques: Mosque[] = [
     },
     "bio": "On 4225 Av. de Courtrai.",
     "services": [
-      "Côte-des-Neiges mosque with multiple Jumu'ah timings; separate women's prayer area; on-site collection of…"
+      "Côte-des-Neiges mosque with multiple Jumu'ah timings; separate women's prayer area; on-site collection of..."
     ]
   },
   {
@@ -276,9 +276,9 @@ export const directoryMosques: Mosque[] = [
     "bio": "On 241 Av. Anselme-Lavigne in Dollard-des-Ormeaux.",
     "services": [
       "Main hall seats 1,000 — daily prayers, Jumu'ah, and both Eid prayers",
-      "Short Courses after Maghrib every Saturday, Sunday, Monday & Tuesday: Quran recitation, rituals (ibadat)…",
-      "Weekend School — Quran + Arabic for ~300 children aged 5–15, Saturdays or Sundays",
-      "Institute of Islamic & Arabic Studies — Quran, Hadith, prayers, stories of the prophets, Arabic — for youth aged 16–30",
+      "Short Courses after Maghrib every Saturday, Sunday, Monday & Tuesday: Quran recitation, rituals (ibadat)...",
+      "Weekend School - Quran + Arabic for ~300 children aged 5–15, Saturdays or Sundays",
+      "Institute of Islamic & Arabic Studies - Quran, Hadith, prayers, stories of the prophets, Arabic — for youth aged 16–30",
       "Social activities to support families; guidance for new Muslim immigrants; welcoming/assisting new converts",
       "Ran adult computer classes, summer camp, BBQs, sports and Islamic film nights"
     ]
@@ -367,7 +367,7 @@ export const directoryMosques: Mosque[] = [
     },
     "bio": "On 4201 Rue Bélanger.",
     "services": [
-      "Girls' Quran classes; post-Taraweeh lectures during Ramadan; generous women's section with an expanding men's…"
+      "Girls' Quran classes; post-Taraweeh lectures during Ramadan; generous women's section with an expanding men's..."
     ]
   },
   {
@@ -392,7 +392,7 @@ export const directoryMosques: Mosque[] = [
     },
     "bio": "On 12265 Blvd. Marcel-Laurin.",
     "services": [
-      "MAC's large multi-purpose community centre (adjoining Mosquée Al-Rawdah): many rooms, year-round activities…",
+      "MAC's large multi-purpose community centre (adjoining Mosquée Al-Rawdah): many rooms, year-round activities...",
       "Home base for the École Coranique Al-Bayan (MAC Quran school)"
     ]
   },
@@ -487,7 +487,7 @@ export const directoryMosques: Mosque[] = [
     },
     "bio": "On 40 Rue de Port-Royal E.",
     "services": [
-      "Serves the Lebanese Shia community; explicitly open to worshippers of all faiths and traditions; hosts…",
+      "Serves the Lebanese Shia community; explicitly open to worshippers of all faiths and traditions; hosts...",
       "Open 10 AM–3 PM Mon–Sat, closed Sunday"
     ]
   },
@@ -597,8 +597,8 @@ export const directoryMosques: Mosque[] = [
     "bio": "On 2520 Chemin Laval in Saint-Laurent.",
     "services": [
       "Oldest Islamic institution in Quebec (est. 1965 by Act of the National Assembly, Bill 194)",
-      "Children's Quran & Islamic-studies classes held Friday Through Monday each week; separate class stream for…",
-      "Marriage (nikah) services; administration of the Islamic Cemetery of Quebec and burial services; prison…"
+      "Children's Quran & Islamic-studies classes held Friday Through Monday each week; separate class stream for...",
+      "Marriage (nikah) services; administration of the Islamic Cemetery of Quebec and burial services; prison..."
     ]
   },
   {
@@ -685,7 +685,7 @@ export const directoryMosques: Mosque[] = [
     },
     "bio": "On 2038 Boul. Saint-Laurent.",
     "services": [
-      "Best known for Imam Bukhari's one-on-one support for new Muslims — Shahada ceremonies, religious Q&A by…",
+      "Best known for Imam Bukhari's one-on-one support for new Muslims — Shahada ceremonies, religious Q&A by...",
       "Daily prayers and Friday khutbah"
     ]
   },
@@ -963,7 +963,7 @@ export const directoryMosques: Mosque[] = [
     "bio": "On 1177 Rue de la Montagne.",
     "services": [
       "Founded 2011 (originally on Stanley St, now at de la Montagne)",
-      "Runs an authorized Marriage Registration service — has an officiant authorized by the province to file the…",
+      "Runs an authorized Marriage Registration service — has an officiant authorized by the province to file the...",
       "Daily prayers, Friday khutbah, Eid prayers followed by a light breakfast",
       "Ramadan: Taraweeh starting 5 min after adhan, plus a daily iftar served at Maghrib",
       "Coordinates its Ramadan/Taraweeh programming jointly with Al-Madinah Center",
@@ -1171,8 +1171,8 @@ export const directoryMosques: Mosque[] = [
     },
     "bio": "On 12080 Blvd. Laurentien.",
     "services": [
-      "Academy An-Noor teaches Quran, Arabic, Tajweed, Tafsir, Hadith, Seerah, Du'as, Aqaa'id and Islamic culture …",
-      "Class formats: Weekday Evening classes, Weekend classes, Tahfeez-UL-Quran (full memorization) classes, and an…",
+      "Academy An-Noor teaches Quran, Arabic, Tajweed, Tafsir, Hadith, Seerah, Du'as, Aqaa'id and Islamic culture —...",
+      "Class formats: Weekday Evening classes, Weekend classes, Tahfeez-UL-Quran (full memorization) classes, and an...",
       "Nikah / Katb Kitab Islamic wedding ceremonies (Sheikh Imran officiates)",
       "Youth religious guidance",
       "Family fun events and end-of-year community gala",
@@ -1377,7 +1377,7 @@ export const directoryMosques: Mosque[] = [
     },
     "bio": "On 416 Bd Neptune in Dorval.",
     "services": [
-      "Turkish-community mosque near the airport, founded by Imam Mehmet Deger, one of the early figures in…",
+      "Turkish-community mosque near the airport, founded by Imam Mehmet Deger, one of the early figures in...",
       "Two Jumu'ah prayers (winter: 12:20 PM and 1:15 PM)",
       "Community aid offered regardless of the recipient's religion",
       "Open 12–5 PM daily"

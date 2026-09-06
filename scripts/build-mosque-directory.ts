@@ -140,7 +140,7 @@ function parseServices(raw: string | undefined): string[] {
     if (heading) {
       const label = titleCase(heading[1]!.trim());
       const rest = heading[2]!.trim();
-      s = rest.length > 4 ? `${label} — ${clip(rest, 90)}` : label;
+      s = rest.length > 4 ? `${label} - ${clip(rest, 90)}` : label;
     } else {
       s = clip(s, 110);
     }
@@ -167,7 +167,7 @@ function parseServices(raw: string | undefined): string[] {
 function clip(s: string, max: number): string {
   if (s.length <= max) return s;
   const cut = s.slice(0, max);
-  return `${cut.slice(0, cut.lastIndexOf(' ')).replace(/[,;:—-]$/, '')}…`;
+  return `${cut.slice(0, cut.lastIndexOf(' ')).replace(/[,;:-]$/, '')}...`;
 }
 
 function titleCase(s: string): string {

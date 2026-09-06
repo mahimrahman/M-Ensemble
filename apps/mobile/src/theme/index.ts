@@ -30,6 +30,27 @@ export const teal = {
   50: '#EDF7F6',
 } as const;
 
+/**
+ * The logo's orange, and a ramp built around it.
+ *
+ * `500` is sampled straight from "RÉPONDRE PRÉSENT" in `assets/logo.png`
+ * (#F3952F) — the second colour the brand already owns. Teal stays the action
+ * colour; amber is the *attention* colour, for the things that want a person's
+ * eye without shouting danger: a starred mosque, a warning, the live prayer.
+ *
+ * Do not use it for destructive actions. That is `danger`, and the difference
+ * has to stay legible.
+ */
+export const amber = {
+  700: '#8A4B0C',
+  600: '#B86A12',
+  500: '#F3952F',
+  400: '#F7AE5C',
+  300: '#FAC98F',
+  100: '#FDEBD6',
+  50: '#FEF6EC',
+} as const;
+
 export const colors = {
   /** The action colour — buttons, links, live counts. */
   accent: '#0A5247',
@@ -61,6 +82,21 @@ export const colors = {
   danger: '#DC2626',
   dangerBorder: '#FCA5A5',
   dangerWash: '#FEF2F2',
+
+  /**
+   * The logo's orange. Reach for it when something should catch the eye but is
+   * not a failure: a starred mosque, a warning worth reading, a highlight on a
+   * dark masthead. Never for destructive actions — that is `danger`.
+   */
+  star: '#F3952F',
+  starDeep: '#B86A12',
+  starWash: '#FEF6EC',
+  starBorder: '#FAC98F',
+
+  /** A caution that is not an error — the late-cancellation warning. */
+  warn: '#B86A12',
+  warnWash: '#FEF6EC',
+  warnBorder: '#FAC98F',
 
   /** The live dot on the active prayer. */
   live: '#4EC9B8',

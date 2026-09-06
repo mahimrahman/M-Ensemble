@@ -151,7 +151,7 @@ export default function PrayerMonthScreen() {
                         isToday && styles.timeToday,
                       ]}
                     >
-                      {column === 'adhan' ? r.adhan : (r.iqamah ?? '—')}
+                      {column === 'adhan' ? r.adhan : (r.iqamah ?? '-')}
                     </Text>
                   ))}
                 </View>

@@ -93,10 +93,10 @@ export default function IqamahScreen() {
   function preview(prayer: Prayer): string {
     const row = rows?.[prayer];
     const adhan = adhanFor(prayer);
-    if (!row) return '—';
-    if (row.mode === 'fixed') return isWallClock(row.fixedTime) ? row.fixedTime : '—';
+    if (!row) return '-';
+    if (row.mode === 'fixed') return isWallClock(row.fixedTime) ? row.fixedTime : '-';
     const mins = Number(row.offsetMinutes);
-    return adhan && Number.isFinite(mins) ? addMinutes(adhan, mins) : '—';
+    return adhan && Number.isFinite(mins) ? addMinutes(adhan, mins) : '-';
   }
 
   function validate(): string | null {
@@ -191,7 +191,7 @@ export default function IqamahScreen() {
               <View style={[styles.rowHead, rowDir]}>
                 <Text style={font(styles.prayer)}>{prayerLabel(prayer, lang)}</Text>
                 <Text style={styles.adhan}>
-                  {t.adhan} {adhanFor(prayer) ?? '—'}
+                  {t.adhan} {adhanFor(prayer) ?? '-'}
                 </Text>
               </View>
               <Segmented

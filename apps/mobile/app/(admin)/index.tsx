@@ -205,22 +205,22 @@ export default function DashboardScreen() {
         {/* ── Health of the mosque, at a glance ── */}
         <View style={[styles.tiles, row]}>
           <View style={styles.tile}>
-            <Text style={styles.tileValue}>{d ? `${d.attendanceRate30d}%` : '—'}</Text>
+            <Text style={styles.tileValue}>{d ? `${d.attendanceRate30d}%` : '-'}</Text>
             <Text style={[font(styles.tileLabel), align]}>{t.attendance30d}</Text>
           </View>
           <View style={styles.tile}>
-            <Text style={styles.tileValue}>{d ? formatHours(d.minutesServed) : '—'}</Text>
+            <Text style={styles.tileValue}>{d ? formatHours(d.minutesServed) : '-'}</Text>
             <Text style={[font(styles.tileLabel), align]}>{t.hoursServed}</Text>
           </View>
           <View style={styles.tile}>
-            <Text style={styles.tileValue}>{d?.activeVolunteers30d ?? '—'}</Text>
+            <Text style={styles.tileValue}>{d?.activeVolunteers30d ?? '-'}</Text>
             <Text style={[font(styles.tileLabel), align]}>{t.activeVolunteers}</Text>
           </View>
         </View>
 
         <View style={[styles.tiles, row]}>
           <View style={styles.tile}>
-            <Text style={styles.tileValue}>{d?.followerCount ?? '—'}</Text>
+            <Text style={styles.tileValue}>{d?.followerCount ?? '-'}</Text>
             <Text style={[font(styles.tileLabel), align]}>{t.followers}</Text>
             {/* Growth needs a direction, not just a level. */}
             {d && d.newFollowers7d > 0 ? (
@@ -228,12 +228,12 @@ export default function DashboardScreen() {
             ) : null}
           </View>
           <View style={styles.tile}>
-            <Text style={styles.tileValue}>{d?.firstTimeVolunteers30d ?? '—'}</Text>
+            <Text style={styles.tileValue}>{d?.firstTimeVolunteers30d ?? '-'}</Text>
             <Text style={[font(styles.tileLabel), align]}>{t.firstTimers}</Text>
           </View>
           <View style={styles.tile}>
             <Text style={styles.tileValue}>
-              {d ? d.lateCancellations30d + d.noShows30d : '—'}
+              {d ? d.lateCancellations30d + d.noShows30d : '-'}
             </Text>
             <Text style={[font(styles.tileLabel), align]}>{t.droppedOut}</Text>
           </View>

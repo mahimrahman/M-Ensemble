@@ -35,7 +35,8 @@ import {
 import { useApi } from '@/hooks/useApi';
 import { useNextPrayer } from '@/hooks/useNextPrayer';
 import { useLang } from '@/i18n';
-import { success, warn } from '@/lib/haptics';
+import { useStarred } from '@/store/starred';
+import { success, tap, warn } from '@/lib/haptics';
 import { colors, feedPadding, icon, screenPadding, spacing, type } from '@/theme';
 
 export default function MosqueScreen() {
@@ -43,6 +44,7 @@ export default function MosqueScreen() {
   const router = useRouter();
   const { t, align, row, font } = useLang();
   const [busy, setBusy] = useState(false);
+  const { isStarred, toggleStarred } = useStarred();
 
   const mosque = useApi(() => api.getMosque(id), [id]);
   const followed = useApi(() => api.getFollowedMosques(), []);
@@ -233,6 +235,39 @@ export default function MosqueScreen() {
           ) : null}
 
           <SectionTitle title={t.todayPrayers} style={styles.sectionGap} />
+
+          {/*
+            Starring is about the clock, not the feed - so it lives beside the
+            prayer table rather than next to Follow. One mosque at a time; the
+            home screen shows generic times when none is starred.
+          */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ selected: isStarred(id) }}
+            onPress={() => {
+              tap();
+              toggleStarred(id);
+            }}
+            style={({ pressed }) => [
+              styles.starRow,
+              row,
+              isStarred(id) && styles.starRowOn,
+              pressed && styles.pressedRow,
+            ]}
+          >
+            <Star
+              color={isStarred(id) ? colors.star : colors.inkFaint}
+              fill={isStarred(id) ? colors.star : 'none'}
+              size={icon.md}
+              strokeWidth={2}
+            />
+            <View style={styles.starText}>
+              <Text style={[font(styles.starTitle), align]}>
+                {isStarred(id) ? t.starredMosque : t.starForPrayerTimes}
+              </Text>
+              <Text style={[font(styles.starHint), align]}>{t.starHint}</Text>
+            </View>
+          </Pressable>
           {today ? (
             <PrayerTable table={today} highlight={next?.prayer ?? null} />
           ) : (
@@ -282,6 +317,21 @@ const styles = StyleSheet.create({
   row: { alignItems: 'center', gap: spacing.sm },
   rowText: { ...type.small, color: colors.ink, flex: 1 },
   linkText: { ...type.small, color: colors.accent, flex: 1 },
+  starRow: {
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.lg,
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.rule,
+    marginBottom: spacing.md,
+  },
+  starRowOn: { borderColor: colors.starBorder, backgroundColor: colors.starWash },
+  pressedRow: { opacity: 0.75 },
+  starText: { flex: 1, gap: 2 },
+  starTitle: { ...type.bodyStrong, color: colors.ink },
+  starHint: { ...type.small, color: colors.inkMuted },
   unclaimedTitle: { ...type.h3, color: colors.ink, marginBottom: spacing.xs },
   ratingScore: { ...type.smallStrong, color: colors.ink },
 
