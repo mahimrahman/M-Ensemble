@@ -5,9 +5,10 @@
     "moduleResolution": "NodeNext",
     "lib": ["ES2022"],
     "types": ["node"],
-    "outDir": "dist",
-    "rootDir": ".",
-    "sourceMap": true
+    // We run from `tsx`, never from emitted JS: `@m-ensemble/shared` is consumed
+    // as TypeScript source, which tsc cannot emit through from outside rootDir.
+    // Type-checking is the only job this config has.
+    "noEmit": true
   },
   "include": ["src/**/*", "tests/**/*"]
 }

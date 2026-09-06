@@ -9,7 +9,7 @@ export function validate(schema: ZodSchema, source: Source = 'body') {
   return (req: Request, _res: Response, next: NextFunction): void => {
     const result = schema.safeParse(req[source]);
     if (!result.success) {
-      next(new HttpError(400, 'validation_error', 'Invalid request', result.error.flatten()));
+      next(new HttpError(400, 'VALIDATION_ERROR', 'Invalid request', result.error.flatten()));
       return;
     }
     Object.assign(req[source] as object, result.data);

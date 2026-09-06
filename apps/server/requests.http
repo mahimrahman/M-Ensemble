@@ -1,0 +1,319 @@
+### M'Ensemble API — every route, in the order you'd walk them.
+###
+### Works in VS Code (REST Client) and JetBrains HTTP Client.
+### Run the two logins first: they capture the tokens the rest of the file uses.
+###
+### Seeded credentials — everyone's password is `mensemble`.
+###   yusuf@example.com  user_001  member, follows Khadija + Madina
+###   amina@example.com  user_002  coordinator @ Khadija
+
+@host = http://localhost:4000/api
+@mosque = mosque_khadija
+@post = post_001
+
+### ─────────────────────────────────────────────────────── open ───
+
+### Liveness. `db` should read "connected"; check the server log says m_ensemble.
+GET {{host}}/health
+
+### Create an account. 201 → { token, user }. Password floor is 6.
+POST {{host}}/auth/signup
+Content-Type: application/json
+
+{ "email": "new.person@example.com", "password": "hunter22", "name": "Nadia" }
+
+### Sign in as a member. Captures @member.
+# @name memberLogin
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{ "email": "yusuf@example.com", "password": "mensemble" }
+
+@member = {{memberLogin.response.body.data.token}}
+
+### Sign in as the Khadija coordinator. Captures @admin.
+# @name adminLogin
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{ "email": "amina@example.com", "password": "mensemble" }
+
+@admin = {{adminLogin.response.body.data.token}}
+
+### Wrong password → 401 BAD_CREDENTIALS. Same body as an unknown email.
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{ "email": "yusuf@example.com", "password": "wrong" }
+
+### No bearer → 401 UNAUTHORIZED. This status is what signs the app out.
+GET {{host}}/me
+
+### ─────────────────────────────────────────────────────── me ───
+
+### The wire shape is exactly { _id, name, email, interests, pushToken? }.
+GET {{host}}/me
+Authorization: Bearer {{member}}
+
+### Onboarding writes interests through here.
+PATCH {{host}}/me
+Authorization: Bearer {{member}}
+Content-Type: application/json
+
+{ "interests": ["Volunteering", "Community meals", "Youth"] }
+
+### Anything but name/interests/pushToken → 400 VALIDATION_ERROR.
+PATCH {{host}}/me
+Authorization: Bearer {{member}}
+Content-Type: application/json
+
+{ "email": "hijack@example.com" }
+
+### Runs on every cold start; decides which shell the session lands in.
+GET {{host}}/me/memberships
+Authorization: Bearer {{member}}
+
+### Mosques the user follows.
+GET {{host}}/me/mosques
+Authorization: Bearer {{member}}
+
+### Confirmed signups, all time — the app splits past from upcoming.
+GET {{host}}/me/commitments
+Authorization: Bearer {{member}}
+
+### Every checked-in signup, ANY post type. (The dashboard counts volunteer only.)
+GET {{host}}/me/hours
+Authorization: Bearer {{member}}
+
+GET {{host}}/me/notification-prefs
+Authorization: Bearer {{member}}
+
+### Whole replace — all five booleans required.
+PUT {{host}}/me/notification-prefs
+Authorization: Bearer {{member}}
+Content-Type: application/json
+
+{
+  "volunteerRequests": true,
+  "events": true,
+  "classes": true,
+  "announcements": true,
+  "prayerReminders": false
+}
+
+### Idempotent; called on every launch.
+POST {{host}}/me/push-token
+Authorization: Bearer {{member}}
+Content-Type: application/json
+
+{ "token": "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]" }
+
+### Names for a signup list. Never email. Unknown ids drop silently.
+GET {{host}}/users?ids=user_001,user_002,user_999
+Authorization: Bearer {{member}}
+
+### An empty list is 200 [], not a 400.
+GET {{host}}/users?ids=
+Authorization: Bearer {{member}}
+
+### ────────────────────────────────────────────────── mosques ───
+
+GET {{host}}/mosques
+Authorization: Bearer {{member}}
+
+GET {{host}}/mosques/{{mosque}}
+Authorization: Bearer {{member}}
+
+### Idempotent both ways.
+POST {{host}}/mosques/mosque_rawdah/follow
+Authorization: Bearer {{member}}
+
+DELETE {{host}}/mosques/mosque_rawdah/follow
+Authorization: Bearer {{member}}
+
+### Live posts only: not cancelled, not over. startAt ascending.
+GET {{host}}/mosques/{{mosque}}/posts
+Authorization: Bearer {{member}}
+
+### Everything incl. past and cancelled — admin only.
+GET {{host}}/mosques/{{mosque}}/posts?all=true
+Authorization: Bearer {{admin}}
+
+### Same URL as a member → 403 FORBIDDEN.
+GET {{host}}/mosques/{{mosque}}/posts?all=true
+Authorization: Bearer {{member}}
+
+### ─────────────────────────────────────────────────── prayer ───
+
+### Adhan computed from the mosque's coordinates; iqamah from its own config.
+GET {{host}}/mosques/{{mosque}}/prayer-times?date=2026-09-06
+Authorization: Bearer {{member}}
+
+### Madina Isha is fixed at 21:15 from 2026-09-08 — null the day before.
+GET {{host}}/mosques/mosque_madina/prayer-times?date=2026-09-07
+Authorization: Bearer {{member}}
+
+GET {{host}}/mosques/mosque_madina/prayer-times?date=2026-09-08
+Authorization: Bearer {{member}}
+
+### Any signed-in user. Note: no _id on the rows, so the editor can echo them back.
+GET {{host}}/mosques/{{mosque}}/iqamah
+Authorization: Bearer {{member}}
+
+### Whole replace. The app re-sends historical rows itself, so this is not lossy.
+PUT {{host}}/mosques/{{mosque}}/iqamah
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{
+  "iqamah": [
+    { "prayer": "fajr", "mode": "fixed", "fixedTime": "05:45", "effectiveFrom": "2026-09-01" },
+    { "prayer": "dhuhr", "mode": "fixed", "fixedTime": "13:30", "effectiveFrom": "2026-09-01" },
+    { "prayer": "asr", "mode": "offset", "offsetMinutes": 15, "effectiveFrom": "2026-09-01" },
+    { "prayer": "maghrib", "mode": "offset", "offsetMinutes": 5, "effectiveFrom": "2026-09-01" },
+    { "prayer": "isha", "mode": "fixed", "fixedTime": "21:30", "effectiveFrom": "2026-09-01" }
+  ],
+  "jummah": [
+    { "label": "First jummah", "khutbahTime": "13:00", "iqamahTime": "13:20" },
+    { "label": "Second jummah", "khutbahTime": "14:15", "iqamahTime": "14:35" }
+  ]
+}
+
+### ───────────────────────────────────────────── feed & posts ───
+
+### Scope is the mosques you follow unless ?mosques= says otherwise.
+GET {{host}}/feed
+Authorization: Bearer {{member}}
+
+GET {{host}}/feed?types=volunteer,event
+Authorization: Bearer {{member}}
+
+### Browsing another city: ?mosques wins over what you follow.
+GET {{host}}/feed?mosques=mosque_ottawa,mosque_toronto
+Authorization: Bearer {{member}}
+
+### Any post, any mosque — "My Stuff" hydrates saved posts through here.
+GET {{host}}/posts/{{post}}
+Authorization: Bearer {{member}}
+
+### All statuses; the app filters `confirmed` itself.
+GET {{host}}/posts/{{post}}/signups
+Authorization: Bearer {{member}}
+
+### The atomic claim. 201 → Signup. Repeat → 409 ALREADY_SIGNED_UP.
+### Full → 409 FULL. Cancelled → 410 with code NOT_FOUND.
+POST {{host}}/posts/{{post}}/signup
+Authorization: Bearer {{member}}
+
+### Gives the slot back, floored at 0. 404 if there was nothing confirmed.
+DELETE {{host}}/posts/{{post}}/signup
+Authorization: Bearer {{member}}
+
+### Self check-in — the QR flow. Needs a confirmed signup first.
+POST {{host}}/posts/{{post}}/checkin
+Authorization: Bearer {{member}}
+Content-Type: application/json
+
+{ "userId": "user_001" }
+
+### A coordinator may check anyone in; another member gets 403.
+POST {{host}}/posts/{{post}}/checkin
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{ "userId": "user_001" }
+
+### Admin of body.mosqueId. Fans a push out to matching followers afterwards.
+# @name createPost
+POST {{host}}/posts
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{
+  "mosqueId": "mosque_khadija",
+  "type": "volunteer",
+  "title": "Iftar setup — four people needed",
+  "description": "Tables, water jugs, and the serving line.",
+  "category": "Community meals",
+  "startAt": "2026-09-12T21:00:00.000Z",
+  "endAt": "2026-09-12T23:30:00.000Z",
+  "location": "Main hall, basement level",
+  "slotsNeeded": 4
+}
+
+@newPost = {{createPost.response.body.data._id}}
+
+### Type and mosqueId are fixed at creation — either → 400 VALIDATION_ERROR.
+PATCH {{host}}/posts/{{newPost}}
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{ "type": "event" }
+
+PATCH {{host}}/posts/{{newPost}}
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{ "title": "Iftar setup — now five people", "slotsNeeded": 5 }
+
+### Idempotent. The post leaves the feed but keeps its history.
+POST {{host}}/posts/{{newPost}}/cancel
+Authorization: Bearer {{admin}}
+
+### Signing up for it now → 410, code NOT_FOUND.
+POST {{host}}/posts/{{newPost}}/signup
+Authorization: Bearer {{member}}
+
+### A member creating a post → 403 FORBIDDEN.
+POST {{host}}/posts
+Authorization: Bearer {{member}}
+Content-Type: application/json
+
+{
+  "mosqueId": "mosque_khadija",
+  "type": "announcement",
+  "title": "Nope",
+  "description": "",
+  "category": "Outreach",
+  "startAt": "2026-09-12T21:00:00.000Z",
+  "endAt": "2026-09-30T23:59:00.000Z",
+  "location": "Mosque"
+}
+
+### ──────────────────────────────────────────────────── admin ───
+
+### Every number on the coordinator's home, in one round trip.
+GET {{host}}/mosques/{{mosque}}/dashboard
+Authorization: Bearer {{admin}}
+
+### The list you work from on the day.
+GET {{host}}/mosques/{{mosque}}/roster?upcoming=true
+Authorization: Bearer {{admin}}
+
+GET {{host}}/mosques/{{mosque}}/roster?types=volunteer&post={{post}}
+Authorization: Bearer {{admin}}
+
+### Followers ∪ role-holders ∪ anyone who ever signed up. Admins sort first.
+GET {{host}}/mosques/{{mosque}}/members
+Authorization: Bearer {{admin}}
+
+GET {{host}}/mosques/{{mosque}}/members/user_001
+Authorization: Bearer {{admin}}
+
+### Upserts the Membership row and never touches Follow.
+PUT {{host}}/mosques/{{mosque}}/members/user_001/role
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{ "role": "admin" }
+
+### Demoting yourself → 403 FORBIDDEN: it would lock you out of this screen.
+PUT {{host}}/mosques/{{mosque}}/members/user_002/role
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{ "role": "member" }
+
+### Ended posts, announcements excluded, newest first.
+GET {{host}}/mosques/{{mosque}}/outcomes
+Authorization: Bearer {{admin}}

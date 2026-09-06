@@ -223,14 +223,14 @@ if (!post) throw new Error('FULL');
 
 Plus a unique compound index on `Signup { postId, userId }`.
 
-- [ ] Models + indexes, string `_id`s (DB engineer)
-- [ ] **Seed script** — imports the fixtures from `@m-ensemble/shared`; no retyping (DB engineer)
-- [ ] Derived views: dashboard, members, roster, outcomes — formulas in docs/phase-4.md (DB engineer)
-- [ ] Prayer-times service — move the pure half of `lib/prayer.ts` into `packages/shared` (DB engineer + app owner)
-- [ ] JWT auth, `requireAuth`, `requireAdmin(mosqueId)` (backend dev)
-- [ ] Every route, uppercase error codes, envelope on every response (backend dev)
-- [ ] Push fan-out on post creation (Expo push, filtered by follow + interests + prefs) (backend dev)
-- [ ] vitest suite incl. the concurrent-claim race (backend dev)
+- [x] Models + indexes, string `_id`s (DB engineer)
+- [x] **Seed script** — imports the fixtures from `@m-ensemble/shared`; no retyping (DB engineer)
+- [x] Derived views: dashboard, members, roster, outcomes — formulas in docs/phase-4.md (DB engineer)
+- [x] Prayer-times service — move the pure half of `lib/prayer.ts` into `packages/shared` (DB engineer + app owner)
+- [x] JWT auth, `requireAuth`, `requireAdmin(mosqueId)` (backend dev)
+- [x] Every route, uppercase error codes, envelope on every response (backend dev)
+- [x] Push fan-out on post creation (Expo push, filtered by follow + interests + prefs) (backend dev)
+- [x] vitest suite incl. the concurrent-claim race (backend dev)
 
 **Exit criteria:** every endpoint returns correct shapes in Postman / `requests.http`; the race test passes in vitest; one real push lands.
 
