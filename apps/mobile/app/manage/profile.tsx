@@ -27,6 +27,7 @@ import {
   Screen,
   SectionTitle,
 } from '@/components';
+import { useKeyboardReveal } from '@/hooks/useKeyboardReveal';
 import { useLang } from '@/i18n';
 import { success, warn } from '@/lib/haptics';
 import { useAdminMosque } from '@/store/adminMosque';
@@ -47,6 +48,7 @@ const SOCIAL_PLACEHOLDER: Record<SocialPlatform, string> = {
 export default function MosqueProfileScreen() {
   const router = useRouter();
   const { t, align, font } = useLang();
+  const { scrollRef, keyboardPad, onScroll } = useKeyboardReveal();
   const { mosqueId, mosque, loading, reload } = useAdminMosque();
 
   const [bio, setBio] = useState('');
@@ -128,7 +130,14 @@ export default function MosqueProfileScreen() {
     <Screen padded={false} edges={['left', 'right']}>
       <GradientHeader back={<BackBar />} eyebrow={mosque.name} title={t.editMosqueProfile} />
 
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={[styles.scroll, { paddingBottom: spacing.xxxl + keyboardPad }]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+      >
         {/* Identity, shown but not editable — so it's clear it isn't missing. */}
         <View style={styles.fixed}>
           <Text style={[font(styles.fixedName), align]}>{mosque.name}</Text>
@@ -207,7 +216,6 @@ const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: screenPadding,
     paddingTop: spacing.lg,
-    paddingBottom: spacing.xxxl,
     gap: spacing.md,
   },
   fixed: { gap: 2 },

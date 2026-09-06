@@ -25,6 +25,7 @@ import {
   Segmented,
 } from '@/components';
 import { useApi } from '@/hooks/useApi';
+import { useKeyboardReveal } from '@/hooks/useKeyboardReveal';
 import { fill, useLang, type Strings } from '@/i18n';
 import { fromInstant, isWallClock, mosqueDate, toInstant, weeklySessions } from '@/lib/datetime';
 import { formatHours } from '@/lib/format';
@@ -81,6 +82,7 @@ export default function CreatePostScreen() {
   const { mosqueId, editId } = useLocalSearchParams<{ mosqueId?: string; editId?: string }>();
   const router = useRouter();
   const { t, lang, isAr, align, row, font } = useLang();
+  const { scrollRef, keyboardPad, onScroll } = useKeyboardReveal();
   const TYPES = typeOptions(t);
   const categoryLabel = (c: string) =>
     c === PRAYER_TIMES_CATEGORY ? t.prayerTimesCategory : interestLabel(c, lang);
@@ -287,9 +289,12 @@ export default function CreatePostScreen() {
         title={editId ? t.edit : (typeMeta?.label ?? t.createPost)}
       />
       <ScrollView
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
+        ref={scrollRef}
+        contentContainerStyle={[styles.scroll, { paddingBottom: spacing.xxxl + keyboardPad }]}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
       >
         {!editId ? (
           <Segmented
@@ -457,7 +462,6 @@ const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: screenPadding,
     paddingTop: spacing.lg,
-    paddingBottom: spacing.xxxl,
     gap: spacing.lg,
   },
   lead: { ...type.h2, color: colors.ink },

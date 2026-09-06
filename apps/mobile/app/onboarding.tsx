@@ -25,6 +25,7 @@ import {
   Screen,
 } from '@/components';
 import { useApi } from '@/hooks/useApi';
+import { useKeyboardReveal } from '@/hooks/useKeyboardReveal';
 import { useLang } from '@/i18n';
 import { success, warn } from '@/lib/haptics';
 import { INTEREST_OPTIONS, interestLabel } from '@/lib/interests';
@@ -39,6 +40,7 @@ export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
   const top = useTopInset();
   const { t, lang, align, row, font } = useLang();
+  const { scrollRef, keyboardPad, onScroll } = useKeyboardReveal();
   const [step, setStep] = useState<Step>('mosques');
   const [query, setQuery] = useState('');
   const [followed, setFollowed] = useState<Set<string>>(new Set());
@@ -163,9 +165,12 @@ export default function OnboardingScreen() {
       </GradientHeader>
 
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        ref={scrollRef}
+        contentContainerStyle={[styles.scroll, { paddingBottom: spacing.xxl + keyboardPad }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
       >
         <Field
           label={t.search}
@@ -243,7 +248,6 @@ const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: screenPadding,
     paddingTop: spacing.lg,
-    paddingBottom: spacing.xxl,
     gap: spacing.md,
   },
   chips: { flexWrap: 'wrap', gap: spacing.sm },

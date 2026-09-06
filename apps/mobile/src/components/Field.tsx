@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { revealFocusedField } from '@/hooks/useKeyboardReveal';
 import { useLang } from '@/i18n';
 import { colors, hitSize, radius, rule, spacing, type } from '@/theme';
 
@@ -32,6 +33,9 @@ export function Field({ label, error, hint, style, onFocus, onBlur, ...input }: 
         ]}
         onFocus={(e) => {
           setFocused(true);
+          // Tapping a field further down while the keyboard is already open
+          // fires no keyboard event, so the form has to be told to scroll.
+          revealFocusedField();
           onFocus?.(e);
         }}
         onBlur={(e) => {

@@ -19,6 +19,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { api } from '@/api/client';
 import { BackBar, Button, EmptyState, Field, GradientHeader, Screen } from '@/components';
 import { useApi } from '@/hooks/useApi';
+import { useKeyboardReveal } from '@/hooks/useKeyboardReveal';
 import { Alert } from '@/lib/alert';
 import { fill, useLang } from '@/i18n';
 import { success, warn } from '@/lib/haptics';
@@ -28,6 +29,7 @@ import { colors, radius, rule, screenPadding, spacing, type } from '@/theme';
 export default function NotifyScreen() {
   const router = useRouter();
   const { t, align, font } = useLang();
+  const { scrollRef, keyboardPad, onScroll } = useKeyboardReveal();
   const { mosqueId, mosque } = useAdminMosque();
 
   const [title, setTitle] = useState('');
@@ -104,9 +106,12 @@ export default function NotifyScreen() {
       />
 
       <ScrollView
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
+        ref={scrollRef}
+        contentContainerStyle={[styles.scroll, { paddingBottom: spacing.xxxl + keyboardPad }]}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
       >
         <Text style={[font(styles.lead), align]}>{t.sendNotificationSub}</Text>
 
@@ -153,7 +158,6 @@ const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: screenPadding,
     paddingTop: spacing.lg,
-    paddingBottom: spacing.xxxl,
     gap: spacing.lg,
   },
   guard: { paddingHorizontal: screenPadding, paddingTop: spacing.xl },

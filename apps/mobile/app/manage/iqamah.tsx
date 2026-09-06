@@ -24,6 +24,7 @@ import {
   Segmented,
 } from '@/components';
 import { useApi } from '@/hooks/useApi';
+import { useKeyboardReveal } from '@/hooks/useKeyboardReveal';
 import { fill, useLang } from '@/i18n';
 import { isWallClock, mosqueDate } from '@/lib/datetime';
 import { success, warn } from '@/lib/haptics';
@@ -49,6 +50,7 @@ export default function IqamahScreen() {
   const { mosqueId } = useLocalSearchParams<{ mosqueId: string }>();
   const router = useRouter();
   const { t, lang, align, row: rowDir, font } = useLang();
+  const { scrollRef, keyboardPad, onScroll } = useKeyboardReveal();
   const [rows, setRows] = useState<Record<Prayer, RowState> | null>(null);
   const [jummah, setJummah] = useState<JummahState[]>([]);
   const [effectiveFrom, setEffectiveFrom] = useState(mosqueDate(0));
@@ -199,9 +201,12 @@ export default function IqamahScreen() {
     <Screen padded={false} edges={['left', 'right']}>
       <GradientHeader back={<BackBar />} title={t.manageIqamah} />
       <ScrollView
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
+        ref={scrollRef}
+        contentContainerStyle={[styles.scroll, { paddingBottom: spacing.xxxl + keyboardPad }]}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
       >
         <Text style={[font(styles.lead), align]}>{t.manageIqamah}</Text>
 
@@ -358,7 +363,6 @@ const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: screenPadding,
     paddingTop: spacing.lg,
-    paddingBottom: spacing.xxxl,
     gap: spacing.lg,
   },
   lead: { ...type.body, color: colors.inkMuted },
