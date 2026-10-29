@@ -6,3 +6,5 @@ export * from './cities';
 export * from './fixtures';
 export * from './directory';
 export * from './prayer';
+export * from './account';
+export * from './payments';

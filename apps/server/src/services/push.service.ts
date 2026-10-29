@@ -1,6 +1,7 @@
 import { Expo, type ExpoPushMessage } from 'expo-server-sdk';
 import type { PostType } from '@m-ensemble/shared';
 import { env } from '../config/env.js';
+import { logger } from '../utils/logger.js';
 import { FollowModel } from '../models/Follow.js';
 import { MosqueModel } from '../models/Mosque.js';
 import { UserModel } from '../models/User.js';
@@ -57,13 +58,13 @@ export async function sendExpoPush(
       const tickets = await expo.sendPushNotificationsAsync(chunk);
       const failed = tickets.filter((t) => t.status === 'error');
       accepted += chunk.length - failed.length;
-      console.log(`[push] sent ${chunk.length}, ${failed.length} rejected`);
+      logger.info({ sent: chunk.length, rejected: failed.length }, '[push] chunk sent');
       for (const ticket of failed) {
-        console.error('[push] ticket error', ticket.message);
+        logger.warn({ message: ticket.message }, '[push] ticket error');
       }
     }
   } catch (err) {
-    console.error('[push] send failed', err);
+    logger.error({ err }, '[push] send failed');
   }
   return accepted;
 }

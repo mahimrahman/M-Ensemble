@@ -1,4 +1,6 @@
 export { DialogProvider, useDialog } from './AppDialog';
+export { AccountCard } from './AccountCard';
+export { AuthCover } from './AuthCover';
 export { BackBar } from './BackBar';
 export { Badge, type BadgeTone } from './Badge';
 export { Button, type ButtonSize, type ButtonVariant } from './Button';

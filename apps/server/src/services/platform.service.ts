@@ -24,6 +24,7 @@ import { DonationModel } from '../models/Donation.js';
 import { CampaignModel } from '../models/Campaign.js';
 import { SupportTicketModel } from '../models/SupportTicket.js';
 import { cityNameById, monthlyValueCents, mosqueCityId } from '../shared.js';
+import { payoutStatus } from './billing.service.js';
 import { HttpError } from '../middleware/errorHandler.js';
 import { ERROR } from '../utils/errors.js';
 import { asContract } from '../utils/serialize.js';
@@ -468,6 +469,9 @@ export async function mosqueDetail(mosqueId: string): Promise<MosqueDetail> {
     },
     summary,
     subscription: subscription ? asContract<Subscription>(subscription) : null,
+    // Null until onboarding starts; the account id lives here and nowhere the
+    // app can read it.
+    payouts: payoutStatus(mosque),
     coordinators: coordinators.map((u) => ({
       userId: u._id,
       name: u.name,

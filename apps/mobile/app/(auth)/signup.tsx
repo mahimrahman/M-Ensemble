@@ -7,10 +7,12 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useKeyboardReveal } from '@/hooks/useKeyboardReveal';
 import { useTopInset } from '@/hooks/useTopInset';
-import { ApiRequestError } from '@/api/client';
 import { Button, Field, Logo } from '@/components';
-import { useLang } from '@/i18n';
+import { PASSWORD_MIN_LENGTH } from '@m-ensemble/shared';
+import { fill, useLang } from '@/i18n';
+import { describeApiError } from '@/lib/apiError';
 import { warn } from '@/lib/haptics';
+import { passwordProblemMessage } from '@/lib/password';
 import { useAuth } from '@/store/auth';
 import { colors, gradients, radius, screenPadding, spacing, type } from '@/theme';
 
@@ -29,9 +31,17 @@ export default function SignupScreen() {
   const [busy, setBusy] = useState(false);
 
   async function submit() {
-    if (!name.trim() || !email.trim() || password.length < 6) {
+    if (!name.trim() || !email.trim() || !password) {
       warn();
       setError(t.fillAllFields);
+      return;
+    }
+    // The same rule the server applies, checked here first so the answer is
+    // specific ("too short", "too common") instead of a round trip and a 400.
+    const problem = passwordProblemMessage(password, t);
+    if (problem) {
+      warn();
+      setError(problem);
       return;
     }
 
@@ -41,11 +51,45 @@ export default function SignupScreen() {
       await signUp({ name, email, password });
     } catch (err) {
       warn();
-      setError(err instanceof ApiRequestError ? err.message : t.emailTaken);
+      setError(describeApiError(err, t, t.emailTaken));
     } finally {
       setBusy(false);
     }
   }
+
+  /**
+   * "By creating an account you agree to the {terms} and the {privacy}." with
+   * the two placeholders rendered as links. Split on the placeholders rather
+   * than concatenating three strings, so each language keeps its own word
+   * order (French puts an article before each; Arabic joins them with و).
+   */
+  const agreement = t.agreeToTerms.split(/(\{terms\}|\{privacy\})/).map((part, i) => {
+    if (part === '{terms}') {
+      return (
+        <Text
+          key={i}
+          style={styles.legalLink}
+          accessibilityRole="link"
+          onPress={() => router.push({ pathname: '/legal/[kind]', params: { kind: 'terms' } })}
+        >
+          {t.termsOfService}
+        </Text>
+      );
+    }
+    if (part === '{privacy}') {
+      return (
+        <Text
+          key={i}
+          style={styles.legalLink}
+          accessibilityRole="link"
+          onPress={() => router.push({ pathname: '/legal/[kind]', params: { kind: 'privacy' } })}
+        >
+          {t.privacyPolicy}
+        </Text>
+      );
+    }
+    return part;
+  });
 
   return (
     <LinearGradient
@@ -98,11 +142,14 @@ export default function SignupScreen() {
             value={password}
             onChangeText={setPassword}
             secureTextEntry
+            autoComplete="new-password"
             placeholder="••••••••"
             error={error ?? undefined}
+            hint={fill(t.passwordTooShort, { min: String(PASSWORD_MIN_LENGTH) })}
           />
 
           <Button label={t.createAccount} size="lg" loading={busy} onPress={() => void submit()} />
+          <Text style={[font(styles.legal), align]}>{agreement}</Text>
           <Button
             label={t.haveAccount}
             variant="ghost"
@@ -134,4 +181,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: radius.xl + 4,
   },
+  legal: { ...type.caption, color: colors.inkMuted, textAlign: 'center', marginTop: -spacing.sm },
+  legalLink: { color: colors.accent, textDecorationLine: 'underline' },
 });

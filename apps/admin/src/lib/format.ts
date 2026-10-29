@@ -1,4 +1,4 @@
-import type { BillingInterval } from '@m-ensemble/shared';
+import type { BillingInterval, Province } from '@m-ensemble/shared';
 
 /**
  * Formatting and the handful of constants the console needs at runtime.
@@ -103,6 +103,30 @@ export function priceLabel(priceCents: number, interval: BillingInterval = 'mont
   if (priceCents === 0) return 'Not billed';
   return `${money(priceCents)}/${interval === 'yearly' ? 'yr' : 'mo'}`;
 }
+
+/**
+ * The thirteen provinces and territories, for the tax-province picker.
+ *
+ * Duplicated from `shared/payments.ts` for the reason at the top of this file;
+ * the `Province` type still comes from there, so a code that drifts out of
+ * step fails to compile rather than quietly reaching the server. Quebec first:
+ * it is the default and where nearly every mosque on the platform is.
+ */
+export const PROVINCES: readonly { code: Province; label: string }[] = [
+  { code: 'QC', label: 'Quebec' },
+  { code: 'ON', label: 'Ontario' },
+  { code: 'AB', label: 'Alberta' },
+  { code: 'BC', label: 'British Columbia' },
+  { code: 'MB', label: 'Manitoba' },
+  { code: 'NB', label: 'New Brunswick' },
+  { code: 'NL', label: 'Newfoundland and Labrador' },
+  { code: 'NS', label: 'Nova Scotia' },
+  { code: 'PE', label: 'Prince Edward Island' },
+  { code: 'SK', label: 'Saskatchewan' },
+  { code: 'NT', label: 'Northwest Territories' },
+  { code: 'NU', label: 'Nunavut' },
+  { code: 'YT', label: 'Yukon' },
+];
 
 /** Turns any label into something readable: `past_due` → `Past due`. */
 export function humanise(value: string): string {

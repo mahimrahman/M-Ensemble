@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import type { BillingInterval, IssuedCredential, Subscription } from '@m-ensemble/shared';
+import type {
+  BillingInterval,
+  CheckoutLink,
+  IssuedCredential,
+  PayoutAccountStatus,
+  Subscription,
+} from '@m-ensemble/shared';
 import { SOCIAL_LABEL, socialLinks } from '@m-ensemble/shared';
 import { api } from '@/api';
 import { useWriteGuard } from '@/auth';
@@ -17,8 +23,24 @@ import {
   type Tone,
 } from '@/ui';
 import { LineChart, StatTile, type Series } from '@/ui/charts';
-import { CredentialSlip } from '@/pages/CredentialSlip';
-import { count, date, dayLabel, money, percent, priceLabel, relative } from '@/lib/format';
+import { CredentialIssued } from '@/pages/CredentialIssued';
+import {
+  CollectionBadge,
+  StripeInvoiceBadge,
+  SubscriptionActions,
+} from '@/pages/billing/SubscriptionActions';
+import {
+  count,
+  date,
+  dayLabel,
+  dateTime,
+  humanise,
+  money,
+  percent,
+  priceLabel,
+  relative,
+} from '@/lib/format';
+import { openInNewTab, viaStripe } from '@/lib/stripe';
 
 /**
  * One mosque, in full: how it is doing, who runs it, what it owes, what it has
@@ -145,6 +167,23 @@ export function MosqueDetail(): React.JSX.Element {
                       </dd>
                       <dt>Renews</dt>
                       <dd>{date(data.subscription.currentPeriodEnd)}</dd>
+                      <dt>Collected</dt>
+                      <dd>
+                        <CollectionBadge collection={data.subscription.collection} />
+                        {data.subscription.province && (
+                          <span className="muted"> · tax {data.subscription.province}</span>
+                        )}
+                      </dd>
+                      {data.subscription.lastStripeInvoiceStatus && (
+                        <>
+                          <dt>Last Stripe invoice</dt>
+                          <dd>
+                            <StripeInvoiceBadge
+                              status={data.subscription.lastStripeInvoiceStatus}
+                            />
+                          </dd>
+                        </>
+                      )}
                       {data.subscription.note && (
                         <>
                           <dt>Note</dt>
@@ -155,7 +194,21 @@ export function MosqueDetail(): React.JSX.Element {
                   ) : (
                     <p className="muted">No subscription on record.</p>
                   )}
+                  {/* The same three buttons as the billing table, so collecting
+                      from the mosque you are already looking at is not a trip
+                      to another screen and a search for its row. */}
+                  {data.subscription && (
+                    <div style={{ marginTop: 14 }}>
+                      <SubscriptionActions
+                        subscription={data.subscription}
+                        onChanged={state.reload}
+                        size="sm"
+                      />
+                    </div>
+                  )}
                 </Card>
+
+                <PayoutsCard mosqueId={id} payouts={data.payouts} onChanged={state.reload} />
 
                 <Card title="Contact">
                   <dl className="kv">
@@ -334,7 +387,9 @@ export function MosqueDetail(): React.JSX.Element {
               title="Donations"
               padded={false}
               actions={
-                <span className="muted">Recorded, not processed — no card is charged here.</span>
+                <span className="muted">
+                  Paid to the mosque’s own Stripe account; our fee is kept.
+                </span>
               }
             >
               <DataTable
@@ -405,11 +460,170 @@ export function MosqueDetail(): React.JSX.Element {
           )}
 
           {credential && (
-            <CredentialSlip credential={credential} onClose={() => setCredential(undefined)} />
+            <CredentialIssued credential={credential} onClose={() => setCredential(undefined)} />
           )}
         </>
       )}
     </Async>
+  );
+}
+
+/**
+ * Where the mosque's donation money goes.
+ *
+ * A mosque receives donations through its own Stripe Connect account, which the
+ * mosque — not us — sets up, on Stripe's hosted form. The console's job is to
+ * start that, hand over the link, and afterwards read back where Stripe says
+ * the account stands. The three flags are shown separately because they turn
+ * on separately: a mosque can be accepting charges for a week before Stripe
+ * has verified the bank account it pays out to.
+ */
+function PayoutsCard({
+  mosqueId,
+  payouts,
+  onChanged,
+}: {
+  mosqueId: string;
+  payouts: PayoutAccountStatus | null;
+  onChanged: () => void;
+}): React.JSX.Element {
+  const { canWrite, reason } = useWriteGuard();
+  const { busy, run } = useAction();
+  const [blocked, setBlocked] = useState<CheckoutLink>();
+
+  const onboard = () =>
+    run(async () => {
+      const link = await viaStripe(() => api.payoutsOnboard(mosqueId));
+      // Popup blockers can refuse a tab opened after an `await`. Keep the link
+      // on screen rather than losing it — it was minted for this click.
+      if (!openInNewTab(link.url)) setBlocked(link);
+      onChanged();
+    });
+
+  const refresh = () =>
+    run(
+      () => viaStripe(() => api.payoutsRefresh(mosqueId)).then(onChanged),
+      'Payout status refreshed.',
+    );
+
+  const flag = (on: boolean, label: string) => (
+    <Badge tone={on ? 'good' : 'warning'}>
+      {label}: {on ? 'yes' : 'not yet'}
+    </Badge>
+  );
+
+  return (
+    <Card
+      title="Payouts (donations)"
+      actions={
+        payouts ? (
+          <div className="row" style={{ gap: 6 }}>
+            <button
+              className="btn sm"
+              disabled={!canWrite || busy}
+              title={reason}
+              onClick={refresh}
+            >
+              Refresh status
+            </button>
+            <button
+              className="btn sm"
+              disabled={!canWrite || busy}
+              title={reason}
+              onClick={onboard}
+            >
+              Continue onboarding
+            </button>
+          </div>
+        ) : undefined
+      }
+    >
+      {payouts ? (
+        <>
+          <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+            {flag(payouts.chargesEnabled, 'Charges')}
+            {flag(payouts.payoutsEnabled, 'Payouts')}
+            {flag(payouts.detailsSubmitted, 'Details submitted')}
+          </div>
+          <dl className="kv">
+            <dt>Stripe account</dt>
+            <dd className="mono">{payouts.stripeAccountId}</dd>
+            <dt>Stripe still needs</dt>
+            <dd>
+              {payouts.requirementsDue.length ? (
+                <ul style={{ margin: 0, paddingLeft: 18 }}>
+                  {payouts.requirementsDue.map((item) => (
+                    // Stripe's requirement keys are dotted paths like
+                    // `individual.verification.document`. Readable enough once
+                    // the dots become spaces; a translation table would rot.
+                    <li key={item} className="mono">
+                      {humanise(item.replace(/\./g, ' '))}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <span className="muted">Nothing — the account is complete.</span>
+              )}
+            </dd>
+            <dt>Last checked</dt>
+            <dd>{dateTime(payouts.updatedAt)}</dd>
+          </dl>
+          {payouts.requirementsDue.length > 0 && (
+            <p className="muted" style={{ fontSize: 12.5, marginBottom: 0 }}>
+              <strong>Continue onboarding</strong> opens Stripe’s form where the mosque supplies
+              what is missing. Send them the tab, or walk them through it on a call.
+            </p>
+          )}
+        </>
+      ) : (
+        <>
+          <p style={{ marginTop: 0 }} className="muted">
+            This mosque cannot receive donations yet. Donations go straight to a Stripe account the
+            mosque owns — we never hold the money — and setting one up is a form on Stripe’s side
+            that asks for the mosque’s legal details and bank account.
+          </p>
+          <button
+            className="btn primary"
+            disabled={!canWrite || busy}
+            title={reason}
+            onClick={onboard}
+          >
+            {busy ? 'Starting…' : 'Start Stripe onboarding'}
+          </button>
+        </>
+      )}
+
+      {blocked && (
+        <Modal
+          title="Stripe onboarding"
+          onClose={() => setBlocked(undefined)}
+          footer={
+            <>
+              <button className="btn" onClick={() => setBlocked(undefined)}>
+                Close
+              </button>
+              <a
+                className="btn primary"
+                style={{ textDecoration: 'none' }}
+                href={blocked.url}
+                target="_blank"
+                rel="noreferrer noopener"
+                onClick={() => setBlocked(undefined)}
+              >
+                Open the form
+              </a>
+            </>
+          }
+        >
+          <p style={{ marginTop: 0 }} className="muted">
+            Your browser blocked the new tab. The link is below — it works once and expires within
+            minutes, so open it now or mint another.
+            {blocked.expiresAt && <> It stops working {dateTime(blocked.expiresAt)}.</>}
+          </p>
+          <div className="credential">{blocked.url}</div>
+        </Modal>
+      )}
+    </Card>
   );
 }
 
@@ -561,7 +775,7 @@ function PriceDialog({
       </Field>
       <p className="muted" style={{ fontSize: 12.5 }}>
         This changes what they are billed from the next invoice. It does not charge anything now —
-        no payment processor is connected.
+        send a payment link from the Subscription card when they are ready to pay.
       </p>
     </Modal>
   );

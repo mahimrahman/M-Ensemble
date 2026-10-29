@@ -15,6 +15,14 @@ export {
   type NotificationRecord,
 } from './Notification.js';
 
+// ─── Sessions and emailed secrets ───────────────────────────────────────────
+export {
+  RevokedTokenModel,
+  type RevokedTokenDocument,
+  type RevokedTokenRecord,
+} from './RevokedToken.js';
+export { EmailTokenModel, type EmailTokenDocument, type EmailTokenRecord } from './EmailToken.js';
+
 // ─── The platform tier ──────────────────────────────────────────────────────
 // Everything the super admin operates. Separate from the ten above because
 // nothing in the mobile app reads any of it.
@@ -41,6 +49,12 @@ export {
 } from './SupportTicket.js';
 export { AuditEntryModel, type AuditEntryDocument, type AuditEntryRecord } from './AuditEntry.js';
 export { CounterModel, nextSequence, type CounterDocument, type CounterRecord } from './Counter.js';
+export {
+  StripeEventModel,
+  type StripeEventDocument,
+  type StripeEventRecord,
+} from './StripeEvent.js';
+export { UploadModel, type UploadDocument, type UploadRecord } from './Upload.js';
 
 import type { Model } from 'mongoose';
 import { UserModel } from './User.js';
@@ -53,6 +67,8 @@ import { SignupModel } from './Signup.js';
 import { IqamahConfigModel } from './IqamahConfig.js';
 import { JummahSessionModel } from './JummahSession.js';
 import { NotificationModel } from './Notification.js';
+import { RevokedTokenModel } from './RevokedToken.js';
+import { EmailTokenModel } from './EmailToken.js';
 import { SubscriptionModel } from './Subscription.js';
 import { InvoiceModel } from './Invoice.js';
 import { PaymentModel } from './Payment.js';
@@ -63,6 +79,8 @@ import { CampaignStatModel } from './CampaignStat.js';
 import { SupportTicketModel } from './SupportTicket.js';
 import { AuditEntryModel } from './AuditEntry.js';
 import { CounterModel } from './Counter.js';
+import { StripeEventModel } from './StripeEvent.js';
+import { UploadModel } from './Upload.js';
 
 /**
  * Every collection, in seed/clear order — used by the seed script and the test
@@ -83,6 +101,8 @@ export const ALL_MODELS: Model<any>[] = [
   IqamahConfigModel,
   JummahSessionModel,
   NotificationModel,
+  RevokedTokenModel,
+  EmailTokenModel,
   SubscriptionModel,
   InvoiceModel,
   PaymentModel,
@@ -93,4 +113,6 @@ export const ALL_MODELS: Model<any>[] = [
   SupportTicketModel,
   AuditEntryModel,
   CounterModel,
+  UploadModel,
+  StripeEventModel,
 ];

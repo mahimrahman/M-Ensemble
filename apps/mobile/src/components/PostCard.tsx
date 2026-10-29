@@ -112,6 +112,7 @@ export function PostCard({ post, mosqueName, committed = false, onPress }: PostC
 
       {/* ── Title + description + time pill ── */}
       <Pressable
+        accessibilityRole="button"
         onPress={() => {
           tap();
           onPress();
@@ -138,6 +139,8 @@ export function PostCard({ post, mosqueName, committed = false, onPress }: PostC
       {/* ── Poster ── */}
       {isPosterPost(post) ? (
         <Pressable
+          accessibilityRole="imagebutton"
+          accessibilityLabel={`${t.poster}: ${post.title}`}
           onPress={() => {
             tap();
             onPress();

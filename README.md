@@ -58,6 +58,18 @@ second of booting, and against a server still connecting to Mongo those come
 back refused — which looks like an empty dashboard and a "Network request
 failed" toast rather than the race it is. Ctrl-C stops all three.
 
+Ctrl-C takes all three down, including the `tsx watch` and Metro processes the
+runners spawn beneath themselves. On Windows that needs more than a signal:
+Ctrl-C reaches every process on the console at once, so the `npm` shim in the
+middle dies before the runner's handler can walk the tree through it, and
+whatever was underneath survives holding the port. `scripts/dev.mjs` records the
+tree on a timer while it is still standing and kills what it wrote down, rather
+than asking the OS to walk links that Ctrl-C has already cut.
+
+If something does get away — a terminal closed rather than interrupted sends no
+signal at all — `npm run dev:stop` sweeps this repo's dev processes and starts
+nothing.
+
 Flags: `--no-mobile` (skip the slow, loud one), `--no-admin`, `--no-open`,
 `--tunnel` (Expo over a tunnel, for a phone on another network). The individual
 `dev:server`, `dev:mobile` and `dev:admin` scripts still exist — reach for
@@ -247,6 +259,7 @@ charts, not two scales), and colour follows the entity rather than its rank.
 | Command                           | What it does                                  |
 | --------------------------------- | --------------------------------------------- |
 | `npm run dev`                     | **API + console + mobile, one terminal**      |
+| `npm run dev:stop`                | Kill this repo's dev processes, start nothing |
 | `npm run dev:server`              | Express API in watch mode                     |
 | `npm run dev:mobile`              | Expo dev server                               |
 | `npm run dev:admin`               | The console alone (needs the API running)     |

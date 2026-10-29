@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import {
+  deleteMe,
+  exportMe,
   getMe,
   getMyCommitments,
   getMyHours,
@@ -15,6 +17,7 @@ import {
   putPushToken,
 } from '../controllers/me.controller.js';
 import { notificationPrefsSchema, patchMeSchema, pushTokenSchema } from '../schemas/me.schema.js';
+import { deleteAccountSchema } from '../schemas/auth.schema.js';
 import { validate } from '../middleware/validate.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
@@ -22,6 +25,8 @@ export const meRouter = Router();
 
 meRouter.get('/', asyncHandler(getMe));
 meRouter.patch('/', validate(patchMeSchema), asyncHandler(patchMe));
+meRouter.delete('/', validate(deleteAccountSchema), asyncHandler(deleteMe));
+meRouter.get('/export', asyncHandler(exportMe));
 
 meRouter.get('/mosques', asyncHandler(getMyMosques));
 meRouter.get('/memberships', asyncHandler(getMyMemberships));

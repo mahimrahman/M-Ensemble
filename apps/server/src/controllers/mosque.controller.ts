@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import type {
   BroadcastInput,
+  CreateDonationCheckoutInput,
   DateString,
   MemberRole,
   MosqueIqamahConfig,
@@ -15,6 +16,7 @@ import { FollowModel } from '../models/Follow.js';
 import { MosqueModel } from '../models/Mosque.js';
 import { PostModel } from '../models/Post.js';
 import { currentUser } from '../middleware/requireAuth.js';
+import * as billing from '../services/billing.service.js';
 import { buildDashboard } from '../services/dashboard.service.js';
 import { buildMemberDetail, buildMembers, setMemberRole } from '../services/members.service.js';
 import { broadcastToFollowers } from '../services/notification.service.js';
@@ -196,4 +198,18 @@ export async function postBroadcast(req: Request, res: Response): Promise<void> 
   });
 
   ok(res, result, 201);
+}
+
+/**
+ * A member's donation: hand back a Stripe Checkout URL for the app to open.
+ * Any signed-in member may give; the mosque must have finished payout
+ * onboarding, which the service checks and answers 409 `DONATIONS_DISABLED`.
+ */
+export async function createDonationCheckout(req: Request, res: Response): Promise<void> {
+  const link = await billing.createDonationCheckout(
+    String(req.params.id),
+    req.body as CreateDonationCheckoutInput,
+    currentUser(req),
+  );
+  ok(res, link, 201);
 }

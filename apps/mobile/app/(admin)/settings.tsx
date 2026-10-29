@@ -11,6 +11,7 @@ import { Clock, ListPlus, LogOut, MapPin, Pencil, QrCode, Send } from 'lucide-re
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Alert } from '@/lib/alert';
 import {
+  AccountCard,
   Button,
   Card,
   GradientHeader,
@@ -157,6 +158,10 @@ export default function AdminSettingsScreen() {
         <SectionTitle title={t.language} />
         <LangSwitcher tone="onLight" layout="block" />
 
+        {/* The same rows as the member Profile: a coordinator is a user too. */}
+        <SectionTitle title={t.account} style={styles.sectionGap} />
+        <AccountCard />
+
         <View style={styles.signOut}>
           <Button label={t.signOut} icon={LogOut} variant="danger" onPress={confirmSignOut} />
         </View>
@@ -213,5 +218,6 @@ const styles = StyleSheet.create({
   },
   socialLead: { ...type.overline, color: colors.inkMuted },
 
+  sectionGap: { marginTop: spacing.md },
   signOut: { marginTop: spacing.xl },
 });

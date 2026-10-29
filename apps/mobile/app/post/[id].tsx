@@ -10,7 +10,7 @@
 
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowRight } from 'lucide-react-native';
+import { ArrowRight, HandHeart } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Alert } from '@/lib/alert';
@@ -319,6 +319,25 @@ export default function PostDetailScreen() {
             <Text style={[font(styles.desc), align]}>{p.description}</Text>
           </Card>
 
+          {/* A gift towards this event, when the mosque can receive one. The
+              post id rides along so the mosque sees what it was for. */}
+          {!cancelled && mosque.data?.donationsEnabled ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.supportThisEvent}
+              onPress={() =>
+                router.push({
+                  pathname: '/donate/[mosqueId]',
+                  params: { mosqueId: p.mosqueId, postId: p._id },
+                })
+              }
+              style={({ pressed }) => [styles.support, row, pressed && styles.pressed]}
+            >
+              <HandHeart color={colors.accent} size={iconSize.md} strokeWidth={2} />
+              <Text style={[font(styles.supportText), align]}>{t.supportThisEvent}</Text>
+            </Pressable>
+          ) : null}
+
           {cancelled ? (
             <Text style={[font(styles.note), align]}>{t.cancelledByMosque}</Text>
           ) : mine ? (
@@ -420,6 +439,8 @@ const styles = StyleSheet.create({
   body_: { ...type.body, color: colors.ink },
   desc: { ...type.body, lineHeight: 23, color: colors.ink },
   note: { ...type.small, color: colors.inkMuted },
+  support: { alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.xs },
+  supportText: { ...type.smallStrong, color: colors.accent },
 
   sessions: { gap: spacing.sm },
   session: { alignItems: 'center', gap: spacing.md },

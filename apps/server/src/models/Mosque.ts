@@ -1,18 +1,48 @@
 import { Schema, model, type HydratedDocument } from 'mongoose';
 import type { Mosque } from '@m-ensemble/shared';
-import { contractJson } from '../utils/serialize.js';
+import { SUBDOCUMENT, contractJson } from '../utils/serialize.js';
 
 /**
  * `timezone` is server-only and not in the contract. It is stored but never
  * read today: `buildPrayerTable` writes `MOSQUE_TIMEZONE` into every
  * `PrayerTable` unconditionally, which keeps the endpoint byte-identical to the
  * mock. Every demo mosque is America/Toronto — phase-5's honesty slide says so.
+ *
+ * The Stripe Connect fields are server-only too. The app learns one boolean,
+ * `donationsEnabled`, computed on the way out; the account id and the
+ * requirement list are the operator's business and go to the console through
+ * `MosqueDetail.payouts` instead.
  */
-export interface MosqueRecord extends Mosque {
+export interface MosquePayouts {
+  chargesEnabled: boolean;
+  payoutsEnabled: boolean;
+  detailsSubmitted: boolean;
+  requirementsDue: string[];
+  updatedAt: Date;
+}
+
+export interface MosqueRecord extends Omit<Mosque, 'donationsEnabled'> {
   timezone: string;
   /** Set by super-admin provisioning; absent on seeded and directory rows. */
   createdAt?: Date;
+  /** The Express account donations are transferred to. Set at onboarding. */
+  stripeAccountId?: string;
+  /** Mirror of the account's capability flags, from the webhook and on demand. */
+  payouts?: MosquePayouts;
 }
+
+const payoutsSchema = new Schema<MosquePayouts>(
+  {
+    chargesEnabled: { type: Boolean, required: true, default: false },
+    payoutsEnabled: { type: Boolean, required: true, default: false },
+    detailsSubmitted: { type: Boolean, required: true, default: false },
+    requirementsDue: { type: [String], required: true, default: [] },
+    updatedAt: { type: Date, required: true },
+  },
+  SUBDOCUMENT,
+);
+
+const json = contractJson(['timezone', 'createdAt', 'stripeAccountId', 'payouts']);
 
 const mosqueSchema = new Schema<MosqueRecord>(
   {
@@ -56,9 +86,27 @@ const mosqueSchema = new Schema<MosqueRecord>(
     // When we onboarded them. Server-only like `timezone`, and absent on the
     // directory rows, which we never onboarded at all.
     createdAt: { type: Date },
+    stripeAccountId: { type: String },
+    payouts: { type: payoutsSchema },
   },
-  contractJson(['timezone', 'createdAt']),
+  {
+    ...json,
+    toJSON: {
+      ...json.toJSON,
+      transform(doc: unknown, ret: Record<string, unknown>) {
+        // Read before the base transform strips `payouts`. Always emitted, so
+        // the app can branch on a boolean rather than on a missing key.
+        const payouts = ret.payouts as MosquePayouts | undefined;
+        const out = json.toJSON.transform(doc, ret);
+        out.donationsEnabled = Boolean(payouts?.chargesEnabled);
+        return out;
+      },
+    },
+  },
 );
+
+// The webhook finds the mosque by the account that changed.
+mosqueSchema.index({ stripeAccountId: 1 });
 
 export type MosqueDocument = HydratedDocument<MosqueRecord>;
 export const MosqueModel = model<MosqueRecord>('Mosque', mosqueSchema);

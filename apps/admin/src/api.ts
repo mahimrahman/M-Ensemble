@@ -6,6 +6,7 @@ import type {
   BillingSummary,
   CampaignStatus,
   CampaignWithAdvertiser,
+  CheckoutLink,
   CreateAdvertiserInput,
   CreateCampaignInput,
   CreateDonationInput,
@@ -26,6 +27,7 @@ import type {
   MosqueSummary,
   PageResult,
   Payment,
+  PayoutAccountStatus,
   PlatformOverview,
   PlatformRole,
   PlatformUser,
@@ -241,6 +243,14 @@ export const api = {
   revokeCoordinator: (mosqueId: ID, userId: ID) =>
     del<null>(`/admin/mosques/${mosqueId}/coordinators/${userId}`),
 
+  // ── Mosque payouts (Stripe Connect) ──
+  // Onboarding links are single-use and expire in minutes, so each call mints
+  // a fresh one rather than the console caching anything.
+  payoutsOnboard: (mosqueId: ID) =>
+    post<CheckoutLink>(`/admin/mosques/${mosqueId}/payouts/onboard`),
+  payoutsRefresh: (mosqueId: ID) =>
+    post<PayoutAccountStatus>(`/admin/mosques/${mosqueId}/payouts/refresh`),
+
   // ── Users ──
   users: (query?: Query) => get<PageResult<PlatformUser>>('/admin/users', query),
   user: (id: ID) => get<PlatformUser>(`/admin/users/${id}`),
@@ -264,6 +274,15 @@ export const api = {
     post<Subscription>('/admin/billing/subscriptions', input),
   updateSubscription: (id: ID, input: UpdateSubscriptionInput) =>
     patch<Subscription>(`/admin/billing/subscriptions/${id}`, input),
+  // Stripe hands back hosted pages; nothing here charges a card from the
+  // console. All three answer 503 `STRIPE_UNAVAILABLE` on a server without
+  // Stripe keys (`lib/stripe` turns that into a sentence), and the portal is
+  // 409 until the mosque has paid once — no Stripe customer exists before then.
+  subscriptionCheckout: (id: ID) =>
+    post<CheckoutLink>(`/admin/billing/subscriptions/${id}/checkout`),
+  subscriptionSendCheckout: (id: ID) =>
+    post<{ sent: number; url: string }>(`/admin/billing/subscriptions/${id}/send-checkout`),
+  subscriptionPortal: (id: ID) => post<CheckoutLink>(`/admin/billing/subscriptions/${id}/portal`),
 
   invoices: (query?: Query) => get<PageResult<Invoice>>('/admin/billing/invoices', query),
   invoice: (id: ID) =>

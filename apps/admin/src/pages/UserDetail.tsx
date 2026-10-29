@@ -5,7 +5,7 @@ import { api } from '@/api';
 import { useAuth, useWriteGuard } from '@/auth';
 import { Async, Badge, Card, DataTable, Field, Modal, PageHeader, useAction, useAsync } from '@/ui';
 import { StatTile } from '@/ui/charts';
-import { CredentialSlip } from '@/pages/CredentialSlip';
+import { CredentialIssued } from '@/pages/CredentialIssued';
 import { count, date, dateTime, relative } from '@/lib/format';
 
 /**
@@ -224,7 +224,7 @@ export function UserDetail(): React.JSX.Element {
           </div>
 
           {credential && (
-            <CredentialSlip
+            <CredentialIssued
               title="New password"
               credential={{ email: user.email, password: credential.password, name: user.name }}
               onClose={() => setCredential(undefined)}

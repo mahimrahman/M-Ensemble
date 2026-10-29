@@ -4,14 +4,29 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import { env } from './config/env.js';
 import { apiRouter } from './routes/index.js';
+import { webhooksRouter } from './routes/webhooks.routes.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
+import { apiLimiter } from './middleware/rateLimit.js';
 import { UPLOAD_ROUTE, uploadDir } from './services/upload.service.js';
 
 export function createApp() {
   const app = express();
 
+  // One proxy in front of us (the platform's load balancer), so `req.ip` and
+  // the rate limiter see the client, not the balancer.
+  app.set('trust proxy', 1);
+
   app.use(helmet());
   app.use(cors({ origin: env.CORS_ORIGIN === '*' ? true : env.CORS_ORIGIN.split(',') }));
+
+  /**
+   * Stripe's webhook, **before the JSON parser**. The signature is an HMAC over
+   * the raw bytes; once `express.json()` has parsed and we re-serialise, the
+   * key order and whitespace are ours and the check fails every time. The
+   * router applies `express.raw` to that one route itself.
+   */
+  app.use(webhooksRouter);
+
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: true }));
   app.use(morgan(env.LOG_LEVEL));
@@ -36,7 +51,9 @@ export function createApp() {
     express.static(uploadDir, { maxAge: '1y', immutable: true, fallthrough: false, index: false }),
   );
 
-  app.use('/api', apiRouter);
+  // The general throttle sits in front of the whole API. The webhook above is
+  // deliberately outside it — Stripe's retries must never be rate-limited.
+  app.use('/api', apiLimiter, apiRouter);
 
   app.use(notFound);
   app.use(errorHandler);

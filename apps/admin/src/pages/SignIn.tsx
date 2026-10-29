@@ -26,9 +26,12 @@ export function SignIn(): React.JSX.Element {
   const [busy, setBusy] = useState(false);
 
   /**
-   * Three failures worth telling apart, because each sends you somewhere else:
-   * the server is not running, the credentials are wrong, or the account is
-   * real but not a platform one. The last message is written in `auth.tsx`.
+   * Four failures worth telling apart, because each sends you somewhere else:
+   * the server is not running, the credentials are wrong, the account is real
+   * but not a platform one (that message is written in `auth.tsx`), or the
+   * server has stopped taking attempts from this address for a while. The last
+   * gets its own sentence because the server's is about limits, and the person
+   * reading it needs to know that a correct password will also be refused.
    */
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -37,7 +40,13 @@ export function SignIn(): React.JSX.Element {
     try {
       await signIn(email.trim(), password);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not sign in. Try again.');
+      if (err instanceof ApiError && (err.status === 429 || err.code === 'RATE_LIMITED')) {
+        setError(
+          'Too many sign-in attempts from this connection. Wait a few minutes before trying again — even the right password is refused until then.',
+        );
+      } else {
+        setError(err instanceof ApiError ? err.message : 'Could not sign in. Try again.');
+      }
     } finally {
       setBusy(false);
     }
@@ -126,6 +135,13 @@ export function SignIn(): React.JSX.Element {
 
         <p className="signin-note">
           Mosque coordinators sign in through the M&apos;Ensemble app, not here.
+        </p>
+        {/* No reset endpoint on this screen on purpose: a self-service reset
+            for accounts that can move money is a second front door to defend.
+            The two routes that exist already are enough. */}
+        <p className="signin-note">
+          Forgot password? Use the mobile app&apos;s Forgot password, or ask another super admin to
+          reset it.
         </p>
       </div>
     </div>

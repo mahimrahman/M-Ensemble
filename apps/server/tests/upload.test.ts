@@ -1,10 +1,21 @@
 import { rm } from 'node:fs/promises';
 import path from 'node:path';
+import { DeleteObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import sharp from 'sharp';
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, describe, expect, it } from 'vitest';
 import { AMINA, YUSUF, api, tokenFor } from './helpers/api.js';
+import { env } from '../src/config/env.js';
 import { MAX_UPLOAD_BYTES } from '../src/middleware/upload.js';
-import { uploadDir } from '../src/services/upload.service.js';
+import { UploadModel } from '../src/models/Upload.js';
+import {
+  MAX_DIMENSION,
+  S3Storage,
+  UPLOAD_QUOTA_CODE,
+  isOurUploadUrl,
+  setDailyQuotaForTests,
+  uploadDir,
+} from '../src/services/upload.service.js';
+import { KHADIJA_ADMIN_ID } from '../src/shared.js';
 
 const KHADIJA = 'mosque_khadija'; // Amina administers this one; Yusuf does not.
 
@@ -29,6 +40,11 @@ function upload(token: string, mosqueId: string, file: Buffer, name = 'poster.pn
 // vitest.config.ts) so this only ever removes a scratch folder.
 afterAll(async () => {
   await rm(uploadDir, { recursive: true, force: true });
+});
+
+// Any test that lowers the quota puts it back, or the next file's uploads 429.
+afterEach(() => {
+  setDailyQuotaForTests(env.UPLOAD_DAILY_QUOTA);
 });
 
 describe('POST /uploads/poster', () => {
@@ -72,6 +88,19 @@ describe('POST /uploads/poster', () => {
     expect(res.body.data.width).toBe(400);
   });
 
+  it('writes a ledger row for the upload', async () => {
+    const token = await tokenFor(AMINA);
+    const { url, bytes } = (await upload(token, KHADIJA, await tallImage()).expect(201)).body.data;
+
+    const row = await UploadModel.findOne({ url });
+    expect(row).not.toBeNull();
+    expect(row!.userId).toBe(KHADIJA_ADMIN_ID);
+    expect(row!.bytes).toBe(bytes);
+    expect(row!.width).toBe(1200);
+    expect(row!.height).toBe(720);
+    expect(row!.createdAt.getTime()).toBeGreaterThan(Date.now() - 10_000);
+  });
+
   it('refuses a member who does not administer the mosque', async () => {
     const token = await tokenFor(YUSUF);
     await upload(token, KHADIJA, await tallImage(100, 100)).expect(403);
@@ -103,6 +132,135 @@ describe('POST /uploads/poster', () => {
     const token = await tokenFor(AMINA);
     const res = await upload(token, KHADIJA, Buffer.alloc(MAX_UPLOAD_BYTES + 1)).expect(400);
     expect(res.body.error.message).toMatch(/8MB/);
+  });
+
+  it('rejects an image wider or taller than 8000px before decoding it', async () => {
+    const token = await tokenFor(AMINA);
+    // A thin strip: tiny on the wire, over the cap on one side. The header is
+    // what gets checked, so the file does not need to be large to prove it.
+    const wide = await tallImage(MAX_DIMENSION + 1, 8);
+    const res = await upload(token, KHADIJA, wide).expect(400);
+    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    expect(res.body.error.message).toMatch(/8001×8/);
+    expect(res.body.error.message).toMatch(/8000×8000/);
+
+    // Nothing was stored, and nothing was counted.
+    expect(await UploadModel.countDocuments({ userId: KHADIJA_ADMIN_ID })).toBe(0);
+  });
+});
+
+describe('the daily quota', () => {
+  it('refuses the upload after UPLOAD_DAILY_QUOTA in a day, with a 429', async () => {
+    setDailyQuotaForTests(2);
+    const token = await tokenFor(AMINA);
+    const small = await tallImage(100, 100);
+
+    await upload(token, KHADIJA, small).expect(201);
+    await upload(token, KHADIJA, small).expect(201);
+
+    const res = await upload(token, KHADIJA, small).expect(429);
+    expect(res.body.error.code).toBe(UPLOAD_QUOTA_CODE);
+    expect(res.body.error.message).toMatch(/24 hours/);
+
+    // The refused one was not written anywhere.
+    expect(await UploadModel.countDocuments({ userId: KHADIJA_ADMIN_ID })).toBe(2);
+  });
+
+  it('is a rolling 24-hour window, so yesterday’s uploads do not count', async () => {
+    setDailyQuotaForTests(1);
+    const token = await tokenFor(AMINA);
+
+    // Back-date a row to 25 hours ago, as if it were uploaded yesterday.
+    await UploadModel.create({
+      _id: 'upload_old',
+      userId: KHADIJA_ADMIN_ID,
+      url: '/uploads/00000000-0000-4000-8000-000000000000.jpg',
+      bytes: 1,
+      width: 1,
+      height: 1,
+      createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000),
+    });
+
+    await upload(token, KHADIJA, await tallImage(100, 100)).expect(201);
+  });
+
+  it('does not apply to a super admin', async () => {
+    setDailyQuotaForTests(1);
+    const login = await api
+      .post('/api/auth/login')
+      .send({ email: env.SUPERADMIN_EMAIL, password: env.SUPERADMIN_PASSWORD })
+      .expect(200);
+    const token = login.body.data.token as string;
+    const small = await tallImage(100, 100);
+
+    await upload(token, KHADIJA, small).expect(201);
+    await upload(token, KHADIJA, small).expect(201);
+  });
+});
+
+describe('isOurUploadUrl', () => {
+  const uuid = '3f2c9a7e-1b4d-4c8e-9f0a-6d5e4c3b2a10';
+  const cdn = 'https://cdn.mensemble.ca';
+
+  it('accepts the path LocalDiskStorage mints', () => {
+    expect(isOurUploadUrl(`/uploads/${uuid}.jpg`)).toBe(true);
+  });
+
+  it('accepts the URL S3Storage mints, under the configured public base only', () => {
+    expect(isOurUploadUrl(`${cdn}/posters/2026/10/${uuid}.jpg`, cdn)).toBe(true);
+    // A base with a path of its own.
+    expect(isOurUploadUrl(`${cdn}/media/posters/2026/10/${uuid}.jpg`, `${cdn}/media/`)).toBe(true);
+
+    // The same URL with no bucket configured is somebody else's host.
+    expect(isOurUploadUrl(`${cdn}/posters/2026/10/${uuid}.jpg`, undefined)).toBe(false);
+    // A look-alike origin, a different scheme, a query string.
+    expect(isOurUploadUrl(`https://cdn.mensemble.ca.evil.net/posters/2026/10/${uuid}.jpg`, cdn)).toBe(false);
+    expect(isOurUploadUrl(`http://cdn.mensemble.ca/posters/2026/10/${uuid}.jpg`, cdn)).toBe(false);
+    expect(isOurUploadUrl(`${cdn}/posters/2026/10/${uuid}.jpg?x=1`, cdn)).toBe(false);
+    // Our origin, but not a key this service writes.
+    expect(isOurUploadUrl(`${cdn}/posters/2026/10/${uuid}.png`, cdn)).toBe(false);
+    expect(isOurUploadUrl(`${cdn}/anything/${uuid}.jpg`, cdn)).toBe(false);
+  });
+
+  it('refuses everything else', () => {
+    expect(isOurUploadUrl('https://example.com/tracker.jpg')).toBe(false);
+    expect(isOurUploadUrl('/uploads/../src/index.ts')).toBe(false);
+    expect(isOurUploadUrl('/uploads/not-a-uuid.jpg')).toBe(false);
+    expect(isOurUploadUrl(`/uploads/${uuid}.png`)).toBe(false);
+    expect(isOurUploadUrl(`//evil.example/uploads/${uuid}.jpg`)).toBe(false);
+    expect(isOurUploadUrl('')).toBe(false);
+  });
+});
+
+describe('S3Storage', () => {
+  it('puts the object immutable-cached and returns the public URL', async () => {
+    const sent: unknown[] = [];
+    const store = new S3Storage({
+      bucket: 'posters-bucket',
+      publicUrl: 'https://cdn.mensemble.ca/', // trailing slash is tolerated
+      client: {
+        async send(cmd) {
+          sent.push(cmd);
+        },
+      },
+    });
+
+    const url = await store.put('posters/2026/10/abc.jpg', Buffer.from('jpeg'), 'image/jpeg');
+    expect(url).toBe('https://cdn.mensemble.ca/posters/2026/10/abc.jpg');
+
+    const put = sent[0] as PutObjectCommand;
+    expect(put).toBeInstanceOf(PutObjectCommand);
+    expect(put.input).toMatchObject({
+      Bucket: 'posters-bucket',
+      Key: 'posters/2026/10/abc.jpg',
+      ContentType: 'image/jpeg',
+      CacheControl: 'public, max-age=31536000, immutable',
+    });
+
+    await store.delete('posters/2026/10/abc.jpg');
+    const del = sent[1] as DeleteObjectCommand;
+    expect(del).toBeInstanceOf(DeleteObjectCommand);
+    expect(del.input).toMatchObject({ Bucket: 'posters-bucket', Key: 'posters/2026/10/abc.jpg' });
   });
 });
 

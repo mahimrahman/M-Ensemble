@@ -22,6 +22,8 @@ import { UserModel, type UserDocument } from '../models/User.js';
 import { defaultNotificationPrefs } from '../shared.js';
 import { hashPassword } from './auth.service.js';
 import * as audit from './audit.service.js';
+import { renderEmail, sendEmail, webUrl } from './email.service.js';
+import { logger } from '../utils/logger.js';
 import { HttpError } from '../middleware/errorHandler.js';
 import { ERROR } from '../utils/errors.js';
 import { newId } from '../utils/ids.js';
@@ -281,6 +283,18 @@ export async function issueCoordinatorCredential(
     req,
   );
 
+  // The password reaches the coordinator by email, so the console no longer
+  // has to be the courier. The response still carries it for the one case
+  // where the email does not arrive; the console hides it behind a disclosure.
+  void sendCredentialEmail({
+    to: user.email,
+    name: user.name,
+    mosqueName: mosque.name,
+    // Only when we actually set it — somebody who kept their own password
+    // must not be told a password they never had.
+    password: action === 'mosque.coordinator_added' ? undefined : password,
+  });
+
   return {
     userId: user._id,
     mosqueId,
@@ -519,7 +533,63 @@ export async function resetUserPassword(
     req,
   );
 
+  void sendCredentialEmail({ to: user.email, name: user.name, password });
+
   return { userId: user._id, email: user.email, password };
+}
+
+/**
+ * The sign-in details, to the person they belong to. Bilingual in one message
+ * because we do not know which language the coordinator reads yet. Failure is
+ * logged, not thrown: the account exists either way, and the console still
+ * shows the password once for exactly this case.
+ */
+async function sendCredentialEmail(input: {
+  to: string;
+  name: string;
+  mosqueName?: string;
+  password?: string;
+}): Promise<void> {
+  const intro = input.mosqueName
+    ? [
+        `Bonjour ${input.name}, vous êtes maintenant coordinateur·rice de ${input.mosqueName} sur M’Ensemble.`,
+        `Hello ${input.name}, you are now a coordinator of ${input.mosqueName} on M’Ensemble.`,
+      ]
+    : [
+        `Bonjour ${input.name}, votre mot de passe M’Ensemble a été réinitialisé.`,
+        `Hello ${input.name}, your M’Ensemble password has been reset.`,
+      ];
+
+  const credentials = input.password
+    ? [
+        `Courriel / Email : ${input.to}`,
+        `Mot de passe temporaire / Temporary password : ${input.password}`,
+        'Vous devrez le changer à votre première connexion. / You will be asked to change it the first time you sign in.',
+      ]
+    : [
+        `Connectez-vous avec votre courriel ${input.to} et le mot de passe que vous utilisez déjà. / Sign in with ${input.to} and the password you already use.`,
+      ];
+
+  const { text, html } = renderEmail(
+    input.mosqueName ? 'Votre accès coordinateur · Your coordinator access' : 'Votre mot de passe · Your password',
+    [
+      ...intro,
+      ...credentials,
+      { button: 'Ouvrir le site / Open the website', url: webUrl() },
+      'Téléchargez l’application M’Ensemble sur l’App Store ou Google Play. / Download the M’Ensemble app from the App Store or Google Play.',
+    ],
+    'fr',
+  );
+
+  const sent = await sendEmail({
+    to: input.to,
+    subject: input.mosqueName
+      ? `M’Ensemble — accès coordinateur pour ${input.mosqueName}`
+      : 'M’Ensemble — votre nouveau mot de passe',
+    text,
+    html,
+  });
+  if (!sent) logger.warn({ to: input.to }, '[provisioning] credential email not sent');
 }
 
 /** Grant or take away the coordinator role at one mosque. */

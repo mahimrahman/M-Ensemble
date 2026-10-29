@@ -9,13 +9,16 @@ import { feedRouter } from './feed.routes.js';
 import { uploadRouter } from './upload.routes.js';
 import { adsRouter } from './ads.routes.js';
 import { adminRouter } from './admin.routes.js';
+import { publicRouter } from './public.routes.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 
 export const apiRouter = Router();
 
-// Open: liveness, and the two ways to get a token.
+// Open: liveness, the ways to get a token, the pages email links land on, and
+// the legal documents (the app shows them before anyone has signed in).
 apiRouter.use('/health', healthRouter);
 apiRouter.use('/auth', authRouter);
+apiRouter.use('/', publicRouter);
 
 // Everything below is gated. The app is fully behind login — there is no
 // anonymous read path, so this is one line rather than forty.

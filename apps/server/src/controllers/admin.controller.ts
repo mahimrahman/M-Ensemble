@@ -11,6 +11,7 @@ import { PostModel } from '../models/Post.js';
 import { MosqueModel } from '../models/Mosque.js';
 import { currentUser } from '../middleware/requireAuth.js';
 import * as platform from '../services/platform.service.js';
+import * as billing from '../services/billing.service.js';
 import * as provisioning from '../services/provisioning.service.js';
 import * as audit from '../services/audit.service.js';
 import { fanOutNewPost } from '../services/push.service.js';
@@ -18,6 +19,7 @@ import { HttpError } from '../middleware/errorHandler.js';
 import { ERROR } from '../utils/errors.js';
 import { newId } from '../utils/ids.js';
 import { ok, okNull } from '../utils/respond.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * The super admin's own screens: the overview, mosques, people, publishing on
@@ -185,7 +187,7 @@ export async function createEvent(req: Request, res: Response): Promise<void> {
   // After the response, never blocking it — the same rule as the coordinator's
   // own create. A slow Expo call must not make the button feel broken.
   if (input.notify !== false) {
-    void fanOutNewPost(post).catch((err) => console.error('[push] fan-out failed', err));
+    void fanOutNewPost(post).catch((err) => logger.error({ err }, '[push] fan-out failed'));
   }
 }
 
@@ -216,4 +218,16 @@ export async function cancelPost(req: Request, res: Response): Promise<void> {
 
 export async function listAudit(req: Request, res: Response): Promise<void> {
   ok(res, await audit.list(req.query as never));
+}
+
+// ─── Payouts (Stripe Connect) ───────────────────────────────────────────────
+
+/** Start or resume the mosque's Connect onboarding; returns the hosted link. */
+export async function onboardPayouts(req: Request, res: Response): Promise<void> {
+  ok(res, await billing.onboardPayouts(String(req.params.id), currentUser(req), req), 201);
+}
+
+/** Re-read the account from Stripe — the "did they finish?" button. */
+export async function refreshPayouts(req: Request, res: Response): Promise<void> {
+  ok(res, await billing.refreshPayouts(String(req.params.id)));
 }

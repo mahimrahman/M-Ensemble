@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isOurUploadUrl } from '../services/upload.service.js';
 
 const sessionSchema = z.object({ startAt: z.string(), endAt: z.string() }).strict();
 
@@ -13,14 +14,13 @@ const sessionSchema = z.object({ startAt: z.string(), endAt: z.string() }).stric
  * this field is to upload a file through the endpoint that checks you
  * administer the mosque.
  *
- * The shape is exactly what `storePoster` writes — `/uploads/<uuid>.jpg`.
+ * The shape is exactly what `storePoster` writes — `/uploads/<uuid>.jpg` on
+ * local disk, or the bucket's public URL when S3 is configured. One check,
+ * `isOurUploadUrl`, knows both.
  */
-const POSTER_PATH =
-  /^\/uploads\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.jpg$/;
-
 const posterUrl = z
   .string()
-  .regex(POSTER_PATH, 'imageUrl must be a path returned by POST /uploads/poster');
+  .refine(isOurUploadUrl, 'imageUrl must be a URL returned by POST /uploads/poster');
 
 const postFields = {
   title: z.string().trim().min(1),

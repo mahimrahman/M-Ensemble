@@ -1,35 +1,26 @@
 /**
  * Sign in — the app's cover. The whole screen is the gradient, with the
  * M'Ensemble lockup over it and the form on a white card that floats up from
- * the bottom. Two one-tap demo accounts for the two-phone walkthrough.
+ * the bottom.
+ *
+ * The one-tap demo accounts that used to sit under the card are gone: a store
+ * build has no seeded users to sign in as, and a button that signs a stranger
+ * into somebody's mosque is not a feature.
  */
 
 import { LinearGradient } from 'expo-linear-gradient';
-import { Link } from 'expo-router';
+import { Link, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useKeyboardReveal } from '@/hooks/useKeyboardReveal';
 import { useTopInset } from '@/hooks/useTopInset';
-import {
-  DEMO_COORDINATOR_EMAIL,
-  DEMO_COORDINATOR_PASSWORD,
-  MOCK_PASSWORD,
-} from '@m-ensemble/shared';
-import { ApiRequestError } from '@/api/client';
 import { Button, Field, LangSwitcher, Logo } from '@/components';
 import { useLang } from '@/i18n';
+import { describeApiError } from '@/lib/apiError';
 import { warn } from '@/lib/haptics';
 import { useAuth } from '@/store/auth';
 import { colors, gradients, radius, screenPadding, spacing, type } from '@/theme';
-
-/**
- * The two accounts the demo signs in as, taken from the shared fixtures so the
- * buttons cannot drift from what the seed actually wrote. The coordinator is a
- * real address on the allowlist; the member is one of the seeded volunteers.
- */
-const MEMBER_EMAIL = 'yusuf@example.com';
-const MEMBER_PASSWORD = MOCK_PASSWORD;
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
@@ -37,40 +28,25 @@ export default function LoginScreen() {
   const top = useTopInset();
   const { scrollRef, keyboardPad, onScroll } = useKeyboardReveal();
   const { t, align, row, font } = useLang();
-  // Empty on purpose. The demo accounts are one tap away at the bottom of the
-  // screen, so prefilling the fields only meant clearing them to type a real
-  // address — and left a password on screen for anyone signing in as themself.
+  // `reset=1` is how the reset-password screen says "it worked" on its way
+  // back here — the one piece of good news this screen ever shows.
+  const { reset } = useLocalSearchParams<{ reset?: string }>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  async function submit(withEmail = email, withPassword = password) {
+  async function submit() {
     setBusy(true);
     setError(null);
     try {
-      await signIn(withEmail, withPassword);
+      await signIn(email, password);
     } catch (err) {
       warn();
-      setError(err instanceof ApiRequestError ? err.message : t.badCredentials);
+      setError(describeApiError(err, t, t.badCredentials));
     } finally {
       setBusy(false);
     }
-  }
-
-  /**
-   * The demo doors. Fills the form as well as signing in, so the room can see
-   * which account went in — the fields start empty now, and a tap that moved
-   * straight to the feed left nothing on screen to say who you were.
-   *
-   * The values are passed to submit() explicitly rather than read back from
-   * state: the two setters above do not touch this closure, so submit() would
-   * otherwise send the empty strings it captured on this render.
-   */
-  function signInAs(withEmail: string, withPassword: string) {
-    setEmail(withEmail);
-    setPassword(withPassword);
-    void submit(withEmail, withPassword);
   }
 
   return (
@@ -108,6 +84,9 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.card}>
+          {reset === '1' ? (
+            <Text style={[font(styles.notice), align]}>{t.passwordResetDone}</Text>
+          ) : null}
           <Field
             label={t.email}
             value={email}
@@ -127,6 +106,10 @@ export default function LoginScreen() {
             error={error ?? undefined}
           />
 
+          <Link href="/forgot-password" style={styles.forgot}>
+            <Text style={[font(styles.linkText), align]}>{t.forgotPassword}</Text>
+          </Link>
+
           {/* Held until both fields have something. An empty form used to
               reach the server and come back as a validation error, which
               reads as a failure rather than as nothing typed yet. */}
@@ -143,29 +126,6 @@ export default function LoginScreen() {
               {t.noAccount} {t.createAccount}
             </Text>
           </Link>
-        </View>
-
-        {/* The demo doors — how the walkthrough gets two phones signed in fast. */}
-        <View style={styles.demo}>
-          <Text style={font(styles.demoLabel)}>{t.signIn.toUpperCase()}</Text>
-          <View style={[styles.demoRow, row]}>
-            <Button
-              label={t.member}
-              variant="inverse"
-              fullWidth={false}
-              disabled={busy}
-              onPress={() => signInAs(MEMBER_EMAIL, MEMBER_PASSWORD)}
-              style={styles.demoButton}
-            />
-            <Button
-              label={t.coordinator}
-              variant="inverse"
-              fullWidth={false}
-              disabled={busy}
-              onPress={() => signInAs(DEMO_COORDINATOR_EMAIL, DEMO_COORDINATOR_PASSWORD)}
-              style={styles.demoButton}
-            />
-          </View>
         </View>
       </ScrollView>
     </LinearGradient>
@@ -187,14 +147,15 @@ const styles = StyleSheet.create({
     borderRadius: radius.xl + 4,
   },
   link: { alignSelf: 'center', paddingVertical: spacing.xs },
+  // Pulled up under the password field, where the eye goes when it fails.
+  forgot: { alignSelf: 'stretch', marginTop: -spacing.sm },
   linkText: { ...type.small, color: colors.accent },
-
-  demo: {
-    marginTop: spacing.xxl,
-    gap: spacing.md,
-    alignItems: 'center',
+  notice: {
+    ...type.small,
+    color: colors.accent,
+    backgroundColor: colors.accentWash,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
   },
-  demoLabel: { ...type.overline, color: colors.inkOnDarkFaint },
-  demoRow: { gap: spacing.sm, alignSelf: 'stretch' },
-  demoButton: { flex: 1 },
 });

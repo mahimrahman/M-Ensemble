@@ -4,3 +4,8 @@
 
 expo-env.d.ts
 # @end expo-cli
+# Per-machine credentials referenced from app.config.ts / eas.json.
+google-services.json
+google-play-service-account.json
+GoogleService-Info.plist
+.env

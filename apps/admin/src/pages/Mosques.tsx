@@ -18,7 +18,7 @@ import {
   useListState,
   type Column,
 } from '@/ui';
-import { CredentialSlip } from '@/pages/CredentialSlip';
+import { CredentialIssued } from '@/pages/CredentialIssued';
 import { count, moneyShort, percent, priceLabel, relative } from '@/lib/format';
 
 /**
@@ -213,7 +213,7 @@ export function Mosques(): React.JSX.Element {
       )}
 
       {credential && (
-        <CredentialSlip credential={credential} onClose={() => setCredential(undefined)} />
+        <CredentialIssued credential={credential} onClose={() => setCredential(undefined)} />
       )}
     </>
   );
@@ -395,7 +395,7 @@ function CreateMosqueDialog({
               onChange={(e) => set('coordinatorName', e.target.value)}
             />
           </Field>
-          <Field label="Coordinator email" hint="A password is generated and shown once.">
+          <Field label="Coordinator email" hint="A password is generated and emailed to them.">
             <input
               type="email"
               value={form.coordinatorEmail}

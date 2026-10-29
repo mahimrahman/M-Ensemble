@@ -1,7 +1,8 @@
 import { z } from 'zod';
 // Runtime values come through the server's shim, never straight from the
 // package — see `src/shared.ts` for why a named import of one throws at boot.
-import { SOCIAL_PLATFORMS } from '../shared.js';
+import { DONATION_MAX_CENTS, DONATION_MIN_CENTS, SOCIAL_PLATFORMS } from '../shared.js';
+import { env } from '../config/env.js';
 
 const WALL_CLOCK = /^([01]\d|2[0-3]):([0-5]\d)$/;
 const DATE_STRING = /^\d{4}-\d{2}-\d{2}$/;
@@ -78,5 +79,27 @@ export const broadcastSchema = z
   .object({
     title: z.string().trim().min(1).max(120),
     body: z.string().trim().min(1).max(600),
+  })
+  .strict();
+
+/**
+ * A member's gift through Stripe Checkout.
+ *
+ * The amount is bounded on both ends from the shared contract: below the floor
+ * Stripe's fixed fee eats the gift, and above the ceiling a typo'd extra zero
+ * is more likely than a real intention. The return URLs are where Stripe sends
+ * the browser afterwards, so they are limited to http(s) and the app's own
+ * scheme — a `javascript:` URL here would run in the donor's browser on the
+ * way back from paying.
+ */
+const RETURN_URL = new RegExp(`^(https?://|${env.APP_SCHEME.replace(/[.*+?^${}()|[\]\\]/g, '\$&')}://)`);
+
+export const donationCheckoutSchema = z
+  .object({
+    amountCents: z.number().int().min(DONATION_MIN_CENTS).max(DONATION_MAX_CENTS),
+    postId: z.string().min(1).max(100).optional(),
+    message: z.string().trim().max(200).optional(),
+    successUrl: z.string().max(2000).regex(RETURN_URL, 'Unrecognised return URL.').optional(),
+    cancelUrl: z.string().max(2000).regex(RETURN_URL, 'Unrecognised return URL.').optional(),
   })
   .strict();

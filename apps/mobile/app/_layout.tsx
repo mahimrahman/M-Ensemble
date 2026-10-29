@@ -1,3 +1,6 @@
+// First, so the SDK is initialised before anything that could throw. It is a
+// no-op in dev or without a DSN (see src/lib/sentry.ts).
+import { withSentry } from '@/lib/sentry';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import Head from 'expo-router/head';
 import * as SplashScreen from 'expo-splash-screen';
@@ -45,11 +48,20 @@ function RootNavigator() {
 
     const inAuthGroup = segments[0] === '(auth)';
     const inOnboarding = segments[0] === 'onboarding';
+    // Readable without an account: the privacy policy and terms have to be
+    // open before anyone agrees to them.
+    const isPublic = segments[0] === 'legal';
+    // The two email-link landings. A phone that is already signed in opens
+    // them too, and must not be bounced to its home before the token is used.
+    const isDeepLinkLanding =
+      inAuthGroup && (segments[1] === 'reset-password' || segments[1] === 'verify-email');
 
     if (status === 'unauthenticated') {
-      if (!inAuthGroup) router.replace('/login');
+      if (!inAuthGroup && !isPublic) router.replace('/login');
       return;
     }
+
+    if (isPublic || isDeepLinkLanding) return;
 
     if (needsOnboarding) {
       if (!inOnboarding) router.replace('/onboarding');
@@ -97,6 +109,16 @@ function RootNavigator() {
       {/* The camera scanner: both sides of the check-in handshake open it. */}
       <Stack.Screen name="scan" options={{ animation: 'slide_from_bottom' }} />
       <Stack.Screen name="notifications" />
+      {/* account - reached from Profile and from the coordinator's Settings */}
+      <Stack.Screen name="account/change-password" />
+      <Stack.Screen name="account/export" />
+      <Stack.Screen name="account/delete" />
+      {/* open to everyone, signed in or not */}
+      <Stack.Screen name="legal/[kind]" options={{ animation: 'slide_from_bottom' }} />
+      {/* donations - the form, and the two deep-link landings Stripe's page sends back to */}
+      <Stack.Screen name="donate/[mosqueId]" options={{ animation: 'slide_from_bottom' }} />
+      <Stack.Screen name="donate/success" options={{ animation: 'fade' }} />
+      <Stack.Screen name="donate/cancelled" options={{ animation: 'fade' }} />
       {/* coordinator - every screen re-checks the role through the API */}
       <Stack.Screen name="manage/create" options={{ animation: 'slide_from_bottom' }} />
       <Stack.Screen name="manage/posts" />
@@ -110,7 +132,7 @@ function RootNavigator() {
   );
 }
 
-export default function RootLayout() {
+function RootLayout() {
   const fontsReady = useAppFonts();
 
   const onLayout = useCallback(() => {
@@ -158,3 +180,7 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
+
+// Sentry's error boundary and touch breadcrumbs around the whole tree — only
+// in a release build with a DSN; otherwise this is `RootLayout` untouched.
+export default withSentry(RootLayout);

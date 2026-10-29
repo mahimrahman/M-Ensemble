@@ -19,16 +19,23 @@ import {
   type Tone,
 } from '@/ui';
 import { RampBars, StackedBars, StatTile, type Series } from '@/ui/charts';
+import {
+  CollectionBadge,
+  ProvinceSelect,
+  StripeInvoiceBadge,
+  SubscriptionActions,
+} from '@/pages/billing/SubscriptionActions';
 import { date, humanise, money, monthLabel, relative } from '@/lib/format';
 
 /**
  * The money screen — all three flows in one place.
  *
- * **Nothing here charges anybody.** No payment processor is connected: invoices
- * are issued, payments are recorded by hand, and every status moves because
- * somebody moved it. That is stated on the screen rather than only in the code,
- * because a billing page that looks automated and is not is how a mosque ends
- * up thinking it has paid.
+ * **Nothing here charges anybody from the console.** A subscription is
+ * collected one of two ways: by Stripe, where the mosque pays on a Checkout
+ * page we hand it a link to and the webhook moves the status; or manually,
+ * where the mosque pays by bank transfer and somebody here records it. Which
+ * way each mosque is on is a column, because a mosque that is "paid" by one
+ * route and "past due" by the other is the confusion this page exists to end.
  *
  * Revenue is recognised on the date money **arrived**, not the date it was
  * invoiced — the only version of the number that reconciles against a bank
@@ -77,9 +84,11 @@ export function Billing(): React.JSX.Element {
       <div className="stack">
         <div className="alert">
           <div>
-            <b>No payment processor is connected.</b>
-            Invoices are issued and payments are recorded by hand. Nothing on this page charges a
-            card or moves real money — it records money that moved somewhere else.
+            <b>Two ways a mosque pays.</b>
+            <strong>Stripe</strong> — send a payment link, the mosque pays by card, and the
+            subscription updates itself. <strong>Manual</strong> — the mosque pays by bank transfer
+            and the payment is recorded here against its invoice. Nothing on this page charges a
+            card directly.
           </div>
         </div>
 
@@ -358,9 +367,32 @@ function SubscriptionsTable(): React.JSX.Element {
                 render: (row) => date(row.currentPeriodEnd),
               },
               {
+                key: 'collection',
+                header: 'Collection',
+                render: (row) => <CollectionBadge collection={row.collection} />,
+              },
+              {
+                key: 'lastStripeInvoiceStatus',
+                header: 'Last Stripe invoice',
+                render: (row) => <StripeInvoiceBadge status={row.lastStripeInvoiceStatus} />,
+              },
+              {
+                key: 'province',
+                header: 'Tax province',
+                render: (row) => <ProvinceSelect subscription={row} onChanged={state.reload} />,
+              },
+              {
                 key: 'note',
                 header: 'Note',
                 render: (row) => <span className="cell-sub">{row.note ?? '—'}</span>,
+              },
+              {
+                key: 'actions',
+                header: '',
+                align: 'right',
+                render: (row) => (
+                  <SubscriptionActions subscription={row} onChanged={state.reload} size="sm" />
+                ),
               },
             ]}
             rows={rows}

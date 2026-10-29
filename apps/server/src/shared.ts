@@ -35,6 +35,11 @@ export const {
   API_ERROR,
   PRAYERS,
   LATE_CANCEL_HOURS,
+  // account lifecycle — password policy and the legal documents
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_MAX_LENGTH,
+  passwordProblem,
+  LEGAL_DOCUMENTS,
   // the platform tier — pricing, money maths, campaign rules
   STANDARD_PRICE_CENTS,
   INCLUDED_FEATURES,
@@ -48,6 +53,13 @@ export const {
   monthlyValueCents,
   campaignSpentCents,
   formatMoney,
+  // payments — donation limits and the tax tables the manual invoices use
+  DONATION_MIN_CENTS,
+  DONATION_MAX_CENTS,
+  DEFAULT_PROVINCE,
+  TAX_LINES,
+  taxCentsFor,
+  taxBreakdown,
   // the mosque's pages elsewhere
   SOCIAL_PLATFORMS,
   SOCIAL_LABEL,

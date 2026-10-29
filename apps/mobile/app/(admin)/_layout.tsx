@@ -84,6 +84,7 @@ export default function AdminLayout() {
         name="index"
         options={{
           title: t.dashboard,
+          tabBarAccessibilityLabel: t.dashboard,
           tabBarIcon: ({ focused }) => (
             <TabItem Icon={LayoutDashboard} label={t.dashboard} focused={focused} />
           ),
@@ -93,6 +94,7 @@ export default function AdminLayout() {
         name="events"
         options={{
           title: t.events,
+          tabBarAccessibilityLabel: t.events,
           tabBarIcon: ({ focused }) => (
             <TabItem Icon={CalendarRange} label={t.events} focused={focused} />
           ),
@@ -102,6 +104,7 @@ export default function AdminLayout() {
         name="people"
         options={{
           title: t.people,
+          tabBarAccessibilityLabel: t.people,
           tabBarIcon: ({ focused }) => <TabItem Icon={Users} label={t.people} focused={focused} />,
         }}
       />
@@ -109,6 +112,7 @@ export default function AdminLayout() {
         name="prayer"
         options={{
           title: t.adminPrayer,
+          tabBarAccessibilityLabel: t.adminPrayer,
           tabBarIcon: ({ focused }) => (
             <TabItem Icon={Moon} label={t.adminPrayer} focused={focused} />
           ),
@@ -118,6 +122,7 @@ export default function AdminLayout() {
         name="settings"
         options={{
           title: t.adminSettings,
+          tabBarAccessibilityLabel: t.adminSettings,
           tabBarIcon: ({ focused }) => (
             <TabItem Icon={Settings} label={t.adminSettings} focused={focused} />
           ),

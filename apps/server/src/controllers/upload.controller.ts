@@ -1,8 +1,34 @@
 import type { Request, Response } from 'express';
 import { HttpError } from '../middleware/errorHandler.js';
-import { storePoster } from '../services/upload.service.js';
+import { currentUser } from '../middleware/requireAuth.js';
+import { assertUnderQuota, recordUpload, storePoster } from '../services/upload.service.js';
 import { ERROR } from '../utils/errors.js';
 import { ok } from '../utils/respond.js';
+
+/**
+ * The one sequence both endpoints run: quota, store, ledger, respond.
+ *
+ * The quota is checked **before** the `sharp` pass, so a user who is over it
+ * costs a count query and nothing else — not a decode and a bucket write that
+ * is then refused. Super admins are exempt: the console bulk-loads partner
+ * logos and campaign creatives, and the quota exists to bound what a single
+ * compromised coordinator account can do, not what we do ourselves.
+ *
+ * The ledger row is written after the store succeeds, so a failed upload is
+ * never counted against anyone.
+ */
+async function storeForCurrentUser(req: Request, res: Response): Promise<void> {
+  if (!req.file) {
+    throw new HttpError(400, ERROR.VALIDATION_ERROR, 'No image was attached.');
+  }
+  const user = currentUser(req);
+  if (user.platformRole !== 'superadmin') {
+    await assertUnderQuota(user._id);
+  }
+  const stored = await storePoster(req.file.buffer, user._id);
+  await recordUpload(user._id, stored);
+  ok(res, stored, 201);
+}
 
 /**
  * `POST /api/uploads/poster` — takes one image, returns the path to store on
@@ -12,10 +38,7 @@ import { ok } from '../utils/respond.js';
  * poster without resending every other field.
  */
 export async function uploadPosterImage(req: Request, res: Response): Promise<void> {
-  if (!req.file) {
-    throw new HttpError(400, ERROR.VALIDATION_ERROR, 'No image was attached.');
-  }
-  ok(res, await storePoster(req.file.buffer), 201);
+  await storeForCurrentUser(req, res);
 }
 
 /**
@@ -28,8 +51,5 @@ export async function uploadPosterImage(req: Request, res: Response): Promise<vo
  * the point: there is one image pipeline, not two.
  */
 export async function uploadPlatformImage(req: Request, res: Response): Promise<void> {
-  if (!req.file) {
-    throw new HttpError(400, ERROR.VALIDATION_ERROR, 'No image was attached.');
-  }
-  ok(res, await storePoster(req.file.buffer), 201);
+  await storeForCurrentUser(req, res);
 }

@@ -17,3 +17,22 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
+      # The console's `tsc -b && vite build` — the type gate is part of it.
+      - run: npm run build -w @m-ensemble/admin
+
+  # Proves the API image still builds — the lockfile's platform binaries, the
+  # tsx-as-runtime-dependency arrangement, the workspace copy. Never pushed
+  # from here; deploy.yml does that on a tag.
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/server/Dockerfile
+          push: false
+          tags: m-ensemble-api:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

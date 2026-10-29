@@ -104,3 +104,8 @@ desktop.ini
 tmp/
 temp/
 .scratch/
+
+# ---------- Store / push credentials ----------
+google-play-service-account.json
+GoogleService-Info.plist
+apps/mobile/google-services.json

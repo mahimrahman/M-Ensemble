@@ -3,6 +3,7 @@ import type { AuditEntry, AuditTargetType, PageQuery, PageResult } from '@m-ense
 import { AuditEntryModel } from '../models/AuditEntry.js';
 import { asContract } from '../utils/serialize.js';
 import { newId } from '../utils/ids.js';
+import { logger } from '../utils/logger.js';
 import { pageResult, resolvePage, searchRegex, sortSpec } from '../utils/paging.js';
 import type { UserDocument } from '../models/User.js';
 
@@ -45,7 +46,7 @@ export async function record(
       createdAt: new Date(),
     });
   } catch (err) {
-    console.error('[audit] failed to record', input.action, err);
+    logger.error({ err, action: input.action }, '[audit] failed to record');
   }
 }
 

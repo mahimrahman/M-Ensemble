@@ -86,6 +86,11 @@ adminRouter.delete(
   asyncHandler(admin.revokeCoordinator),
 );
 
+// Stripe Connect. Onboarding creates the mosque's payout account on first
+// call and mints a fresh hosted link every call; refresh re-reads the flags.
+adminRouter.post('/mosques/:id/payouts/onboard', write, asyncHandler(admin.onboardPayouts));
+adminRouter.post('/mosques/:id/payouts/refresh', write, asyncHandler(admin.refreshPayouts));
+
 // ─── Users ──────────────────────────────────────────────────────────────────
 
 adminRouter.get('/users', validate(userListQuerySchema, 'query'), asyncHandler(admin.listUsers));
@@ -136,6 +141,16 @@ adminRouter.patch(
   write,
   validate(updateSubscriptionSchema),
   asyncHandler(billing.updateSubscription),
+);
+
+// The Stripe side of a subscription: a Checkout link to start paying, the
+// portal to manage it, and the link emailed straight to the coordinators.
+adminRouter.post('/billing/subscriptions/:id/checkout', write, asyncHandler(billing.createCheckout));
+adminRouter.post('/billing/subscriptions/:id/portal', write, asyncHandler(billing.createPortal));
+adminRouter.post(
+  '/billing/subscriptions/:id/send-checkout',
+  write,
+  asyncHandler(billing.sendCheckout),
 );
 
 adminRouter.get(

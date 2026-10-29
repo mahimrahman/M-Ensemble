@@ -12,6 +12,7 @@
  */
 
 import type { DateString, ID, Mosque, PostType, Timestamp, User } from './types';
+import type { CollectionMethod, PayoutAccountStatus, Province } from './payments';
 
 /** Every amount in this file is CAD unless the row says otherwise. */
 export type Currency = 'CAD' | 'USD';
@@ -271,8 +272,16 @@ export interface Subscription {
   cancelledAt?: Timestamp;
   /** Free text: "sponsor-funded pilot", "waived until they have 50 members". */
   note?: string;
-  /** Reserved for the processor's id when one is connected. */
+  /** The Stripe subscription id, once the mosque has paid through Checkout. */
   externalRef?: string;
+  /** `stripe` once a Checkout link has been paid; `manual` for bank transfer. */
+  collection?: CollectionMethod;
+  /** The Stripe customer for this mosque. Created on the first Checkout link. */
+  stripeCustomerId?: string;
+  /** Status of the latest Stripe invoice: `paid`, `open`, `uncollectible`, `void`. */
+  lastStripeInvoiceStatus?: string;
+  /** Province used for tax on this mosque's invoices. Defaults to QC. */
+  province?: Province;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -288,7 +297,10 @@ export interface CreateSubscriptionInput {
 }
 
 export type UpdateSubscriptionInput = Partial<
-  Pick<Subscription, 'status' | 'interval' | 'priceCents' | 'note' | 'currentPeriodEnd'>
+  Pick<
+    Subscription,
+    'status' | 'interval' | 'priceCents' | 'note' | 'currentPeriodEnd' | 'collection' | 'province'
+  >
 >;
 
 // ─── Invoices & payments ────────────────────────────────────────────────────
@@ -754,6 +766,8 @@ export interface MosqueDetail {
   mosque: Mosque & { city?: string; timezone?: string };
   summary: MosqueSummary;
   subscription: Subscription | null;
+  /** The mosque's Stripe Connect account, or null before onboarding starts. */
+  payouts: PayoutAccountStatus | null;
   coordinators: { userId: ID; name: string; email: string; joinedAt: Timestamp }[];
   invoices: Invoice[];
   donations: Donation[];

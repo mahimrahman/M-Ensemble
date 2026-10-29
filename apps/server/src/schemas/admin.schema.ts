@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isOurUploadUrl } from '../services/upload.service.js';
 
 /**
  * Request shapes for the platform tier.
@@ -29,11 +30,9 @@ export const pageQuerySchema = z.object({
  * Every one of these is rendered by a client we do not control — a partner
  * logo in the console, a campaign creative in twenty thousand feeds — so a
  * free-form URL here would let one operator point every reader's app at a host
- * they own. Same rule and same regex as `imageUrl` in `post.schema.ts`.
+ * they own. Same rule and same check as `imageUrl` in `post.schema.ts`.
  */
-const storedImage = z
-  .string()
-  .regex(/^\/uploads\/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$/, 'Unrecognised image path.');
+const storedImage = z.string().refine(isOurUploadUrl, 'Unrecognised image path.');
 
 /** `?flag=true` off a query string, where everything arrives as a string. */
 const boolish = z
@@ -135,6 +134,13 @@ export const updateSubscriptionSchema = z
     priceCents: POSITIVE_CENTS.optional(),
     note: z.string().max(500).optional(),
     currentPeriodEnd: ISO.optional(),
+    // Flipping to `manual` is how an operator takes a mosque off Stripe
+    // without touching the Stripe subscription itself — cancel that in the
+    // portal. Province only matters for the manual path's tax lines.
+    collection: z.enum(['stripe', 'manual']).optional(),
+    province: z
+      .enum(['AB', 'BC', 'MB', 'NB', 'NL', 'NS', 'NT', 'NU', 'ON', 'PE', 'QC', 'SK', 'YT'])
+      .optional(),
   })
   .strict();
 

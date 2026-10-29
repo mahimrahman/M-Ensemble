@@ -69,6 +69,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: t.feed,
+          tabBarAccessibilityLabel: t.feed,
           tabBarIcon: ({ focused }) => (
             <TabItem Icon={LayoutGrid} label={t.feed} focused={focused} />
           ),
@@ -78,6 +79,7 @@ export default function TabLayout() {
         name="mosques"
         options={{
           title: t.mosques,
+          tabBarAccessibilityLabel: t.mosques,
           tabBarIcon: ({ focused }) => (
             <TabItem Icon={Landmark} label={t.mosques} focused={focused} />
           ),
@@ -87,6 +89,7 @@ export default function TabLayout() {
         name="my-stuff"
         options={{
           title: t.myStuff,
+          tabBarAccessibilityLabel: t.myStuff,
           tabBarIcon: ({ focused }) => (
             <TabItem Icon={CalendarCheck} label={t.myStuff} focused={focused} />
           ),
@@ -96,6 +99,7 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: t.profile,
+          tabBarAccessibilityLabel: t.profile,
           tabBarIcon: ({ focused }) => (
             <TabItem Icon={CircleUser} label={t.profile} focused={focused} />
           ),

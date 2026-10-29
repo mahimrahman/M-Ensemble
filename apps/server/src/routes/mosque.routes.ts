@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import {
+  createDonationCheckout,
   followMosque,
   getDashboard,
   getIqamah,
@@ -19,6 +20,7 @@ import {
 } from '../controllers/mosque.controller.js';
 import {
   broadcastSchema,
+  donationCheckoutSchema,
   iqamahConfigSchema,
   memberRoleSchema,
   updateMosqueSchema,
@@ -45,6 +47,14 @@ mosqueRouter.patch(
   admin,
   validate(updateMosqueSchema, 'body'),
   asyncHandler(updateMosque),
+);
+
+// Any member may give. The mosque's side of the gate — has it finished Stripe
+// onboarding — is checked in the service, not here.
+mosqueRouter.post(
+  '/:id/donations/checkout',
+  validate(donationCheckoutSchema),
+  asyncHandler(createDonationCheckout),
 );
 
 mosqueRouter.post('/:id/follow', asyncHandler(followMosque));

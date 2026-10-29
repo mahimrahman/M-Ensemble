@@ -25,6 +25,8 @@ import type {
   SignupInput,
   User,
 } from './types';
+import type { AccountExport, LegalDocument, LegalDocumentKind } from './account';
+import type { CheckoutLink, CreateDonationCheckoutInput } from './payments';
 
 export interface ApiSuccess<T> {
   ok: true;
@@ -57,6 +59,13 @@ export const API_ERROR = {
   FULL: 'FULL',
   ALREADY_SIGNED_UP: 'ALREADY_SIGNED_UP',
   FORBIDDEN: 'FORBIDDEN',
+  // Added with the production pass. The app shows a specific message for each.
+  RATE_LIMITED: 'RATE_LIMITED',
+  INVALID_TOKEN: 'INVALID_TOKEN',
+  LAST_COORDINATOR: 'LAST_COORDINATOR',
+  DONATIONS_DISABLED: 'DONATIONS_DISABLED',
+  STRIPE_UNAVAILABLE: 'STRIPE_UNAVAILABLE',
+  UPLOAD_QUOTA: 'UPLOAD_QUOTA',
 } as const;
 
 export type ApiErrorCode = (typeof API_ERROR)[keyof typeof API_ERROR];
@@ -299,4 +308,32 @@ export interface MEnsembleApi {
   broadcast(mosqueId: ID, input: BroadcastInput): Promise<BroadcastResult>;
 
   registerPushToken(token: string): Promise<void>;
+
+  // --- account lifecycle (see ./account) ---
+  /** `POST /auth/forgot-password`. Resolves either way; never says if the email exists. */
+  forgotPassword(email: string): Promise<void>;
+  /** `POST /auth/reset-password`. */
+  resetPassword(token: string, password: string): Promise<void>;
+  /** `POST /auth/change-password`, signed in. Every other session is revoked. */
+  changePassword(currentPassword: string, newPassword: string): Promise<void>;
+  /** `POST /auth/verify-email`. Resolves to the refreshed user. */
+  verifyEmail(token: string): Promise<User>;
+  /** `POST /auth/resend-verification`, signed in. */
+  resendVerification(): Promise<void>;
+  /** `POST /auth/logout`, signed in. Revokes this token on the server. */
+  logout(): Promise<void>;
+  /** `DELETE /me`. Needs the password again. The token is dead afterwards. */
+  deleteAccount(password: string): Promise<void>;
+  /** `GET /me/export`. */
+  exportAccount(): Promise<AccountExport>;
+  /** `GET /legal/:kind?lang=`. Open — works before sign-in. */
+  getLegalDocument(kind: LegalDocumentKind, lang: 'en' | 'fr'): Promise<LegalDocument>;
+
+  // --- donations (see ./payments) ---
+  /**
+   * `POST /mosques/:id/donations/checkout`. Resolves to a Stripe Checkout URL
+   * the app opens in the system browser — never an in-app payment sheet, which
+   * is what keeps it inside Apple's rules for gifts to third parties.
+   */
+  createDonationCheckout(mosqueId: ID, input: CreateDonationCheckoutInput): Promise<CheckoutLink>;
 }

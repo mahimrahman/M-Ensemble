@@ -1,0 +1,75 @@
+# Production on a single VPS: API + console + Caddy for TLS.
+#
+#   docker compose -f docker-compose.prod.yml pull
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# **No Mongo here.** The database is MongoDB Atlas (ca-central-1, Montréal) —
+# continuous backup, point-in-time restore and a Canadian region are things a
+# container on one disk cannot offer, and Law 25 cares where the data sits.
+# `MONGODB_URI` in the env file points at the Atlas cluster.
+#
+# Images come from GHCR, pushed by .github/workflows/deploy.yml on a `v*` tag.
+# `IMAGE_TAG` selects the release; rolling back is setting it to the previous
+# tag and running `up -d` again (see infra/README.md).
+#
+# Env files are NOT in the repo. `api.env`, next to this file on the host
+# (/srv/m-ensemble/api.env), is the filled-in copy of apps/server/.env.example;
+# its secrets come from the password manager.
+
+name: m-ensemble
+
+x-restart: &restart
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options: { max-size: '20m', max-file: '5' }
+
+services:
+  api:
+    <<: *restart
+    image: ghcr.io/${GHCR_OWNER:?set GHCR_OWNER}/m-ensemble-api:${IMAGE_TAG:-latest}
+    env_file:
+      - ./api.env
+    environment:
+      NODE_ENV: production
+      PORT: '4000'
+    expose:
+      - '4000'
+    # The image's own HEALTHCHECK hits /api/health; compose waits on it.
+
+  admin:
+    <<: *restart
+    image: ghcr.io/${GHCR_OWNER:?set GHCR_OWNER}/m-ensemble-admin:${IMAGE_TAG:-latest}
+    environment:
+      API_UPSTREAM: http://api:4000
+    expose:
+      - '80'
+    depends_on:
+      api:
+        condition: service_healthy
+
+  # TLS termination and the two hostnames. Caddy obtains and renews Let's
+  # Encrypt certificates on its own; the only configuration is infra/Caddyfile
+  # and the two DNS records pointing at this host.
+  caddy:
+    <<: *restart
+    image: caddy:2-alpine
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    environment:
+      API_HOST: ${API_HOST:?e.g. api.mensemble.ca}
+      ADMIN_HOST: ${ADMIN_HOST:?e.g. admin.mensemble.ca}
+      ACME_EMAIL: ${ACME_EMAIL:?for Let's Encrypt expiry notices}
+    volumes:
+      - ./infra/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - api
+      - admin
+
+volumes:
+  caddy-data:
+  caddy-config:

@@ -6,8 +6,13 @@
  */
 
 import type {
+  AccountExport,
   AuthResult,
   BroadcastInput,
+  CheckoutLink,
+  CreateDonationCheckoutInput,
+  LegalDocument,
+  LegalDocumentKind,
   BroadcastResult,
   CreatePostInput,
   DateString,
@@ -72,11 +77,28 @@ import { ApiRequestError } from './errors';
  */
 const API_PORT = 4000;
 
+/** Where a store build goes when nothing else said. Matches `app.config.ts`. */
+const PRODUCTION_API_URL = 'https://api.mensemble.app/api';
+
 function resolveBaseUrl(): string {
   // An empty or blank value means "not set" - a commented-out line and a
   // leftover `EXPO_PUBLIC_API_URL=` should behave the same way.
   const fromEnv = process.env.EXPO_PUBLIC_API_URL?.trim();
   if (fromEnv) return fromEnv;
+
+  // A release build has no Metro to derive a host from, and must never guess
+  // a LAN address: an installed app pointed at 192.168.x.x would hang on every
+  // screen for every user. `app.config.ts` bakes the URL into `extra.apiUrl`;
+  // if even that is missing, say so loudly and fall back to production.
+  if (!__DEV__) {
+    const fromConfig = (Constants.expoConfig?.extra as { apiUrl?: string } | undefined)?.apiUrl;
+    if (fromConfig) return fromConfig;
+    console.error(
+      '[api] No API URL in this build: set EXPO_PUBLIC_API_URL (or extra.apiUrl in app.config.ts). ' +
+        `Falling back to ${PRODUCTION_API_URL}.`,
+    );
+    return PRODUCTION_API_URL;
+  }
 
   // `expo-constants` knows the host:port Metro is served from, in every form
   // Expo has used for it across SDKs.
@@ -195,7 +217,11 @@ const patch = <T>(path: string, data: unknown) =>
   request<T>(path, { method: 'PATCH', body: JSON.stringify(data) });
 const put = <T>(path: string, data: unknown) =>
   request<T>(path, { method: 'PUT', body: JSON.stringify(data) });
-const del = <T>(path: string) => request<T>(path, { method: 'DELETE' });
+const del = <T>(path: string, data?: unknown) =>
+  request<T>(path, {
+    method: 'DELETE',
+    body: data === undefined ? undefined : JSON.stringify(data),
+  });
 
 /**
  * Turns a stored media path into something an <Image> can load.
@@ -381,4 +407,24 @@ export const httpApi: MEnsembleApi = {
     post<BroadcastResult>(`/mosques/${mosqueId}/notifications`, input),
 
   registerPushToken: (token: string) => post<void>('/me/push-token', { token }),
+
+  // --- account lifecycle ---
+  forgotPassword: (email: string) => post<void>('/auth/forgot-password', { email }),
+  resetPassword: (token: string, password: string) =>
+    post<void>('/auth/reset-password', { token, password }),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    post<void>('/auth/change-password', { currentPassword, newPassword }),
+  verifyEmail: (token: string) => post<User>('/auth/verify-email', { token }),
+  resendVerification: () => post<void>('/auth/resend-verification'),
+  logout: () => post<void>('/auth/logout'),
+  // The password rides in the DELETE body: a stolen unlocked phone must not be
+  // enough to erase an account.
+  deleteAccount: (password: string) => del<void>('/me', { password }),
+  exportAccount: () => get<AccountExport>('/me/export'),
+  getLegalDocument: (kind: LegalDocumentKind, lang: 'en' | 'fr') =>
+    get<LegalDocument>(`/legal/${kind}?lang=${lang}`),
+
+  // --- donations ---
+  createDonationCheckout: (mosqueId: ID, input: CreateDonationCheckoutInput) =>
+    post<CheckoutLink>(`/mosques/${mosqueId}/donations/checkout`, input),
 };

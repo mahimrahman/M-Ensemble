@@ -10,6 +10,7 @@ import { fanOutNewPost } from '../services/push.service.js';
 import { HttpError } from '../middleware/errorHandler.js';
 import { ERROR } from '../utils/errors.js';
 import { newId } from '../utils/ids.js';
+import { logger } from '../utils/logger.js';
 import { ok, okNull } from '../utils/respond.js';
 
 /** `requireAdmin(fromPost)` already loaded and stashed it — don't refetch. */
@@ -52,7 +53,7 @@ export async function createPost(req: Request, res: Response): Promise<void> {
 
   // After the response, never blocking it. A slow Expo call must not make the
   // coordinator's "Post" button feel broken.
-  void fanOutNewPost(post).catch((err) => console.error('[push] fan-out failed', err));
+  void fanOutNewPost(post).catch((err) => logger.error({ err }, '[push] fan-out failed'));
 }
 
 export async function updatePost(req: Request, res: Response): Promise<void> {

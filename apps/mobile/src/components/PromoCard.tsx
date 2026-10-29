@@ -4,6 +4,7 @@ import { ArrowUpRight } from 'lucide-react-native';
 import type { ServedAd } from '@m-ensemble/shared';
 import { reportAdEvent } from '@/api/ads';
 import { resolveMediaUrl } from '@/api/http';
+import { useLang } from '@/i18n';
 import { tap } from '@/lib/haptics';
 import { colors, feedPadding, icon as iconSize, radius, rule, spacing, type } from '@/theme';
 
@@ -22,7 +23,17 @@ import { colors, feedPadding, icon as iconSize, radius, rule, spacing, type } fr
  * more trust than the placement earns.
  */
 export function PromoCard({ ad }: { ad: ServedAd }): React.JSX.Element {
+  const { t } = useLang();
   const counted = useRef(false);
+
+  /**
+   * The disclosure is the app's word, not the server's. Both stores require
+   * paid placements to be labelled as such in the reader's language, and a
+   * campaign saved with an empty or English-only `disclosure` must not slip
+   * through unlabelled. The advertiser's name follows so the reader knows
+   * who paid.
+   */
+  const disclosure = ad.advertiserName ? `${t.sponsored} · ${ad.advertiserName}` : t.sponsored;
 
   /**
    * One impression per card per mount.
@@ -58,11 +69,11 @@ export function PromoCard({ ad }: { ad: ServedAd }): React.JSX.Element {
         style={styles.card}
         onPress={open}
         accessibilityRole="link"
-        accessibilityLabel={`${ad.disclosure}. ${ad.headline}. ${ad.body}`}
+        accessibilityLabel={`${disclosure}. ${ad.headline}. ${ad.body}`}
         accessibilityHint="Opens in your browser"
       >
         <Text style={styles.disclosure} numberOfLines={1}>
-          {ad.disclosure.toUpperCase()}
+          {disclosure.toUpperCase()}
         </Text>
 
         {image ? <Image source={{ uri: image }} style={styles.image} resizeMode="cover" /> : null}

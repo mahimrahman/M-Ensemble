@@ -15,6 +15,7 @@ import {
   type ReactNode,
 } from 'react';
 import { ApiRequestError, api, setAuthToken } from '@/api/client';
+import { setSentryUser } from '@/lib/sentry';
 import type { ID, Membership, SignupInput, User } from '@/types';
 
 const TOKEN_KEY = 'mensemble.token';
@@ -74,7 +75,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Open on the cached session straight away — no spinner on a warm
         // start — then confirm it with the API.
         setAuthToken(token);
-        setUserState(JSON.parse(raw) as User);
+        const cached = JSON.parse(raw) as User;
+        setUserState(cached);
+        setSentryUser(cached._id);
         setNeedsOnboarding(onboarding === 'true');
         setStatus('authenticated');
 
@@ -91,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (isUnauthorized(err)) {
             setAuthToken(null);
             setUserState(null);
+            setSentryUser(null);
             setNeedsOnboarding(false);
             setStatus('unauthenticated');
             await AsyncStorage.multiRemove(SESSION_KEYS);
@@ -131,6 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const persist = useCallback(async (token: string, nextUser: User, onboarding: boolean) => {
     setAuthToken(token);
     setUserState(nextUser);
+    setSentryUser(nextUser._id);
     setNeedsOnboarding(onboarding);
     setStatus('authenticated');
     await AsyncStorage.multiSet([
@@ -157,8 +162,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
+    // Revoke the token server-side first, while we still hold it. A phone with
+    // no signal still signs out locally — the token simply expires on its own.
+    await api.logout().catch(() => {});
     setAuthToken(null);
     setUserState(null);
+    setSentryUser(null);
     setNeedsOnboarding(false);
     setMemberships([]);
     setStatus('unauthenticated');

@@ -85,3 +85,20 @@ export async function updateDonation(req: Request, res: Response): Promise<void>
   const patch = req.body as { status?: DonationStatus; markPaidOut?: boolean; note?: string };
   ok(res, await billing.updateDonation(String(req.params.id), patch, currentUser(req), req));
 }
+
+// ─── Stripe ─────────────────────────────────────────────────────────────────
+
+/** A Checkout link the operator can paste to the mosque. */
+export async function createCheckout(req: Request, res: Response): Promise<void> {
+  ok(res, await billing.createSubscriptionCheckout(String(req.params.id), currentUser(req), req), 201);
+}
+
+/** The Stripe customer portal: card on file, past invoices, cancellation. */
+export async function createPortal(req: Request, res: Response): Promise<void> {
+  ok(res, await billing.createSubscriptionPortal(String(req.params.id), currentUser(req), req), 201);
+}
+
+/** Make the link and email it to the mosque's coordinators in one go. */
+export async function sendCheckout(req: Request, res: Response): Promise<void> {
+  ok(res, await billing.sendSubscriptionCheckout(String(req.params.id), currentUser(req), req), 201);
+}

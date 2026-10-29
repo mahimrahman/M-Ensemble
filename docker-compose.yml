@@ -1,0 +1,57 @@
+# Local development with the API in a container.
+#
+#   cp apps/server/.env.example apps/server/.env   # once; fill in JWT_SECRET
+#   docker compose up --build
+#
+# Mongo and the API only. The admin console runs on the host (`npm run
+# dev:admin`) with Vite's proxy pointed at localhost:4000, and the Expo app
+# talks to the LAN IP the same as always — neither gains anything from a
+# container while someone is editing them.
+#
+# Not for production: see docker-compose.prod.yml, which expects Atlas.
+
+name: m-ensemble
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ['CMD', 'mongosh', '--quiet', '--eval', "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+      args:
+        # Keep devDependencies: NODE_ENV=development pretty-prints logs via
+        # pino-pretty, which the production image deliberately leaves out.
+        NPM_FLAGS: ''
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    env_file:
+      - apps/server/.env
+    environment:
+      # Overrides whatever .env says: inside the compose network Mongo is the
+      # service name, not localhost. Development, so the production checks in
+      # assertProductionConfig stay off and posters go to the volume below.
+      NODE_ENV: development
+      MONGODB_URI: mongodb://mongo:27017/m_ensemble
+      UPLOAD_DIR: /app/apps/server/uploads
+    ports:
+      - '4000:4000'
+    volumes:
+      - uploads:/app/apps/server/uploads
+
+volumes:
+  mongo-data:
+  uploads:

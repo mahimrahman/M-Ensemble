@@ -25,9 +25,10 @@
  *   --no-admin      skip the dashboard
  *   --no-open       don't open a browser
  *   --tunnel        Expo over a tunnel, for a phone not on this Wi-Fi
+ *   --stop          kill this repo's dev processes and exit, starting nothing
  */
 
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -35,6 +36,7 @@ import { dirname, join } from 'node:path';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 const args = new Set(process.argv.slice(2));
+const stopOnly = args.has('--stop');
 const withMobile = !args.has('--no-mobile');
 const withAdmin = !args.has('--no-admin');
 const openBrowser = !args.has('--no-open');
@@ -115,27 +117,179 @@ function start(name, command, extraArgs, env = {}, interactive = false) {
 
 let shuttingDown = false;
 
+// ─── Writing the tree down before it falls ──────────────────────────────────
+
+/**
+ * Every pid we have ever seen underneath one of our children.
+ *
+ * `taskkill /t` walks *live* parent links, and on Windows Ctrl-C is precisely
+ * what breaks that walk. The console delivers CTRL_C_EVENT to every process
+ * attached to it in the same instant, so the `npm` shim in the middle is
+ * usually already gone by the time this process gets its SIGINT — and the
+ * `tsx watch` and Metro processes below it, now reparented onto whatever
+ * inherits orphans, cannot be reached from our pid by any walk at all. They
+ * survive, holding the port and the file watches, and the next `npm run dev`
+ * starts a second set behind the first.
+ *
+ * So we write the tree down while it is still standing. One process listing
+ * every few seconds buys a shutdown that does not depend on links that Ctrl-C
+ * has already cut.
+ */
+const descendants = new Set();
+let treeTimer = null;
+
+function trackTree() {
+  if (process.platform !== 'win32' || treeTimer) return;
+
+  const tick = () => {
+    if (shuttingDown) return;
+    const roots = new Set(children.map(({ child }) => child.pid).filter(Boolean));
+    if (roots.size === 0) return;
+
+    const ps = spawn(
+      'powershell',
+      [
+        '-NoProfile',
+        '-NonInteractive',
+        '-Command',
+        'Get-CimInstance Win32_Process | ForEach-Object { "$($_.ProcessId) $($_.ParentProcessId)" }',
+      ],
+      { stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true },
+    );
+
+    let out = '';
+    ps.stdout.on('data', (chunk) => {
+      out += chunk;
+    });
+    ps.on('error', () => {});
+    ps.on('close', () => {
+      if (shuttingDown) return;
+      const parentOf = new Map();
+      for (const line of out.split('\n')) {
+        const [pid, ppid] = line.trim().split(/\s+/).map(Number);
+        if (pid) parentOf.set(pid, ppid);
+      }
+      for (const pid of parentOf.keys()) {
+        // Walk up from every process on the machine; anything that reaches one
+        // of ours is ours. The hop cap is only there so a cycle in a stale
+        // listing cannot spin.
+        let cursor = pid;
+        for (let hop = 0; cursor && hop < 40; hop += 1) {
+          if (roots.has(cursor)) {
+            descendants.add(pid);
+            break;
+          }
+          cursor = parentOf.get(cursor);
+        }
+      }
+    });
+  };
+
+  tick();
+  treeTimer = setInterval(tick, 3000);
+  treeTimer.unref();
+}
+
 function shutdown(code = 0) {
   if (shuttingDown) return;
   shuttingDown = true;
+  if (treeTimer) clearInterval(treeTimer);
 
-  for (const { child } of children) {
-    if (child.exitCode !== null) continue;
-    if (process.platform === 'win32') {
-      // Metro and tsx watch spawn their own children; SIGTERM on Windows leaves
-      // those orphaned and holding the ports, so kill the tree by pid.
-      spawn('taskkill', ['/pid', String(child.pid), '/f', '/t'], { stdio: 'ignore' });
-    } else {
-      child.kill('SIGTERM');
+  if (process.platform === 'win32') {
+    // The tree first, for whatever of it is still linked...
+    for (const { child } of children) {
+      if (child.pid) {
+        spawnSync('taskkill', ['/pid', String(child.pid), '/f', '/t'], { stdio: 'ignore' });
+      }
+    }
+    // ...then everything we wrote down, for the parts the walk could not reach.
+    const strays = [...descendants].filter((pid) => pid !== process.pid);
+    if (strays.length) {
+      const pidArgs = strays.flatMap((pid) => ['/pid', String(pid)]);
+      spawnSync('taskkill', [...pidArgs, '/f'], { stdio: 'ignore' });
+    }
+    // spawnSync rather than spawn: the old code fired taskkill asynchronously
+    // and then exited on a 600ms timer, which is a race it can lose — and when
+    // it lost, the orphans it was trying to kill outlived the terminal.
+  } else {
+    for (const { child } of children) {
+      if (child.exitCode === null) child.kill('SIGTERM');
     }
   }
 
-  // Give them a moment to go quietly before the process leaves.
-  setTimeout(() => process.exit(code), 600).unref();
+  process.exit(code);
 }
 
 process.on('SIGINT', () => shutdown(0));
 process.on('SIGTERM', () => shutdown(0));
+
+// ─── Stopping strays from a cold start ──────────────────────────────────────
+
+/**
+ * `npm run dev:stop` — kill this repo's dev processes without starting any.
+ *
+ * For the ones that got away before this file knew how to hold on to them, and
+ * for the times a terminal is closed rather than interrupted, which sends no
+ * signal at all.
+ *
+ * The match is deliberately narrow. Searching command lines for the repo path
+ * alone also finds the editor and the shells that happen to have it open, so a
+ * process has to either name one of our three workspaces or sit under this
+ * repo *and* be one of the runners we actually start. Nothing else is ours.
+ */
+function stopStrays() {
+  if (process.platform !== 'win32') {
+    console.log(paint('dim', '[dev] --stop is implemented for Windows only.'));
+    return;
+  }
+
+  const root = ROOT.replace(/'/g, "''");
+  const script = [
+    `$root = '${root}'`,
+    `$mine = Get-CimInstance Win32_Process | Where-Object {`,
+    `  $c = $_.CommandLine`,
+    // $PID is this query's own shell. Its command line *is* the script below,
+    // which contains the very strings the script searches for, so without this
+    // the sweep matches and kills itself. Nothing we start is a PowerShell, so
+    // the whole name is excluded rather than just this one process.
+    `  $_.ProcessId -ne ${process.pid} -and $_.ProcessId -ne $PID -and`,
+    `  $_.Name -notlike 'powershell*' -and $_.Name -notlike 'pwsh*' -and $c -and (`,
+    `    $c -like '*@m-ensemble/*' -or (`,
+    `      $c -like "*$root*" -and (`,
+    `        $c -like '*tsx*' -or $c -like '*vite*' -or`,
+    `        $c -like '*expo*' -or $c -like '*metro*' -or $c -like '*esbuild*'`,
+    `      )`,
+    `    )`,
+    `  )`,
+    `}`,
+    `foreach ($p in $mine) {`,
+    `  "$($p.ProcessId) $($p.Name)"`,
+    `  Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue`,
+    `}`,
+  ].join('\n');
+
+  const result = spawnSync('powershell', ['-NoProfile', '-NonInteractive', '-Command', script], {
+    encoding: 'utf8',
+    windowsHide: true,
+  });
+
+  const killed = (result.stdout ?? '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (killed.length === 0) {
+    console.log(paint('dim', '[dev] nothing of this repo was running.'));
+    return;
+  }
+  for (const line of killed) console.log(paint('dim', `[dev] stopped ${line}`));
+  console.log(paint('dim', `[dev] ${killed.length} process(es) stopped.`));
+}
+
+if (stopOnly) {
+  stopStrays();
+  process.exit(0);
+}
 
 // ─── Waiting for the API ────────────────────────────────────────────────────
 
@@ -175,6 +329,7 @@ function open(url) {
 
 console.log(paint('dim', '[dev] starting the API…'));
 start('api', 'npm', ['run', 'dev', '--workspace', '@m-ensemble/server']);
+trackTree();
 
 const ready = await waitForApi();
 

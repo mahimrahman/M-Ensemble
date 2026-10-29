@@ -33,13 +33,19 @@ describe('auth', () => {
       .set('Authorization', `Bearer ${await tokenFor(YUSUF)}`)
       .expect(200);
 
-    expect(Object.keys(me.body.data).sort()).toEqual(['_id', 'email', 'interests', 'name']);
+    expect(Object.keys(me.body.data).sort()).toEqual([
+      '_id',
+      'email',
+      'emailVerified',
+      'interests',
+      'name',
+    ]);
   });
 
   it('rejects a duplicate email with EMAIL_TAKEN', async () => {
     const res = await api
       .post('/api/auth/signup')
-      .send({ email: YUSUF, password: 'mensemble', name: 'Impostor' })
+      .send({ email: YUSUF, password: 'impostor-syndrome', name: 'Impostor' })
       .expect(409);
 
     expect(res.body.error.code).toBe('EMAIL_TAKEN');
@@ -60,11 +66,24 @@ describe('auth', () => {
     expect(missing.body.error).toEqual(wrong.body.error);
   });
 
-  it('accepts a 6-character password, because the frozen signup screen does', async () => {
-    await api
+  it('refuses a short or common password at signup, with a message that says why', async () => {
+    const short = await api
       .post('/api/auth/signup')
       .send({ email: 'six@example.com', password: 'abcdef', name: 'Six' })
-      .expect(201);
+      .expect(400);
+    expect(short.body.error.code).toBe('VALIDATION_ERROR');
+    expect(JSON.stringify(short.body.error.details)).toMatch(/at least 8/);
+
+    const common = await api
+      .post('/api/auth/signup')
+      .send({ email: 'common@example.com', password: 'Password123', name: 'Common' })
+      .expect(400);
+    expect(JSON.stringify(common.body.error.details)).toMatch(/too easy to guess/);
+  });
+
+  it('still signs in an account whose stored password predates the policy', async () => {
+    // The demo coordinator's seeded password is six digits.
+    await api.post('/api/auth/login').send({ email: AMINA, password: '123456' }).expect(200);
   });
 
   // The app signs out on status 401 alone. A 403 here would strand every screen

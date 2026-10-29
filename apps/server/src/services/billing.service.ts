@@ -1,6 +1,9 @@
 import type { Request } from 'express';
+import type Stripe from 'stripe';
 import type {
   BillingSummary,
+  CheckoutLink,
+  CreateDonationCheckoutInput,
   CreateDonationInput,
   CreateInvoiceInput,
   CreateSubscriptionInput,
@@ -8,28 +11,38 @@ import type {
   DonationStatus,
   Invoice,
   InvoiceKind,
+  InvoiceLine,
   InvoiceStatus,
   PageQuery,
   PageResult,
   Payment,
+  PayoutAccountStatus,
   RecordPaymentInput,
   RevenuePoint,
   Subscription,
+  SubscriptionStatus,
   UpdateSubscriptionInput,
 } from '@m-ensemble/shared';
-import { DonationModel } from '../models/Donation.js';
+import { DonationModel, type DonationDocument } from '../models/Donation.js';
 import { InvoiceModel, type InvoiceDocument } from '../models/Invoice.js';
 import { PaymentModel } from '../models/Payment.js';
-import { SubscriptionModel } from '../models/Subscription.js';
-import { MosqueModel } from '../models/Mosque.js';
+import { SubscriptionModel, type SubscriptionDocument } from '../models/Subscription.js';
+import { MosqueModel, type MosqueDocument } from '../models/Mosque.js';
+import { MembershipModel } from '../models/Membership.js';
+import { PostModel } from '../models/Post.js';
+import { UserModel, type UserDocument } from '../models/User.js';
 import { AdvertiserModel } from '../models/Advertiser.js';
+import { StripeEventModel } from '../models/StripeEvent.js';
 import { nextSequence } from '../models/Counter.js';
-import type { UserDocument } from '../models/User.js';
-import { monthlyValueCents, platformFeeCents, standardPriceCents } from '../shared.js';
+import { formatMoney, monthlyValueCents, platformFeeCents, standardPriceCents } from '../shared.js';
 import * as audit from './audit.service.js';
+import { apiUrl, renderEmail, sendEmail, webUrl } from './email.service.js';
+import { requireStripe } from './stripe.service.js';
+import { env } from '../config/env.js';
 import { HttpError } from '../middleware/errorHandler.js';
-import { ERROR } from '../utils/errors.js';
+import { ERROR, isDuplicateKey } from '../utils/errors.js';
 import { newId } from '../utils/ids.js';
+import { logger } from '../utils/logger.js';
 import { asContract } from '../utils/serialize.js';
 import { DAY_MS } from '../utils/time.js';
 import { pageResult, resolvePage, searchRegex, sortSpec } from '../utils/paging.js';
@@ -44,11 +57,12 @@ import { pageResult, resolvePage, searchRegex, sortSpec } from '../utils/paging.
  *     with the campaign itself in `campaign.service`).
  *   - **Donations** — a member gives to a mosque through us, and we keep a fee.
  *
- * **Nothing here charges anybody.** No processor is connected: invoices are
- * issued, payments are recorded by hand, and a status moves because a super
- * admin moved it. That is a deliberate first pass — the shapes are the ones a
- * processor would write into, so connecting one later is new code at the edges
- * rather than a migration through the middle.
+ * Two ways money moves. The **manual** path is the original one: invoices are
+ * issued, payments recorded by hand, and a status moves because a super admin
+ * moved it. The **Stripe** path, further down, hands back a Checkout URL and
+ * lets the webhook write the same rows — `Invoice`, `Payment`, `Donation` —
+ * so every report above them reads both the same way. Nothing in the manual
+ * path knows Stripe exists.
  */
 
 // ─── Subscriptions ──────────────────────────────────────────────────────────
@@ -96,7 +110,13 @@ export async function upsertSubscription(
         note: input.note,
         updatedAt: now,
       },
-      $setOnInsert: { _id: newId(), currency: 'CAD', startedAt: now, createdAt: now },
+      $setOnInsert: {
+        _id: newId(),
+        currency: 'CAD',
+        collectionMethod: 'manual',
+        startedAt: now,
+        createdAt: now,
+      },
     },
     { new: true, upsert: true },
   );
@@ -133,6 +153,8 @@ export async function updateSubscription(
   if (patch.priceCents !== undefined) sub.priceCents = patch.priceCents;
   if (patch.note !== undefined) sub.note = patch.note;
   if (patch.currentPeriodEnd !== undefined) sub.currentPeriodEnd = new Date(patch.currentPeriodEnd);
+  if (patch.collection !== undefined) sub.collectionMethod = patch.collection;
+  if (patch.province !== undefined) sub.province = patch.province;
   if (patch.status !== undefined) {
     sub.status = patch.status;
     // Cancelling stamps the date; un-cancelling clears it, so a mosque that
@@ -168,6 +190,39 @@ async function mintInvoiceNumber(): Promise<string> {
   const year = new Date().getFullYear();
   const seq = await nextSequence(`invoice:${year}`);
   return `INV-${year}-${String(seq).padStart(4, '0')}`;
+}
+
+/** Everything an invoice row needs except its number, which is minted here. */
+interface InvoiceDraft {
+  kind: InvoiceKind;
+  mosqueId?: string;
+  advertiserId?: string;
+  sourceId?: string;
+  status: InvoiceStatus;
+  currency: string;
+  lines: InvoiceLine[];
+  subtotalCents: number;
+  taxCents: number;
+  totalCents: number;
+  paidCents: number;
+  issuedAt: Date;
+  dueAt: Date;
+  paidAt?: Date;
+  note?: string;
+  createdBy: string;
+}
+
+/** The one place an invoice row is written, by hand or by the webhook. */
+async function insertInvoice(draft: InvoiceDraft): Promise<InvoiceDocument> {
+  const now = new Date();
+  return InvoiceModel.create({
+    _id: newId(),
+    number: await mintInvoiceNumber(),
+    ...draft,
+    dueCents: Math.max(0, draft.totalCents - draft.paidCents),
+    createdAt: now,
+    updatedAt: now,
+  });
 }
 
 const INVOICE_SORTABLE = ['issuedAt', 'dueAt', 'totalCents', 'dueCents', 'number'] as const;
@@ -265,9 +320,7 @@ export async function createInvoice(
   const totalCents = subtotalCents + taxCents;
 
   const now = new Date();
-  const invoice = await InvoiceModel.create({
-    _id: newId(),
-    number: await mintInvoiceNumber(),
+  const invoice = await insertInvoice({
     kind: input.kind,
     mosqueId: input.mosqueId,
     advertiserId: input.advertiserId,
@@ -279,13 +332,10 @@ export async function createInvoice(
     taxCents,
     totalCents,
     paidCents: 0,
-    dueCents: totalCents,
     issuedAt: now,
     dueAt: new Date(now.getTime() + (input.dueInDays ?? 30) * DAY_MS),
     note: input.note,
     createdBy: actor._id,
-    createdAt: now,
-    updatedAt: now,
   });
 
   await audit.record(
@@ -559,6 +609,820 @@ export async function updateDonation(
     req,
   );
   return asContract<Donation>(donation);
+}
+
+// ─── Stripe: shared pieces ──────────────────────────────────────────────────
+
+/**
+ * Everything from here down talks to Stripe. The shape is always the same:
+ * we build a hosted page and hand back its URL, and the webhook (bottom of the
+ * file) writes the rows when Stripe tells us what happened. Nothing is marked
+ * paid because a browser came back to a success page — only the webhook moves
+ * money state, because only the webhook is signed.
+ */
+
+/** `recordedBy` / `createdBy` for rows the webhook writes. Not a user id. */
+const STRIPE_ACTOR = 'stripe';
+
+/** The console's origin, for Connect redirects. Falls back to the web site. */
+function adminUrl(path: string): string {
+  const base = env.PUBLIC_ADMIN_URL ?? webUrl();
+  return `${base.replace(/\/$/, '')}${path}`;
+}
+
+function unixToDate(seconds: number | null | undefined): Date | undefined {
+  return typeof seconds === 'number' ? new Date(seconds * 1000) : undefined;
+}
+
+function linkFrom(page: { url: string | null; expires_at?: number | null }): CheckoutLink {
+  if (!page.url) throw new HttpError(502, ERROR.INTERNAL_ERROR, 'Stripe returned no URL.');
+  return { url: page.url, expiresAt: unixToDate(page.expires_at)?.toISOString() };
+}
+
+function stripeId(ref: string | { id: string } | null | undefined): string | undefined {
+  if (!ref) return undefined;
+  return typeof ref === 'string' ? ref : ref.id;
+}
+
+/** The people who run a mosque, first-appointed first. */
+async function coordinatorsOf(mosqueId: string): Promise<UserDocument[]> {
+  const memberships = await MembershipModel.find({ mosqueId, role: 'admin' }).sort({ createdAt: 1 });
+  const order = new Map(memberships.map((m, i) => [m.userId, i]));
+  const users = await UserModel.find({ _id: { $in: [...order.keys()] } });
+  return users.sort((a, b) => (order.get(a._id) ?? 0) - (order.get(b._id) ?? 0));
+}
+
+async function loadSubscription(
+  id: string,
+): Promise<{ sub: SubscriptionDocument; mosque: MosqueDocument }> {
+  const sub = await SubscriptionModel.findById(id);
+  if (!sub) throw new HttpError(404, ERROR.NOT_FOUND, 'No such subscription.');
+  const mosque = await MosqueModel.findById(sub.mosqueId);
+  if (!mosque) throw new HttpError(404, ERROR.NOT_FOUND, 'No such mosque.');
+  return { sub, mosque };
+}
+
+// ─── Stripe: subscription checkout ──────────────────────────────────────────
+
+/**
+ * One Stripe customer per mosque, created the first time a link is made. The
+ * email is the first coordinator's — Stripe sends its own receipts there, and
+ * it is who the portal link should reach.
+ */
+async function ensureStripeCustomer(
+  sub: SubscriptionDocument,
+  mosque: MosqueDocument,
+): Promise<string> {
+  if (sub.stripeCustomerId) return sub.stripeCustomerId;
+
+  const [first] = await coordinatorsOf(mosque._id);
+  const customer = await requireStripe().customers.create({
+    name: mosque.name,
+    email: first?.email,
+    metadata: { mosqueId: mosque._id, subscriptionId: sub._id },
+  });
+
+  sub.stripeCustomerId = customer.id;
+  sub.updatedAt = new Date();
+  await sub.save();
+  return customer.id;
+}
+
+/**
+ * A Checkout page that starts the mosque's Stripe subscription at the agreed
+ * price. The price is sent inline (`price_data`) rather than as a catalogue
+ * Price: every mosque is on its own number, and keeping a Stripe Price per
+ * mosque in sync with `priceCents` would be a second source of truth.
+ */
+export async function createSubscriptionCheckout(
+  id: string,
+  actor: UserDocument,
+  req?: Request,
+): Promise<CheckoutLink> {
+  const { sub, mosque } = await loadSubscription(id);
+  if (sub.priceCents <= 0) {
+    throw new HttpError(400, ERROR.VALIDATION_ERROR, 'This mosque is not billed.');
+  }
+
+  const stripe = requireStripe();
+  const customer = await ensureStripeCustomer(sub, mosque);
+
+  // Checkout refuses a trial_end less than 48 hours out. A trial about to end
+  // simply bills now, which is what the mosque was told would happen anyway.
+  const trialEndsAt = sub.trialEndsAt?.getTime();
+  const trialEnd =
+    trialEndsAt && trialEndsAt > Date.now() + 2 * DAY_MS ? Math.floor(trialEndsAt / 1000) : undefined;
+
+  // Stripe Tax when it is on; our fixed rate ids when it is not. Never both —
+  // Stripe rejects a session that specifies tax two ways.
+  const taxRateIds = env.STRIPE_AUTOMATIC_TAX
+    ? []
+    : (env.STRIPE_TAX_RATE_IDS ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+
+  const session = await stripe.checkout.sessions.create({
+    mode: 'subscription',
+    customer,
+    line_items: [
+      {
+        price_data: {
+          currency: 'cad',
+          unit_amount: sub.priceCents,
+          recurring: { interval: sub.interval === 'yearly' ? 'year' : 'month' },
+          product_data: { name: `M'Ensemble — ${mosque.name}` },
+        },
+        quantity: 1,
+        ...(taxRateIds.length ? { tax_rates: taxRateIds } : {}),
+      },
+    ],
+    automatic_tax: { enabled: env.STRIPE_AUTOMATIC_TAX },
+    ...(env.STRIPE_AUTOMATIC_TAX ? { customer_update: { address: 'auto' } } : {}),
+    subscription_data: {
+      metadata: { mosqueId: mosque._id, subscriptionId: sub._id },
+      ...(trialEnd ? { trial_end: trialEnd } : {}),
+    },
+    success_url: webUrl('/billing/success?session_id={CHECKOUT_SESSION_ID}'),
+    cancel_url: webUrl('/billing/cancelled'),
+    metadata: { kind: 'subscription', mosqueId: mosque._id, subscriptionId: sub._id },
+  });
+
+  await audit.record(
+    actor,
+    {
+      action: 'subscription.checkout_link',
+      targetType: 'subscription',
+      targetId: sub._id,
+      summary: `Checkout link for ${mosque.name} at ${formatMoney(sub.priceCents)}/${sub.interval === 'yearly' ? 'yr' : 'mo'}`,
+      meta: { mosqueId: mosque._id, sessionId: session.id, customer },
+    },
+    req,
+  );
+
+  return linkFrom(session);
+}
+
+/** Stripe's customer portal — card on file, invoices, cancel. */
+export async function createSubscriptionPortal(
+  id: string,
+  actor: UserDocument,
+  req?: Request,
+): Promise<CheckoutLink> {
+  const { sub, mosque } = await loadSubscription(id);
+  if (!sub.stripeCustomerId) {
+    throw new HttpError(
+      409,
+      ERROR.CONFLICT,
+      'This mosque has no Stripe customer yet — send a checkout link first.',
+    );
+  }
+
+  const session = await requireStripe().billingPortal.sessions.create({
+    customer: sub.stripeCustomerId,
+    return_url: webUrl('/billing'),
+  });
+
+  await audit.record(
+    actor,
+    {
+      action: 'subscription.portal_link',
+      targetType: 'subscription',
+      targetId: sub._id,
+      summary: `Portal link for ${mosque.name}`,
+      meta: { mosqueId: mosque._id },
+    },
+    req,
+  );
+
+  return linkFrom(session);
+}
+
+/** Makes the link and mails it to every coordinator of the mosque. */
+export async function sendSubscriptionCheckout(
+  id: string,
+  actor: UserDocument,
+  req?: Request,
+): Promise<{ sent: number; url: string }> {
+  const link = await createSubscriptionCheckout(id, actor, req);
+  const { sub, mosque } = await loadSubscription(id);
+  const coordinators = await coordinatorsOf(mosque._id);
+
+  const price = `${formatMoney(sub.priceCents)} CAD / ${sub.interval === 'yearly' ? 'an' : 'mois'}`;
+  const priceEn = `${formatMoney(sub.priceCents)} CAD / ${sub.interval === 'yearly' ? 'year' : 'month'}`;
+  const body = renderEmail(
+    `${mosque.name} — abonnement M’Ensemble / M’Ensemble subscription`,
+    [
+      `Bonjour,`,
+      `Voici le lien pour activer l’abonnement M’Ensemble de ${mosque.name} (${price}, taxes en sus). Le paiement se fait sur la page sécurisée de Stripe; nous ne voyons jamais votre carte.`,
+      { button: 'Activer l’abonnement', url: link.url },
+      `— English —`,
+      `Here is the link to start ${mosque.name}’s M’Ensemble subscription (${priceEn}, plus tax). Payment happens on Stripe’s secure page; we never see your card.`,
+      { button: 'Start the subscription', url: link.url },
+      `Le lien expire après 24 heures. / The link expires after 24 hours.`,
+    ],
+    'fr',
+  );
+
+  let sent = 0;
+  for (const user of coordinators) {
+    const ok = await sendEmail({
+      to: user.email,
+      subject: `${mosque.name} — abonnement M’Ensemble / subscription link`,
+      ...body,
+    });
+    if (ok) sent += 1;
+  }
+
+  await audit.record(
+    actor,
+    {
+      action: 'subscription.checkout_sent',
+      targetType: 'subscription',
+      targetId: sub._id,
+      summary: `Emailed checkout link for ${mosque.name} to ${sent} coordinator${sent === 1 ? '' : 's'}`,
+      meta: { mosqueId: mosque._id, recipients: coordinators.map((u) => u.email) },
+    },
+    req,
+  );
+
+  return { sent, url: link.url };
+}
+
+// ─── Stripe Connect: mosque payouts ─────────────────────────────────────────
+
+/** What the console shows about a mosque's payout account. */
+export function payoutStatus(mosque: MosqueDocument): PayoutAccountStatus | null {
+  if (!mosque.stripeAccountId) return null;
+  const p = mosque.payouts;
+  return {
+    stripeAccountId: mosque.stripeAccountId,
+    chargesEnabled: p?.chargesEnabled ?? false,
+    payoutsEnabled: p?.payoutsEnabled ?? false,
+    detailsSubmitted: p?.detailsSubmitted ?? false,
+    requirementsDue: p?.requirementsDue ?? [],
+    updatedAt: (p?.updatedAt ?? new Date()).toISOString(),
+  };
+}
+
+/** Copies the account's capability flags onto the mosque. Caller saves. */
+function applyAccountStatus(mosque: MosqueDocument, account: Stripe.Account): void {
+  mosque.payouts = {
+    chargesEnabled: Boolean(account.charges_enabled),
+    payoutsEnabled: Boolean(account.payouts_enabled),
+    detailsSubmitted: Boolean(account.details_submitted),
+    requirementsDue: account.requirements?.currently_due ?? [],
+    updatedAt: new Date(),
+  };
+}
+
+/**
+ * Start (or resume) a mosque's Connect onboarding.
+ *
+ * An Express account: Stripe hosts the identity and bank forms and carries the
+ * compliance, which is the right trade for a platform this size. The account is
+ * created once; the onboarding link is minted fresh every call because Stripe
+ * expires them in minutes.
+ */
+export async function onboardPayouts(
+  mosqueId: string,
+  actor: UserDocument,
+  req?: Request,
+): Promise<CheckoutLink> {
+  const mosque = await MosqueModel.findById(mosqueId);
+  if (!mosque) throw new HttpError(404, ERROR.NOT_FOUND, 'No such mosque.');
+  const stripe = requireStripe();
+
+  if (!mosque.stripeAccountId) {
+    const account = await stripe.accounts.create({
+      type: 'express',
+      country: env.STRIPE_CONNECT_COUNTRY,
+      business_type: 'non_profit',
+      capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
+      business_profile: {
+        name: mosque.name,
+        ...(mosque.website ? { url: `https://${mosque.website}` } : {}),
+      },
+      metadata: { mosqueId: mosque._id },
+    });
+    mosque.stripeAccountId = account.id;
+    applyAccountStatus(mosque, account);
+    await mosque.save();
+
+    await audit.record(
+      actor,
+      {
+        action: 'mosque.payout_account_created',
+        targetType: 'mosque',
+        targetId: mosque._id,
+        summary: `Created Stripe Connect account for ${mosque.name}`,
+        meta: { stripeAccountId: account.id },
+      },
+      req,
+    );
+  }
+
+  const link = await stripe.accountLinks.create({
+    account: mosque.stripeAccountId,
+    type: 'account_onboarding',
+    refresh_url: adminUrl(`/mosques/${mosque._id}?payouts=refresh`),
+    return_url: adminUrl(`/mosques/${mosque._id}?payouts=return`),
+  });
+
+  await audit.record(
+    actor,
+    {
+      action: 'mosque.payout_onboarding_link',
+      targetType: 'mosque',
+      targetId: mosque._id,
+      summary: `Onboarding link for ${mosque.name}`,
+      meta: { stripeAccountId: mosque.stripeAccountId },
+    },
+    req,
+  );
+
+  return linkFrom(link);
+}
+
+/** Re-read the account from Stripe. For the "did they finish?" button. */
+export async function refreshPayouts(mosqueId: string): Promise<PayoutAccountStatus> {
+  const mosque = await MosqueModel.findById(mosqueId);
+  if (!mosque) throw new HttpError(404, ERROR.NOT_FOUND, 'No such mosque.');
+  if (!mosque.stripeAccountId) {
+    throw new HttpError(409, ERROR.CONFLICT, 'This mosque has not started payout onboarding.');
+  }
+
+  const account = await requireStripe().accounts.retrieve(mosque.stripeAccountId);
+  applyAccountStatus(mosque, account);
+  await mosque.save();
+  return payoutStatus(mosque)!;
+}
+
+// ─── Stripe: donation checkout ──────────────────────────────────────────────
+
+/**
+ * A member's gift, as a destination charge: the card is charged on the
+ * platform, the money is transferred to the mosque's account, and our fee is
+ * held back as `application_fee_amount`. We never hold the balance.
+ *
+ * The `Donation` row is written **before** the session, as `pending`, so a
+ * webhook that beats the response (it can) finds something to settle. The
+ * success and cancel URLs land on this API, not in the app: Checkout refuses
+ * anything but http(s), so a tiny page here hands off to the deep link.
+ */
+export async function createDonationCheckout(
+  mosqueId: string,
+  input: CreateDonationCheckoutInput,
+  donor: UserDocument,
+): Promise<CheckoutLink> {
+  const mosque = await MosqueModel.findById(mosqueId);
+  if (!mosque) throw new HttpError(404, ERROR.NOT_FOUND, 'No such mosque.');
+  if (!mosque.stripeAccountId || !mosque.payouts?.chargesEnabled) {
+    throw new HttpError(409, 'DONATIONS_DISABLED', 'This mosque is not accepting donations yet.');
+  }
+  if (input.postId && !(await PostModel.exists({ _id: input.postId, mosqueId }))) {
+    throw new HttpError(404, ERROR.NOT_FOUND, 'That post is not at this mosque.');
+  }
+
+  const stripe = requireStripe();
+  const feeCents = platformFeeCents(input.amountCents);
+  const message = input.message?.trim() || undefined;
+
+  const donation = await DonationModel.create({
+    _id: newId(),
+    mosqueId,
+    userId: donor._id,
+    postId: input.postId,
+    donorName: donor.name,
+    donorEmail: donor.email,
+    amountCents: input.amountCents,
+    feeCents,
+    netCents: Math.max(0, input.amountCents - feeCents),
+    currency: 'CAD',
+    status: 'pending',
+    method: 'card',
+    message,
+    createdAt: new Date(),
+  });
+
+  // A deep link can be accepted from the app but not given to Stripe, so a
+  // non-http URL falls through to the API's return page, which opens the app.
+  const isWeb = (u?: string): u is string => Boolean(u && /^https?:\/\//i.test(u));
+  const successUrl = isWeb(input.successUrl)
+    ? input.successUrl
+    : apiUrl('/donations/return?status=success&session_id={CHECKOUT_SESSION_ID}');
+  const cancelUrl = isWeb(input.cancelUrl)
+    ? input.cancelUrl
+    : apiUrl('/donations/return?status=cancelled&session_id={CHECKOUT_SESSION_ID}');
+
+  const metadata: Record<string, string> = {
+    kind: 'donation',
+    donationId: donation._id,
+    mosqueId,
+    userId: donor._id,
+    ...(input.postId ? { postId: input.postId } : {}),
+    ...(message ? { message } : {}),
+  };
+
+  let session: Stripe.Checkout.Session;
+  try {
+    session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      customer_email: donor.email,
+      line_items: [
+        {
+          price_data: {
+            currency: 'cad',
+            unit_amount: input.amountCents,
+            product_data: { name: `Donation — ${mosque.name}` },
+          },
+          quantity: 1,
+        },
+      ],
+      payment_intent_data: {
+        application_fee_amount: feeCents,
+        transfer_data: { destination: mosque.stripeAccountId },
+        metadata,
+      },
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      metadata,
+    });
+  } catch (err) {
+    // The row exists and nothing was charged — say so rather than leave a
+    // `pending` that looks like a donor still on Stripe's page.
+    donation.status = 'failed';
+    donation.note = 'Checkout session could not be created.';
+    await donation.save();
+    throw err;
+  }
+
+  donation.stripeCheckoutSessionId = session.id;
+  await donation.save();
+
+  return linkFrom(session);
+}
+
+// ─── Stripe: webhook ────────────────────────────────────────────────────────
+
+/**
+ * Process one verified event. Returns `duplicate` when Stripe has already
+ * delivered it, in which case nothing runs — `StripeEvent._id` is the event
+ * id, and the insert is the lock.
+ *
+ * A handler that throws is **logged and recorded, not surfaced**: the route
+ * answers 200 either way. Stripe retries a non-2xx for three days, and an
+ * event that fails deterministically (a subscription we cannot find) would be
+ * retried forty times to the same end. The `error` on the row is the signal.
+ */
+export async function handleStripeEvent(event: Stripe.Event): Promise<'processed' | 'duplicate'> {
+  try {
+    await StripeEventModel.create({ _id: event.id, type: event.type, receivedAt: new Date() });
+  } catch (err) {
+    if (isDuplicateKey(err)) return 'duplicate';
+    throw err;
+  }
+
+  try {
+    await dispatchStripeEvent(event);
+    await StripeEventModel.updateOne({ _id: event.id }, { $set: { processedAt: new Date() } });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    logger.error({ err, eventId: event.id, type: event.type }, '[stripe] webhook handler failed');
+    await StripeEventModel.updateOne({ _id: event.id }, { $set: { error: message } });
+  }
+  return 'processed';
+}
+
+async function dispatchStripeEvent(event: Stripe.Event): Promise<void> {
+  switch (event.type) {
+    case 'checkout.session.completed':
+      return onCheckoutCompleted(event.data.object);
+    case 'checkout.session.expired':
+      return onCheckoutExpired(event.data.object);
+    case 'invoice.paid':
+      return onInvoicePaid(event.data.object);
+    case 'invoice.payment_failed':
+      return onInvoicePaymentFailed(event.data.object);
+    case 'customer.subscription.updated':
+      return onSubscriptionUpdated(event.data.object);
+    case 'customer.subscription.deleted':
+      return onSubscriptionDeleted(event.data.object);
+    case 'account.updated':
+      return onAccountUpdated(event.data.object);
+    case 'charge.refunded':
+      return onChargeRefunded(event.data.object);
+    default:
+      logger.debug({ type: event.type }, '[stripe] event ignored');
+  }
+}
+
+/** Stripe's subscription statuses, in our four words. Null means "no change". */
+function mapSubscriptionStatus(status: Stripe.Subscription.Status): SubscriptionStatus | null {
+  switch (status) {
+    case 'active':
+      return 'active';
+    case 'trialing':
+      return 'trialing';
+    case 'past_due':
+    case 'unpaid':
+      return 'past_due';
+    case 'canceled':
+    case 'incomplete_expired':
+      return 'cancelled';
+    default:
+      // `incomplete` and `paused` are transitional; the row keeps saying what
+      // it said until Stripe settles on something.
+      return null;
+  }
+}
+
+/** Current period off the first item — where the API keeps it now. */
+function periodOf(sub: Stripe.Subscription): { start?: Date; end?: Date } {
+  const item = sub.items?.data?.[0];
+  return { start: unixToDate(item?.current_period_start), end: unixToDate(item?.current_period_end) };
+}
+
+/**
+ * Our row for a Stripe subscription. Tried three ways because the first
+ * event after Checkout arrives before `externalRef` is set: by the Stripe
+ * subscription id, by the id we put in its metadata, then by customer.
+ */
+async function findSubscription(
+  stripeSubscriptionId: string | undefined,
+  metadata: Stripe.Metadata | null | undefined,
+  customerId: string | undefined,
+): Promise<SubscriptionDocument | null> {
+  if (stripeSubscriptionId) {
+    const byRef = await SubscriptionModel.findOne({ externalRef: stripeSubscriptionId });
+    if (byRef) return byRef;
+  }
+  if (metadata?.subscriptionId) {
+    const byId = await SubscriptionModel.findById(metadata.subscriptionId);
+    if (byId) return byId;
+  }
+  if (customerId) {
+    return SubscriptionModel.findOne({ stripeCustomerId: customerId });
+  }
+  return null;
+}
+
+function applyStripeSubscription(sub: SubscriptionDocument, stripeSub: Stripe.Subscription): void {
+  const status = mapSubscriptionStatus(stripeSub.status);
+  if (status) {
+    sub.status = status;
+    sub.cancelledAt =
+      status === 'cancelled' ? (unixToDate(stripeSub.canceled_at) ?? new Date()) : undefined;
+  }
+  const period = periodOf(stripeSub);
+  if (period.start) sub.currentPeriodStart = period.start;
+  if (period.end) sub.currentPeriodEnd = period.end;
+  sub.trialEndsAt = unixToDate(stripeSub.trial_end) ?? sub.trialEndsAt;
+  sub.externalRef = stripeSub.id;
+  sub.collectionMethod = 'stripe';
+  const customer = stripeId(stripeSub.customer);
+  if (customer) sub.stripeCustomerId = customer;
+  sub.updatedAt = new Date();
+}
+
+async function onCheckoutCompleted(session: Stripe.Checkout.Session): Promise<void> {
+  const kind = session.metadata?.kind;
+
+  if (kind === 'subscription') {
+    const stripeSubId = stripeId(session.subscription);
+    const sub = await findSubscription(stripeSubId, session.metadata, stripeId(session.customer));
+    if (!sub) throw new Error(`No subscription for checkout session ${session.id}`);
+
+    if (stripeSubId) {
+      // Read it back rather than trust the session: status and period live
+      // on the subscription, and the session only carries its id.
+      const stripeSub = await requireStripe().subscriptions.retrieve(stripeSubId);
+      applyStripeSubscription(sub, stripeSub);
+    } else {
+      sub.status = 'active';
+      sub.collectionMethod = 'stripe';
+      sub.updatedAt = new Date();
+    }
+    const customer = stripeId(session.customer);
+    if (customer) sub.stripeCustomerId = customer;
+    await sub.save();
+    return;
+  }
+
+  if (kind === 'donation') {
+    const donation =
+      (await DonationModel.findOne({ stripeCheckoutSessionId: session.id })) ??
+      (session.metadata?.donationId ? await DonationModel.findById(session.metadata.donationId) : null);
+    if (!donation) throw new Error(`No donation for checkout session ${session.id}`);
+
+    // Cards settle synchronously, so `paid` is the normal case. A delayed
+    // method would arrive as `async_payment_succeeded`, which we do not offer.
+    if (session.payment_status !== 'paid') return;
+    if (donation.status === 'settled') return;
+
+    donation.status = 'settled';
+    donation.stripeCheckoutSessionId = session.id;
+    donation.stripePaymentIntentId = stripeId(session.payment_intent);
+    donation.reference = donation.stripePaymentIntentId;
+    await donation.save();
+
+    const mosque = await MosqueModel.findById(donation.mosqueId);
+    const to = donation.donorEmail ?? session.customer_details?.email ?? undefined;
+    if (mosque && to) await emailDonationReceipt(donation, mosque, to);
+    return;
+  }
+
+  logger.warn({ sessionId: session.id, kind }, '[stripe] checkout session of unknown kind');
+}
+
+/** Nobody paid. The `pending` row would otherwise sit there forever. */
+async function onCheckoutExpired(session: Stripe.Checkout.Session): Promise<void> {
+  if (session.metadata?.kind !== 'donation') return;
+  await DonationModel.updateOne(
+    { stripeCheckoutSessionId: session.id, status: 'pending' },
+    { $set: { status: 'failed', note: 'Checkout expired without payment.' } },
+  );
+}
+
+/**
+ * Money arrived for a subscription. Writes the same `Invoice` + `Payment` pair
+ * a super admin would have by hand, so the billing screens, the revenue chart
+ * and the mosque's own invoice list all see it without special cases.
+ */
+async function onInvoicePaid(invoice: Stripe.Invoice): Promise<void> {
+  const details = invoice.parent?.subscription_details;
+  const stripeSubId = stripeId(details?.subscription);
+  if (!stripeSubId) {
+    logger.debug({ invoiceId: invoice.id }, '[stripe] invoice.paid is not for a subscription');
+    return;
+  }
+
+  // Retries and `invoice.payment_succeeded` both lead here; one row per Stripe invoice.
+  if (await PaymentModel.exists({ reference: invoice.id })) return;
+
+  const customerId = stripeId(invoice.customer);
+  const sub = await findSubscription(stripeSubId, details?.metadata, customerId);
+  if (!sub) throw new Error(`No subscription for Stripe invoice ${invoice.id} (${stripeSubId})`);
+
+  // The $0 invoice Stripe issues when a trial starts is not revenue and would
+  // only be a line of noise in the mosque's history.
+  if (invoice.total > 0) {
+    const lines: InvoiceLine[] = invoice.lines.data.map((l) => {
+      const quantity = l.quantity ?? 1;
+      return {
+        description: l.description ?? `M'Ensemble — ${sub.interval}`,
+        quantity,
+        unitCents: quantity > 0 ? Math.round(l.amount / quantity) : l.amount,
+        amountCents: l.amount,
+      };
+    });
+    const taxCents = (invoice.total_taxes ?? []).reduce((sum, t) => sum + t.amount, 0);
+    const paidAt = unixToDate(invoice.status_transitions?.paid_at) ?? new Date();
+
+    const row = await insertInvoice({
+      kind: 'subscription',
+      mosqueId: sub.mosqueId,
+      sourceId: sub._id,
+      status: 'paid',
+      currency: invoice.currency.toUpperCase(),
+      lines,
+      subtotalCents: invoice.subtotal,
+      taxCents,
+      totalCents: invoice.total,
+      paidCents: invoice.amount_paid,
+      issuedAt: unixToDate(invoice.created) ?? paidAt,
+      dueAt: unixToDate(invoice.due_date) ?? paidAt,
+      paidAt,
+      note: `Stripe invoice ${invoice.id}`,
+      createdBy: STRIPE_ACTOR,
+    });
+
+    await PaymentModel.create({
+      _id: newId(),
+      invoiceId: row._id,
+      amountCents: invoice.amount_paid,
+      currency: row.currency,
+      method: 'card',
+      reference: invoice.id,
+      receivedAt: paidAt,
+      recordedBy: STRIPE_ACTOR,
+      createdAt: new Date(),
+    });
+  }
+
+  const period = invoice.lines.data.find((l) => l.period)?.period;
+  sub.status = 'active';
+  if (period) {
+    sub.currentPeriodStart = new Date(period.start * 1000);
+    sub.currentPeriodEnd = new Date(period.end * 1000);
+  }
+  sub.externalRef = stripeSubId;
+  sub.collectionMethod = 'stripe';
+  if (customerId) sub.stripeCustomerId = customerId;
+  sub.lastStripeInvoiceStatus = 'paid';
+  sub.cancelledAt = undefined;
+  sub.updatedAt = new Date();
+  await sub.save();
+}
+
+async function onInvoicePaymentFailed(invoice: Stripe.Invoice): Promise<void> {
+  const details = invoice.parent?.subscription_details;
+  const stripeSubId = stripeId(details?.subscription);
+  if (!stripeSubId) return;
+
+  const sub = await findSubscription(stripeSubId, details?.metadata, stripeId(invoice.customer));
+  if (!sub) throw new Error(`No subscription for failed Stripe invoice ${invoice.id}`);
+
+  sub.status = 'past_due';
+  sub.lastStripeInvoiceStatus = 'open';
+  sub.updatedAt = new Date();
+  await sub.save();
+
+  const mosque = await MosqueModel.findById(sub.mosqueId);
+  if (mosque) await emailPaymentFailed(mosque, invoice.amount_due);
+}
+
+async function onSubscriptionUpdated(stripeSub: Stripe.Subscription): Promise<void> {
+  const sub = await findSubscription(stripeSub.id, stripeSub.metadata, stripeId(stripeSub.customer));
+  if (!sub) throw new Error(`No subscription for Stripe subscription ${stripeSub.id}`);
+  applyStripeSubscription(sub, stripeSub);
+  await sub.save();
+}
+
+async function onSubscriptionDeleted(stripeSub: Stripe.Subscription): Promise<void> {
+  const sub = await findSubscription(stripeSub.id, stripeSub.metadata, stripeId(stripeSub.customer));
+  if (!sub) throw new Error(`No subscription for Stripe subscription ${stripeSub.id}`);
+  sub.status = 'cancelled';
+  sub.cancelledAt = unixToDate(stripeSub.canceled_at) ?? new Date();
+  sub.updatedAt = new Date();
+  await sub.save();
+}
+
+async function onAccountUpdated(account: Stripe.Account): Promise<void> {
+  const mosque = await MosqueModel.findOne({ stripeAccountId: account.id });
+  if (!mosque) {
+    // An account we did not create, or one whose mosque was deleted. Not ours
+    // to worry about, and not worth a retry.
+    logger.warn({ accountId: account.id }, '[stripe] account.updated for unknown account');
+    return;
+  }
+  applyAccountStatus(mosque, account);
+  await mosque.save();
+}
+
+async function onChargeRefunded(charge: Stripe.Charge): Promise<void> {
+  const paymentIntentId = stripeId(charge.payment_intent);
+  if (!paymentIntentId) return;
+  const donation = await DonationModel.findOne({ stripePaymentIntentId: paymentIntentId });
+  if (!donation) return; // a subscription charge — Stripe's own invoice reflects it
+
+  if (charge.refunded) {
+    donation.status = 'refunded';
+  } else {
+    donation.note = `Partially refunded: ${formatMoney(charge.amount_refunded)} CAD`;
+  }
+  await donation.save();
+}
+
+// ─── Stripe: the emails ─────────────────────────────────────────────────────
+
+async function emailDonationReceipt(
+  donation: DonationDocument,
+  mosque: MosqueDocument,
+  to: string,
+): Promise<void> {
+  const amount = `${formatMoney(donation.amountCents)} CAD`;
+  const date = donation.createdAt.toISOString().slice(0, 10);
+  const body = renderEmail(
+    `Merci pour votre don / Thank you for your donation`,
+    [
+      `Votre don de ${amount} à ${mosque.name} a été reçu le ${date}. Que Dieu vous récompense.`,
+      `Ce courriel confirme le paiement. Le reçu officiel aux fins d’impôt, s’il y a lieu, est délivré par la mosquée elle-même.`,
+      `— English —`,
+      `Your donation of ${amount} to ${mosque.name} was received on ${date}. May God reward you.`,
+      `This email confirms the payment. An official tax receipt, where applicable, is issued by the mosque itself.`,
+      ...(donation.message ? [`Votre message / Your message: “${donation.message}”`] : []),
+    ],
+    'fr',
+  );
+  await sendEmail({ to, subject: `Reçu — don à ${mosque.name} / Donation receipt`, ...body });
+}
+
+async function emailPaymentFailed(mosque: MosqueDocument, amountDueCents: number): Promise<void> {
+  const amount = `${formatMoney(amountDueCents)} CAD`;
+  const body = renderEmail(
+    `${mosque.name} — paiement refusé / payment failed`,
+    [
+      `Le paiement de ${amount} pour l’abonnement M’Ensemble de ${mosque.name} n’a pas abouti. Stripe réessaiera dans les prochains jours; si la carte a changé, répondez à ce courriel et nous vous enverrons un lien pour la mettre à jour.`,
+      `— English —`,
+      `The ${amount} payment for ${mosque.name}’s M’Ensemble subscription did not go through. Stripe will retry over the next few days; if the card has changed, reply to this email and we will send a link to update it.`,
+    ],
+    'fr',
+  );
+  for (const user of await coordinatorsOf(mosque._id)) {
+    await sendEmail({
+      to: user.email,
+      subject: `${mosque.name} — paiement refusé / payment failed`,
+      ...body,
+    });
+  }
 }
 
 // ─── The billing screen's numbers ───────────────────────────────────────────

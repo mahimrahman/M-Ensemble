@@ -18,7 +18,8 @@
 
 import mongoose from 'mongoose';
 import { connectDatabase, disconnectDatabase } from '../config/db.js';
-import { env } from '../config/env.js';
+import { env, isProduction } from '../config/env.js';
+import { logger } from '../utils/logger.js';
 import { clearAll, seedAll, syncAllIndexes } from './seedData.js';
 import { UserModel } from '../models/index.js';
 import { mockUsers } from '../shared.js';
@@ -47,46 +48,57 @@ async function confirm(question: string): Promise<boolean> {
 }
 
 async function main(): Promise<void> {
+  // The fixtures are demo content with published passwords. Writing them into
+  // a production database is almost always a mistyped environment, so it takes
+  // an explicit opt-in — and `--reset` there deletes every real account.
+  if (isProduction && !env.ALLOW_SEED_IN_PRODUCTION) {
+    logger.error(
+      '[seed] refusing to run with NODE_ENV=production. The fixtures are demo accounts with known passwords. ' +
+        'If you really mean to seed this database, set ALLOW_SEED_IN_PRODUCTION=true for this one run.',
+    );
+    process.exit(1);
+  }
+
   await connectDatabase();
-  console.log(`[seed] writing to "${mongoose.connection.name}"`);
+  logger.info(`[seed] writing to "${mongoose.connection.name}"`);
 
   await syncAllIndexes();
 
   if (reset) {
     const real = await countRealAccounts();
-    console.log(`[seed] --reset will DELETE everything, including ${real} real account(s).`);
+    logger.info(`[seed] --reset will DELETE everything, including ${real} real account(s).`);
 
     if (!force && !(await confirm('[seed] type "yes" to continue: '))) {
-      console.log('[seed] cancelled, nothing was deleted.');
+      logger.info('[seed] cancelled, nothing was deleted.');
       await disconnectDatabase();
       return;
     }
     await clearAll();
-    console.log('[seed] collections emptied');
+    logger.info('[seed] collections emptied');
   }
 
   const counts = await seedAll();
 
   for (const [collection, rows] of Object.entries(counts)) {
-    console.log(`[seed] ${collection.padEnd(15)} ${rows}`);
+    logger.info(`[seed] ${collection.padEnd(15)} ${rows}`);
   }
 
   // The console's own login. Printed rather than assumed, because the email is
   // configurable and the first thing anyone does after seeding is try to sign
   // in to the dashboard.
-  console.log(`[seed] ${'super admin'.padEnd(15)} ${env.SUPERADMIN_EMAIL}`);
+  logger.info(`[seed] ${'super admin'.padEnd(15)} ${env.SUPERADMIN_EMAIL}`);
 
   if (!reset) {
     const real = await countRealAccounts();
-    if (real > 0) console.log(`[seed] kept ${real} account(s) created outside the fixtures`);
+    if (real > 0) logger.info(`[seed] kept ${real} account(s) created outside the fixtures`);
   }
 
   await disconnectDatabase();
-  console.log('[seed] done');
+  logger.info('[seed] done');
 }
 
 main().catch(async (err) => {
-  console.error('[seed] failed', err);
+  logger.error({ err }, '[seed] failed');
   await disconnectDatabase().catch(() => {});
   process.exit(1);
 });

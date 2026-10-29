@@ -1064,4 +1064,109 @@ export const mockApi: MEnsembleApi = {
     user.pushToken = token;
     return delay(undefined);
   },
+
+  // --- account lifecycle ---
+  // Nothing here sends mail or talks to Stripe. These exist so the mock keeps
+  // satisfying `MEnsembleApi`; the oracle never exercises them.
+
+  async forgotPassword() {
+    // Resolves whether or not the address exists — same as the server.
+    return delay(undefined);
+  },
+
+  async resetPassword(token) {
+    if (!token) throw new ApiRequestError(API_ERROR.NOT_FOUND, 'Invalid or expired link.', 400);
+    return delay(undefined);
+  },
+
+  async changePassword(currentPassword) {
+    requireUser();
+    if (currentPassword !== MOCK_PASSWORD) {
+      throw new ApiRequestError(API_ERROR.BAD_CREDENTIALS, 'Current password is incorrect.', 401);
+    }
+    return delay(undefined);
+  },
+
+  async verifyEmail(token) {
+    const user = requireUser();
+    if (!token) throw new ApiRequestError(API_ERROR.NOT_FOUND, 'Invalid or expired link.', 400);
+    user.emailVerified = true;
+    return delay(clone(user));
+  },
+
+  async resendVerification() {
+    requireUser();
+    return delay(undefined);
+  },
+
+  async logout() {
+    state.currentUserId = null;
+    return delay(undefined);
+  },
+
+  async deleteAccount(password) {
+    const user = requireUser();
+    if (password !== MOCK_PASSWORD) {
+      throw new ApiRequestError(API_ERROR.BAD_CREDENTIALS, 'Password is incorrect.', 401);
+    }
+    state.users = state.users.filter((u) => u._id !== user._id);
+    state.memberships = state.memberships.filter((m) => m.userId !== user._id);
+    state.follows = state.follows.filter((f) => f.userId !== user._id);
+    state.signups = state.signups.filter((s) => s.userId !== user._id);
+    state.likes = state.likes.filter((l) => l.userId !== user._id);
+    state.currentUserId = null;
+    return delay(undefined);
+  },
+
+  async exportAccount() {
+    const user = requireUser();
+    const now = new Date().toISOString();
+    return delay({
+      exportedAt: now,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        interests: user.interests ?? [],
+        emailVerified: user.emailVerified ?? false,
+        // The fixtures carry no creation date; the server's export does.
+        createdAt: now,
+      },
+      notificationPrefs: { ...state.prefs },
+      memberships: state.memberships
+        .filter((m) => m.userId === user._id)
+        .map((m) => ({ mosqueId: m.mosqueId, role: m.role, createdAt: now })),
+      follows: state.follows
+        .filter((f) => f.userId === user._id)
+        .map((f) => ({ mosqueId: f.mosqueId, createdAt: now })),
+      signups: state.signups
+        .filter((s) => s.userId === user._id)
+        .map((s) => ({ postId: s.postId, status: s.status, checkedInAt: s.checkedInAt })),
+      likes: state.likes
+        .filter((l) => l.userId === user._id)
+        .map((l) => ({ postId: l.postId, createdAt: now })),
+      notifications: state.notifications
+        .filter((n) => n.userId === user._id)
+        .map((n) => ({ title: n.title, body: n.body, createdAt: n.createdAt, readAt: n.readAt })),
+      donations: [],
+    });
+  },
+
+  async getLegalDocument(kind, lang) {
+    return delay({
+      kind,
+      lang,
+      title: kind === 'privacy' ? 'Privacy Policy' : 'Terms of Service',
+      body: '# Placeholder\n\nThe real text is served by the API.',
+      effectiveAt: '2026-01-01',
+      version: '0',
+    });
+  },
+
+  // --- donations ---
+  async createDonationCheckout(mosqueId) {
+    requireUser();
+    requireMosque(mosqueId);
+    return delay({ url: 'https://checkout.stripe.com/mock' });
+  },
 };

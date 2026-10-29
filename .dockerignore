@@ -1,0 +1,36 @@
+# Both images build with the repo root as context (they need packages/shared),
+# so one ignore file serves both. apps/server/Dockerfile and apps/admin/Dockerfile.
+#
+# Secrets and anything already installed or generated stay out — the Dockerfile
+# installs its own node_modules, and a laptop's `.env` must never end up in a
+# layer that gets pushed to a registry.
+
+**/node_modules
+**/dist
+**/build
+**/.expo
+**/coverage
+**/*.tsbuildinfo
+**/.env
+**/.env.*
+!**/.env.example
+
+# Runtime artefacts.
+apps/server/uploads
+apps/server/tests/.uploads
+apps/server/tests/.smoke-uploads
+
+# Not needed to run anything.
+.git
+.github
+.vscode
+.idea
+docs
+infra
+splash_screens
+event posters
+*.md
+database.json
+logo.png
+apps/mobile/**
+!apps/mobile/package.json

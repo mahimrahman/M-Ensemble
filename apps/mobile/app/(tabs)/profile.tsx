@@ -20,7 +20,17 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { Alert } from '@/lib/alert';
 import { api } from '@/api/client';
-import { Button, Card, Chip, GradientHeader, LangSwitcher, Loading, Screen } from '@/components';
+import {
+  AccountCard,
+  Button,
+  Card,
+  Chip,
+  ErrorState,
+  GradientHeader,
+  LangSwitcher,
+  Loading,
+  Screen,
+} from '@/components';
 import { useApi } from '@/hooks/useApi';
 import { useLang } from '@/i18n';
 import { INTEREST_OPTIONS, interestLabel } from '@/lib/interests';
@@ -174,6 +184,12 @@ export default function ProfileScreen() {
           <Text style={[font(styles.cardTitle), align]}>{t.followedMosques}</Text>
           {followed.loading ? (
             <Loading variant="inline" />
+          ) : !followed.data && followed.error ? (
+            <ErrorState
+              variant="inline"
+              message={followed.error}
+              onRetry={() => void followed.reload()}
+            />
           ) : (followed.data ?? []).length === 0 ? (
             <Pressable
               onPress={() => {
@@ -213,6 +229,9 @@ export default function ProfileScreen() {
             ))
           )}
         </Card>
+
+        {/* ── Account: password, data, legal, deletion ── */}
+        <AccountCard />
 
         {/* ── Sign out ── */}
         {/* Same label and same confirmation as the coordinator shell. */}

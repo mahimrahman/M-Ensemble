@@ -55,6 +55,116 @@ const CATEGORIES: TicketCategory[] = [
 
 const PRIORITIES: TicketPriority[] = ['low', 'normal', 'high', 'urgent'];
 
+const HOUR = 3_600_000;
+
+/**
+ * The first thing we said back on a ticket, if anything.
+ *
+ * "Staff reply" means a public message from the platform side by somebody other
+ * than whoever wrote the opening message — so a ticket we opened on a caller's
+ * behalf does not count as answered the instant it exists, and an internal note
+ * does not count because the reporter never saw it.
+ */
+function firstReplyAt(ticket: SupportTicket): number | undefined {
+  const opener = ticket.messages[0]?.authorId;
+  const reply = ticket.messages.find((m) => m.fromStaff && !m.internal && m.authorId !== opener);
+  return reply ? new Date(reply.createdAt).getTime() : undefined;
+}
+
+/**
+ * One business day after `start`: 24 clock hours, with the weekend skipped.
+ *
+ * A ticket opened Friday afternoon is due Monday afternoon, not Saturday. One
+ * opened on the weekend starts its clock Monday morning. Statutory holidays are
+ * not modelled — the inbox is answered on most of them anyway.
+ */
+function oneBusinessDayAfter(start: number): number {
+  const from = new Date(start);
+  // Saturday (6) → Monday; Sunday (0) → Monday. Clock starts at midnight.
+  if (from.getDay() === 6 || from.getDay() === 0) {
+    from.setDate(from.getDate() + (from.getDay() === 6 ? 2 : 1));
+    from.setHours(0, 0, 0, 0);
+  }
+  const due = new Date(from.getTime() + 24 * HOUR);
+  if (due.getDay() === 6) due.setDate(due.getDate() + 2);
+  else if (due.getDay() === 0) due.setDate(due.getDate() + 1);
+  return due.getTime();
+}
+
+function median(values: number[]): number | undefined {
+  if (!values.length) return undefined;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid]! : (sorted[mid - 1]! + sorted[mid]!) / 2;
+}
+
+/** "2h", "3.5h", "2d" — a duration at the precision a glance needs. */
+function hours(ms: number): string {
+  const h = ms / HOUR;
+  if (h < 1) return `${Math.max(1, Math.round(h * 60))}m`;
+  if (h < 48) return `${h < 10 ? h.toFixed(1) : Math.round(h)}h`;
+  return `${(h / 24).toFixed(1)}d`;
+}
+
+/**
+ * How quickly we are answering, worked out from the tickets on screen.
+ *
+ * Client-side on purpose: the server's stats endpoint reports resolution, which
+ * is the end of the story, and what a support lead actually watches is the
+ * beginning — how long somebody waited before anyone said anything. Computing
+ * it from the loaded page keeps it honest about what it covers (the filters
+ * above apply) and costs no endpoint while the shape of the question settles.
+ */
+function ResponseTimeTiles({ tickets }: { tickets: SupportTicket[] }): React.JSX.Element {
+  const now = Date.now();
+
+  const waits: number[] = [];
+  let decided = 0;
+  let onTime = 0;
+  let stale = 0;
+
+  for (const ticket of tickets) {
+    const opened = new Date(ticket.createdAt).getTime();
+    const replied = firstReplyAt(ticket);
+    const due = oneBusinessDayAfter(opened);
+
+    if (replied !== undefined) {
+      waits.push(replied - opened);
+      decided += 1;
+      if (replied <= due) onTime += 1;
+    } else if (now > due) {
+      // Unanswered and past due is a miss. Unanswered and still inside the
+      // window is undecided, and is left out rather than counted either way.
+      decided += 1;
+    }
+
+    if (ticket.status === 'open' && now - opened > 48 * HOUR) stale += 1;
+  }
+
+  const med = median(waits);
+
+  return (
+    <div className="grid cols-3">
+      <StatTile
+        label="Median time to first reply"
+        value={med === undefined ? '—' : hours(med)}
+        deltaLabel={waits.length ? `across ${waits.length} answered` : 'nothing answered yet'}
+      />
+      <StatTile
+        label="Answered within 1 business day"
+        value={decided ? `${Math.round((onTime / decided) * 100)}%` : '—'}
+        deltaLabel={decided ? `${onTime} of ${decided} due so far` : 'none due yet'}
+      />
+      <StatTile
+        label="Open more than 48h"
+        value={String(stale)}
+        deltaLabel="still waiting on us"
+        tone="down-good"
+      />
+    </div>
+  );
+}
+
 export function Support(): React.JSX.Element {
   const navigate = useNavigate();
   const stats = useAsync(() => api.supportStats(), []);
@@ -111,6 +221,16 @@ export function Support(): React.JSX.Element {
             </div>
           )}
         </Async>
+
+        {state.data && (
+          <>
+            <ResponseTimeTiles tickets={state.data.items} />
+            <p className="muted" style={{ fontSize: 12.5, margin: '-8px 0 0' }}>
+              Response time is worked out from the tickets listed below — change the filters to
+              change the sample.
+            </p>
+          </>
+        )}
 
         <Card padded={false}>
           <div className="toolbar">

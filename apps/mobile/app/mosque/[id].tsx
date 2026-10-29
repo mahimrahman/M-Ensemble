@@ -10,6 +10,7 @@ import {
   CalendarDays,
   Check,
   Globe,
+  HandHeart,
   KeyRound,
   MapPin,
   Navigation,
@@ -199,6 +200,20 @@ export default function MosqueScreen() {
               onPress={openDirections}
             />
           </View>
+
+          {/* Only once the mosque has a payout account: a Donate button that
+              ends in "not set up yet" would cost more goodwill than it earns. */}
+          {m.donationsEnabled ? (
+            <Button
+              label={t.donate}
+              icon={HandHeart}
+              variant="secondary"
+              size="lg"
+              onPress={() =>
+                router.push({ pathname: '/donate/[mosqueId]', params: { mosqueId: m._id } })
+              }
+            />
+          ) : null}
 
           {/* The mosque in its own words. Every field is optional, so each
               section disappears rather than rendering an empty heading. */}

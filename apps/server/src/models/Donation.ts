@@ -5,10 +5,11 @@ import { contractJson } from '../utils/serialize.js';
 /**
  * Money passing through us to a mosque, with our fee split out.
  *
- * **Recorded, not processed.** Nothing charges a card here — rows are entered
- * or imported by a super admin and moved through `status` by hand. When a
- * processor is connected it writes the same rows, which is why `reference` and
- * `method` already exist.
+ * Two ways a row gets here. A super admin records or imports one by hand and
+ * moves `status` themselves; or a member pays through Stripe Checkout, which
+ * writes a `pending` row with `method: 'card'` and the webhook settles it. The
+ * Stripe ids are server-only — a donor's receipt names the mosque and the
+ * amount, never a payment intent.
  *
  * `feeCents` and `netCents` are both stored even though either could be
  * derived from the other. A fee schedule that changes next quarter must not
@@ -17,6 +18,11 @@ import { contractJson } from '../utils/serialize.js';
 export interface DonationRecord extends Omit<Donation, 'payoutAt' | 'createdAt'> {
   payoutAt?: Date;
   createdAt: Date;
+  stripeCheckoutSessionId?: string;
+  stripePaymentIntentId?: string;
+  stripeTransferId?: string;
+  /** What the donor typed for the mosque. Short, optional. */
+  message?: string;
 }
 
 const donationSchema = new Schema<DonationRecord>(
@@ -46,14 +52,21 @@ const donationSchema = new Schema<DonationRecord>(
     reference: { type: String },
     payoutAt: { type: Date },
     note: { type: String },
+    message: { type: String, trim: true },
+    stripeCheckoutSessionId: { type: String },
+    stripePaymentIntentId: { type: String },
+    stripeTransferId: { type: String },
     createdAt: { type: Date, required: true },
   },
-  contractJson(),
+  contractJson(['stripeCheckoutSessionId', 'stripePaymentIntentId', 'stripeTransferId']),
 );
 
 donationSchema.index({ mosqueId: 1, createdAt: -1 });
 // "What came in this month, and what do we owe out" — both read this.
 donationSchema.index({ status: 1, createdAt: -1 });
+// The webhook finds the row by the session that paid it, or the charge refunded.
+donationSchema.index({ stripeCheckoutSessionId: 1 });
+donationSchema.index({ stripePaymentIntentId: 1 });
 
 export type DonationDocument = HydratedDocument<DonationRecord>;
 export const DonationModel = model<DonationRecord>('Donation', donationSchema);

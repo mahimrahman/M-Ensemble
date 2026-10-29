@@ -1,0 +1,26 @@
+# Caddy in front of the two containers in docker-compose.prod.yml.
+# Hostnames come from the environment so the same file serves staging.
+
+{
+	email {$ACME_EMAIL}
+}
+
+# The API: the mobile app and Stripe talk to this host directly.
+{$API_HOST} {
+	encode zstd gzip
+	reverse_proxy api:4000 {
+		# The API sits behind this proxy; express-rate-limit keys on the
+		# forwarded address, so it has to be the real one.
+		header_up X-Forwarded-For {remote_host}
+	}
+}
+
+# The console. nginx inside the admin image proxies /api to the API itself,
+# so the console is one origin and needs no CORS entry.
+{$ADMIN_HOST} {
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	}
+	reverse_proxy admin:80
+}

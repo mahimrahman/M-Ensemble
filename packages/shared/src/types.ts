@@ -65,6 +65,12 @@ export interface User {
   email: string;
   interests: string[];
   pushToken?: string;
+  /**
+   * Whether the address has been confirmed by clicking the link we sent. The
+   * app nags until it is; nothing is locked behind it except password reset
+   * going to a verified address.
+   */
+  emailVerified?: boolean;
 }
 
 export interface PrayerConfig {
@@ -98,6 +104,12 @@ export interface Mosque {
    * it rather than pretend the app is the whole story. See `./social`.
    */
   social?: MosqueSocial;
+  /**
+   * True once the mosque has a payout account that can take charges. The
+   * donate button shows only when this is set; the Stripe account id itself
+   * never leaves the server.
+   */
+  donationsEnabled?: boolean;
 }
 
 /** One meeting of a multi-session post (a class that runs six Saturdays). */

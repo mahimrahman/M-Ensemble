@@ -6,6 +6,7 @@ import { MosqueModel } from '../models/Mosque.js';
 import { PostModel } from '../models/Post.js';
 import { SignupModel } from '../models/Signup.js';
 import { currentUser } from '../middleware/requireAuth.js';
+import { deleteAccount, exportAccount } from '../services/account.service.js';
 import { myLikedPostIds } from '../services/like.service.js';
 import { buildFeed, markAllRead } from '../services/notification.service.js';
 import { buildReliability } from '../services/reliability.service.js';
@@ -26,6 +27,17 @@ export async function patchMe(req: Request, res: Response): Promise<void> {
 
   await user.save();
   ok(res, user.toJSON());
+}
+
+/** `DELETE /me` with the password in the body. The token is dead on return. */
+export async function deleteMe(req: Request, res: Response): Promise<void> {
+  await deleteAccount(currentUser(req), (req.body as { password: string }).password);
+  okNull(res);
+}
+
+/** Everything we hold on the caller, as one JSON document. */
+export async function exportMe(req: Request, res: Response): Promise<void> {
+  ok(res, await exportAccount(currentUser(req)));
 }
 
 /** Mosques the user follows. Roles have nothing to do with it. */
